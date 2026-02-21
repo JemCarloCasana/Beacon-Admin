@@ -1,0 +1,177 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Beacon - Public Safety Dashboard Design System
+   Clean Professional Theme with Emergency Services accents
+   All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* Base colors - Clean light professional */
+    --background: 210 20% 98%;
+    --foreground: 222 47% 11%;
+
+    /* Card surfaces */
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    /* Popover/Dropdown */
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Primary - Deep blue for authority/trust */
+    --primary: 221 83% 53%;
+    --primary-foreground: 210 40% 98%;
+
+    /* Secondary - Slate for neutral actions */
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+
+    /* Muted - Subtle backgrounds */
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    /* Accent - Light blue highlight */
+    --accent: 210 100% 96%;
+    --accent-foreground: 221 83% 53%;
+
+    /* Destructive - Emergency red */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Form elements */
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 221 83% 53%;
+
+    --radius: 0.5rem;
+
+    /* Status colors */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 0%;
+    
+    --caution: 45 93% 47%;
+    --caution-foreground: 0 0% 0%;
+    
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
+
+    /* SOS/Emergency specific */
+    --emergency: 0 84% 60%;
+    --emergency-foreground: 0 0% 100%;
+    --emergency-pulse: 0 84% 50%;
+
+    /* Sidebar */
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 210 40% 96%;
+    --sidebar-primary: 221 83% 53%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent-foreground: 210 40% 96%;
+    --sidebar-border: 217 33% 17%;
+    --sidebar-ring: 221 83% 53%;
+  }
+
+  .dark {
+    /* Dark mode - Command center aesthetic */
+    --background: 222 47% 6%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 47% 8%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 8%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 6%;
+
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 217 33% 17%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 217 91% 60%;
+
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 0%;
+    
+    --caution: 45 93% 47%;
+    --caution-foreground: 0 0% 0%;
+    
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
+
+    --emergency: 0 84% 60%;
+    --emergency-foreground: 0 0% 100%;
+    --emergency-pulse: 0 84% 50%;
+
+    --sidebar-background: 222 47% 4%;
+    --sidebar-foreground: 210 40% 96%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 33% 12%;
+    --sidebar-accent-foreground: 210 40% 96%;
+    --sidebar-border: 217 33% 12%;
+    --sidebar-ring: 217 91% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer utilities {
+  /* Emergency pulse animation for SOS */
+  .pulse-emergency {
+    animation: pulse-emergency 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse-emergency {
+    0%, 100% {
+      box-shadow: 0 0 0 0 hsl(var(--emergency) / 0.7);
+    }
+    50% {
+      box-shadow: 0 0 0 12px hsl(var(--emergency) / 0);
+    }
+  }
+
+  /* Status indicator dot */
+  .status-dot {
+    @apply w-2 h-2 rounded-full;
+  }
+
+  .status-dot-active {
+    @apply bg-success;
+    animation: status-blink 1s ease-in-out infinite;
+  }
+
+  @keyframes status-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+}
