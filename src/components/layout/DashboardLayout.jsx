@@ -6,26 +6,24 @@ import { Sheet, SheetContent } from '@/components/ui/sheet';
 /**
  * DashboardLayout Component
  * 
- * Main layout wrapper that passes authentication state down to nested components.
+ * Main layout wrapper for dashboard pages.
  * 
  * @param {Object} children - Child components to render
- * @param {Object} me - User object from /admin/me endpoint with permissions
- * @param {boolean} meLoading - Whether user/permissions are still being fetched
  */
-export function DashboardLayout({ children, me, meLoading }) {
+export function DashboardLayout({ children }) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     return (
         <div className="flex h-screen overflow-hidden bg-[#F8FAFC]">
             {/* Desktop Sidebar */}
             <div className="hidden lg:block">
-                <Sidebar me={me} meLoading={meLoading} />
+                <Sidebar />
             </div>
 
             {/* Mobile Sidebar */}
             <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
                 <SheetContent side="left" className="w-64 p-0">
-                    <Sidebar me={me} meLoading={meLoading} />
+                    <Sidebar />
                 </SheetContent>
             </Sheet>
 
@@ -41,4 +39,3 @@ export function DashboardLayout({ children, me, meLoading }) {
         </div>
     );
 }
-
