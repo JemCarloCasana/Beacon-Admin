@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchAdminMe, clearSession } from "@/api/adminMe";
 
@@ -35,7 +35,35 @@ export function AdminAuthProvider({ children }) {
     };
   }, [navigate]);
 
-  const permissions = useMemo(() => me?.permissions || [], [me]);
+  const role = useMemo(() => String(me?.role || "").toLowerCase(), [me]);
+  const permissions = useMemo(() => {
+    const basePermissions = Array.isArray(me?.permissions) ? me.permissions : [];
+
+    if (role !== "admin") return basePermissions;
+
+    return Array.from(
+      new Set([
+        ...basePermissions,
+        "manage_admins",
+        "manage_users",
+        "manage_incidents",
+        "view_incidents",
+      ])
+    );
+  }, [me, role]);
+
+  const refreshMe = useCallback(async () => {
+    try {
+      const data = await fetchAdminMe();
+      setMe(data);
+      return data;
+    } catch (e) {
+      clearSession();
+      setMe(null);
+      navigate("/", { replace: true });
+      throw e;
+    }
+  }, [navigate]);
 
   const value = useMemo(
     () => ({
@@ -43,15 +71,17 @@ export function AdminAuthProvider({ children }) {
       setMe,
       loading,
       permissions,
+      role,
+      refreshMe,
       // helpers
-      hasPermission: (p) => permissions.includes(p),
+      hasPermission: (p) => (role === "admin" ? true : permissions.includes(p)),
       logout: () => {
         clearSession();
         setMe(null);
         navigate("/", { replace: true });
       },
     }),
-    [me, loading, permissions, navigate]
+    [me, loading, permissions, role, navigate, refreshMe]
   );
 
   return <AdminAuthContext.Provider value={value}>{children}</AdminAuthContext.Provider>;

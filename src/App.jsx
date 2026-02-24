@@ -12,6 +12,7 @@ import LiveSOS from "./pages/LiveSOS";
 import SafetyAlerts from "./pages/SafetyAlerts";
 import MapView from "./pages/MapView";
 import Users from "./pages/Users";
+import AdminRequests from "./pages/AdminRequests";
 import Reports from "./pages/Reports";
 import NotFound from "./pages/NotFound";
 
@@ -85,6 +86,15 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <Reports />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin-requests"
+            element={
+              <ProtectedRoute requiredPermission="manage_admins">
+                <AdminRequests />
               </ProtectedRoute>
             }
           />

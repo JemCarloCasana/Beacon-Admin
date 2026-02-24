@@ -13,7 +13,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Plus, AlertCircle } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Search, Plus, AlertCircle, ChevronDown } from "lucide-react";
 
 const UsersSkeleton = () => (
   <div className="space-y-3">
@@ -36,6 +42,7 @@ export default function UsersView({
   users,
   usersLoading,
   usersError,
+  sendingAdminRequestId,
   actions,
 }) {
   return (
@@ -92,6 +99,7 @@ export default function UsersView({
                     <TableRow>
                       <TableHead>User</TableHead>
                       <TableHead>Email</TableHead>
+                      <TableHead>Role</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -114,10 +122,37 @@ export default function UsersView({
                           </div>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">{user.email}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground capitalize">
+                          {user.role || "personnel"}
+                        </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="sm">
-                            View
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                Actions
+                                <ChevronDown className="ml-2 h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {user.role?.toLowerCase() !== "admin" && (
+                                <DropdownMenuItem
+                                  onClick={() => actions.onSendAdminRequest?.(user)}
+                                  disabled={sendingAdminRequestId === user.id}
+                                >
+                                  {sendingAdminRequestId === user.id ? "Sending..." : "Send Admin Request"}
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem onClick={() => actions.onEditUser?.(user)}>
+                                Edit User
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => actions.onDeleteUser?.(user)}
+                              >
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -131,4 +166,3 @@ export default function UsersView({
     </DashboardLayout>
   );
 }
-

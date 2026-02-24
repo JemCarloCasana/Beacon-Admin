@@ -13,11 +13,22 @@ export async function fetchAdminMe() {
   const token = getToken();
   if (!token) throw new Error("NO_TOKEN");
 
-  const res = await fetch(`${API_BASE}/admin/me`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const requestOptions = {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Cache-Control": "no-cache",
+      Pragma: "no-cache",
+    },
+    cache: "no-store",
+  };
 
-  const data = await res.json().catch(() => ({}));
+  let res = await fetch(`${API_BASE}/admin/me`, requestOptions);
+  let data = await res.json().catch(() => ({}));
+
+  if (res.status === 304) {
+    res = await fetch(`${API_BASE}/admin/me?_=${Date.now()}`, requestOptions);
+    data = await res.json().catch(() => ({}));
+  }
 
   if (res.status === 401) {
     clearSession();

@@ -76,10 +76,10 @@ export const NAV_ITEMS = [
       { path: "/map", label: "Map View", icon: "Map" },
       { path: "/reports", label: "Reports", icon: "FileText" },
 
-      // ✅ Admin-only: Personnel management
+      // Admin-only: Manage users
       {
         path: "/personnel",
-        label: "Personnel",
+        label: "Manage Users",
         icon: "Users",
         requiredPermission: "manage_users",
       },

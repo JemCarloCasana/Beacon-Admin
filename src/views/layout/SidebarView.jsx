@@ -7,6 +7,7 @@ import {
   Radio,
   Map,
   Users,
+  UserCog,
   FileText,
   Shield,
   Activity,
@@ -18,6 +19,7 @@ const iconMap = {
   Radio,
   Map,
   Users,
+  UserCog,
   FileText,
   Activity,
 };
@@ -92,4 +94,3 @@ export default function SidebarView({ pathname, visibleNavItems, profile }) {
     </aside>
   );
 }
-

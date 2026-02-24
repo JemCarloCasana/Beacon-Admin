@@ -6,16 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 import { adminLogin, adminSignup } from "@/api/adminAuth";
 
 export default function Auth() {
   const navigate = useNavigate();
 
   const [tab, setTab] = useState("signin");
-
-  // Role selection (register only)
-  const [selectedRole, setSelectedRole] = useState("personnel");
 
   // Sign in fields
   const [loginEmail, setLoginEmail] = useState("");
@@ -86,7 +82,7 @@ export default function Auth() {
         full_name: regFullName.trim(),
         email: regEmail.trim(),
         password: regPassword,
-        role: selectedRole, // "admin" or "personnel"
+        role: "personnel",
       });
       saveSessionAndGo({ admin, token });
     } catch (err) {
@@ -238,44 +234,11 @@ export default function Auth() {
                 )}
 
                 <form onSubmit={handleRegister} className="space-y-5">
-                  {/* Role Selection */}
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-[#2563EB] uppercase tracking-widest px-1">
-                      Select Organization Role
-                    </label>
-                    <div className="grid grid-cols-2 gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedRole("personnel")}
-                        className={cn(
-                          "flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all gap-1.5",
-                          selectedRole === "personnel"
-                            ? "border-[#2563EB] bg-blue-50/50"
-                            : "border-slate-100 bg-white hover:border-slate-200"
-                        )}
-                      >
-                        <Users className={cn("h-5 w-5", selectedRole === "personnel" ? "text-[#2563EB]" : "text-slate-400")} />
-                        <span className={cn("text-[9px] font-black uppercase tracking-widest", selectedRole === "personnel" ? "text-[#2563EB]" : "text-slate-400")}>
-                          Personnel
-                        </span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setSelectedRole("admin")}
-                        className={cn(
-                          "flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all gap-1.5",
-                          selectedRole === "admin"
-                            ? "border-[#2563EB] bg-blue-50/50"
-                            : "border-slate-100 bg-white hover:border-slate-200"
-                        )}
-                      >
-                        <Shield className={cn("h-5 w-5", selectedRole === "admin" ? "text-[#2563EB]" : "text-slate-400")} />
-                        <span className={cn("text-[9px] font-black uppercase tracking-widest", selectedRole === "admin" ? "text-[#2563EB]" : "text-slate-400")}>
-                          Admin
-                        </span>
-                      </button>
-                    </div>
+                  <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-3">
+                    <p className="text-[10px] font-semibold text-blue-700">
+                      Registration creates a <span className="font-black uppercase tracking-wide">Personnel</span> account only.
+                      Admin access is invite-only and must be sent by an existing admin after account creation.
+                    </p>
                   </div>
 
                   {/* Full Name */}

@@ -4,7 +4,7 @@
  * Usage:
  * import { apiGet, apiPost, apiPatch, apiDelete } from '@/services';
  * 
- * const data = await apiGet('/admin/users');
+ * const data = await apiGet('/admin/admins');
  */
 
 export {

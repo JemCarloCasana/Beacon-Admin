@@ -14,3 +14,9 @@ export {
   useDispatchSOS,
   useAcknowledgeSOS,
 } from './useSosAPI';
+export { useNotifications, useMarkNotificationRead } from './useNotifications';
+export {
+  useAdminRequests,
+  useAcceptAdminRequest,
+  useRejectAdminRequest,
+} from './useAdminRequests';
