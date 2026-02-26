@@ -6,6 +6,14 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -19,7 +27,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, Plus, AlertCircle, ChevronDown } from "lucide-react";
+import { Search, AlertCircle, ChevronDown } from "lucide-react";
 
 const UsersSkeleton = () => (
   <div className="space-y-3">
@@ -43,6 +51,10 @@ export default function UsersView({
   usersLoading,
   usersError,
   sendingAdminRequestId,
+  deletingUserId,
+  editingUserId,
+  isEditDialogOpen,
+  editForm,
   actions,
 }) {
   return (
@@ -55,6 +67,53 @@ export default function UsersView({
         </Card>
       ) : (
         <>
+          <Dialog open={isEditDialogOpen} onOpenChange={actions.onEditDialogOpenChange}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit User</DialogTitle>
+                <DialogDescription>
+                  Update the user details below.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Full name</p>
+                  <Input
+                    value={editForm?.full_name || ""}
+                    onChange={(e) => actions.onEditFormChange?.("full_name", e.target.value)}
+                    placeholder="Enter full name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Email</p>
+                  <Input
+                    type="email"
+                    value={editForm?.email || ""}
+                    onChange={(e) => actions.onEditFormChange?.("email", e.target.value)}
+                    placeholder="Enter email"
+                  />
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => actions.onCancelEditUser?.()}
+                  disabled={editingUserId === editForm?.id}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => actions.onSaveEditedUser?.()}
+                  disabled={!editForm?.id || editingUserId === editForm?.id}
+                >
+                  {editingUserId === editForm?.id ? "Saving..." : "Save Changes"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
           <Card className="mb-6">
             <CardContent className="flex items-center gap-4 py-4">
               <div className="relative flex-1">
@@ -66,10 +125,6 @@ export default function UsersView({
                   onChange={(e) => actions.setSearchQuery(e.target.value)}
                 />
               </div>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Add User
-              </Button>
             </CardContent>
           </Card>
 
@@ -142,14 +197,18 @@ export default function UsersView({
                                   {sendingAdminRequestId === user.id ? "Sending..." : "Send Admin Request"}
                                 </DropdownMenuItem>
                               )}
-                              <DropdownMenuItem onClick={() => actions.onEditUser?.(user)}>
-                                Edit User
+                              <DropdownMenuItem
+                                onClick={() => actions.onEditUser?.(user)}
+                                disabled={editingUserId === user.id}
+                              >
+                                {editingUserId === user.id ? "Saving..." : "Edit User"}
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 className="text-destructive focus:text-destructive"
                                 onClick={() => actions.onDeleteUser?.(user)}
+                                disabled={deletingUserId === user.id}
                               >
-                                Delete
+                                {deletingUserId === user.id ? "Deleting..." : "Delete"}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
