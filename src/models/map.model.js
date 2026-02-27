@@ -5,18 +5,27 @@ function toFiniteNumber(value) {
 }
 
 function pickCoordinates(input) {
+  const locationCoords = Array.isArray(input?.location?.coordinates) ? input.location.coordinates : null;
+  const geometryCoords = Array.isArray(input?.geometry?.coordinates) ? input.geometry.coordinates : null;
+
   const lat =
     toFiniteNumber(input?.latest_latitude) ??
+    toFiniteNumber(input?.latest_lat) ??
     toFiniteNumber(input?.latitude) ??
     toFiniteNumber(input?.lat) ??
     toFiniteNumber(input?.location?.latitude) ??
-    toFiniteNumber(input?.location?.lat);
+    toFiniteNumber(input?.location?.lat) ??
+    toFiniteNumber(locationCoords?.[1]) ??
+    toFiniteNumber(geometryCoords?.[1]);
   const lng =
     toFiniteNumber(input?.latest_longitude) ??
+    toFiniteNumber(input?.latest_lng) ??
     toFiniteNumber(input?.longitude) ??
     toFiniteNumber(input?.lng) ??
     toFiniteNumber(input?.location?.longitude) ??
-    toFiniteNumber(input?.location?.lng);
+    toFiniteNumber(input?.location?.lng) ??
+    toFiniteNumber(locationCoords?.[0]) ??
+    toFiniteNumber(geometryCoords?.[0]);
 
   if (lat === null || lng === null) return null;
   return { lat, lng };

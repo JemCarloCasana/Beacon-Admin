@@ -36,6 +36,17 @@ describe("useSosAPI", () => {
     expect(apiGet).toHaveBeenCalledWith("/admin/sos/live-map");
   });
 
+  it("useActiveSOSMap normalizes wrapped payloads", async () => {
+    apiGet.mockResolvedValueOnce({
+      points: [{ sos_id: 1, latest_latitude: 1, latest_longitude: 2 }],
+    });
+    const wrapper = createWrapper();
+    const { result } = renderHook(() => useActiveSOSMap(), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toEqual([{ sos_id: 1, latest_latitude: 1, latest_longitude: 2 }]);
+  });
+
   it("useActiveSOSMap surfaces live-map errors", async () => {
     apiGet.mockRejectedValueOnce(new Error("boom"));
     const wrapper = createWrapper();

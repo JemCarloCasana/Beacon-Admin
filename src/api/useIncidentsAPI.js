@@ -1,6 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPatch } from '@/services/api';
 
+function normalizeIncidentsPayload(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.incidents)) return payload.incidents;
+  if (Array.isArray(payload?.items)) return payload.items;
+  if (Array.isArray(payload?.rows)) return payload.rows;
+  if (Array.isArray(payload?.results)) return payload.results;
+  return [];
+}
+
 /**
  * Hook to fetch all incidents
  * 
@@ -12,7 +22,7 @@ export const useIncidentsAPI = (options = {}) => {
     queryKey: ['incidents'],
     queryFn: async () => {
       const response = await apiGet('/admin/incidents');
-      return response || [];
+      return normalizeIncidentsPayload(response);
     },
     staleTime: 1000 * 60 * 1, // 1 minute (incidents may update frequently)
     gcTime: 1000 * 60 * 5, // 5 minutes
@@ -33,7 +43,7 @@ export const useIncidentsByStatus = (status, options = {}) => {
     queryKey: ['incidents', status],
     queryFn: async () => {
       const response = await apiGet(`/admin/incidents?status=${status}`);
-      return response || [];
+      return normalizeIncidentsPayload(response);
     },
     staleTime: 1000 * 60 * 1,
     gcTime: 1000 * 60 * 5,
@@ -50,12 +60,8 @@ export const useMapIncidents = (options = {}) => {
     queryKey: ['incidents', 'map'],
     queryFn: async () => {
       const response = await apiGet('/admin/incidents');
-      const list = Array.isArray(response) ? response : [];
-      return list.filter((item) => {
-        const lat = Number(item?.latitude ?? item?.lat ?? item?.location?.latitude ?? item?.location?.lat);
-        const lng = Number(item?.longitude ?? item?.lng ?? item?.location?.longitude ?? item?.location?.lng);
-        return Number.isFinite(lat) && Number.isFinite(lng);
-      });
+      // Keep all records and let map marker normalization decide coordinate validity.
+      return normalizeIncidentsPayload(response);
     },
     staleTime: 1000 * 10,
     gcTime: 1000 * 60 * 5,

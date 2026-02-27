@@ -1,3 +1,9 @@
+function toFiniteNumber(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
 export function toSosFeedAlert(item) {
   return {
     id: String(item?.sos_id ?? ""),
@@ -7,8 +13,8 @@ export function toSosFeedAlert(item) {
     userPhone: item?.phone_number || null,
     message: item?.latest_message || null,
     location: {
-      latitude: item?.latest_latitude ?? null,
-      longitude: item?.latest_longitude ?? null,
+      latitude: toFiniteNumber(item?.latest_latitude),
+      longitude: toFiniteNumber(item?.latest_longitude),
       address: item?.latest_address || null,
     },
     raw: item,

@@ -40,15 +40,25 @@ function routeToGeoJson(routePreview) {
 }
 
 export const MapCanvas = forwardRef(function MapCanvas(
-  { markers, selectedMarker, routePreview, onSelectMarker, onCenterChanged },
+  { markers, selectedMarker, routePreview, onSelectMarker, onCenterChanged, heightClassName = "h-[560px]" },
   ref
 ) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const markerSourceReadyRef = useRef(false);
   const routeSourceReadyRef = useRef(false);
+  const selectedMarkerRef = useRef(selectedMarker);
+  const markersRef = useRef(markers);
   const styleConfig = useMemo(() => getMapStyleConfig(), []);
   const [runtimeError, setRuntimeError] = useState(null);
+
+  useEffect(() => {
+    selectedMarkerRef.current = selectedMarker;
+  }, [selectedMarker]);
+
+  useEffect(() => {
+    markersRef.current = markers;
+  }, [markers]);
 
   useImperativeHandle(ref, () => ({
     centerDefault() {
@@ -105,7 +115,10 @@ export const MapCanvas = forwardRef(function MapCanvas(
         if (cancelled) return;
 
         if (!localMap.getSource("markers")) {
-          localMap.addSource("markers", { type: "geojson", data: markersToGeoJson([]) });
+          localMap.addSource("markers", {
+            type: "geojson",
+            data: markersToGeoJson(markersRef.current),
+          });
         }
         if (!localMap.getLayer("sos-points")) {
           localMap.addLayer({
@@ -153,6 +166,19 @@ export const MapCanvas = forwardRef(function MapCanvas(
 
         markerSourceReadyRef.current = true;
         routeSourceReadyRef.current = true;
+
+        // Ensure first render in detail modals starts focused on selected SOS marker.
+        const initialSelectedMarker = selectedMarkerRef.current;
+        if (
+          initialSelectedMarker &&
+          Number.isFinite(initialSelectedMarker.lat) &&
+          Number.isFinite(initialSelectedMarker.lng)
+        ) {
+          localMap.flyTo({
+            center: [initialSelectedMarker.lng, initialSelectedMarker.lat],
+            zoom: Math.max(localMap.getZoom(), 15),
+          });
+        }
 
         const handlePointClick = (event) => {
           const feature = event?.features?.[0];
@@ -217,7 +243,7 @@ export const MapCanvas = forwardRef(function MapCanvas(
 
   if (!styleConfig.isValid) {
     return (
-      <div className="flex h-[560px] items-center justify-center p-6 text-sm text-destructive">
+      <div className={`flex ${heightClassName} items-center justify-center p-6 text-sm text-destructive`}>
         {styleConfig.error}
       </div>
     );
@@ -225,13 +251,13 @@ export const MapCanvas = forwardRef(function MapCanvas(
 
   if (runtimeError) {
     return (
-      <div className="flex h-[560px] items-center justify-center p-6 text-sm text-destructive">
+      <div className={`flex ${heightClassName} items-center justify-center p-6 text-sm text-destructive`}>
         {runtimeError}
       </div>
     );
   }
 
-  return <div ref={containerRef} className="h-[560px] w-full" />;
+  return <div ref={containerRef} className={`${heightClassName} w-full`} />;
 });
 
 export default MapCanvas;

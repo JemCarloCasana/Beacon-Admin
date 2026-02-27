@@ -1,6 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPost } from '@/services/api';
 
+function normalizeListPayload(payload, keys = []) {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  for (const key of keys) {
+    if (Array.isArray(payload?.[key])) return payload[key];
+  }
+  return [];
+}
+
 /**
  * Hook to fetch all SOS alerts
  * 
@@ -12,7 +21,7 @@ export const useSOSAlerts = (options = {}) => {
     queryKey: ['sos-alerts'],
     queryFn: async () => {
       const response = await apiGet('/admin/sos');
-      return response || [];
+      return normalizeListPayload(response, ['alerts', 'sos', 'threads', 'items', 'rows', 'results']);
     },
     staleTime: 1000 * 30, // 30 seconds (SOS is real-time)
     gcTime: 1000 * 60 * 5, // 5 minutes
@@ -33,7 +42,7 @@ export const useActiveSOSAlerts = (options = {}) => {
     queryKey: ['sos-alerts', 'active'],
     queryFn: async () => {
       const response = await apiGet('/admin/sos/live?status=active');
-      return response || [];
+      return normalizeListPayload(response, ['alerts', 'sos', 'threads', 'items', 'rows', 'results']);
     },
     staleTime: 1000 * 30, // 30 seconds
     gcTime: 1000 * 60 * 5,
@@ -50,7 +59,7 @@ export const useActiveSOSMap = (options = {}) => {
     queryKey: ['sos-alerts', 'map-live'],
     queryFn: async () => {
       const response = await apiGet('/admin/sos/live-map');
-      return response || [];
+      return normalizeListPayload(response, ['markers', 'points', 'sos', 'threads', 'items', 'rows', 'results']);
     },
     staleTime: 1000 * 5,
     gcTime: 1000 * 60 * 5,
@@ -75,7 +84,7 @@ export const useSOSLiveQueue = ({ status = 'open', limit = 100, cursor = null } 
       if (cursor) params.set('cursor', String(cursor));
       const suffix = params.toString();
       const response = await apiGet(`/admin/sos/live${suffix ? `?${suffix}` : ''}`);
-      return response || [];
+      return normalizeListPayload(response, ['alerts', 'sos', 'threads', 'items', 'rows', 'results']);
     },
     staleTime: 1000 * 5,
     gcTime: 1000 * 60 * 5,

@@ -1,0 +1,69 @@
+const EMERGENCY_TYPES = {
+  medical: ["medical", "heart", "stroke", "seizure", "faint", "injury", "bleeding", "ambulance"],
+  fire: ["fire", "smoke", "burn", "flame", "nasusunog"],
+  violence: ["violence", "attack", "assault", "fight", "stab", "gun", "abuse"],
+};
+
+function toFiniteNumber(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function toDisplayName(thread) {
+  const fullName = String(thread?.full_name || "").trim();
+  if (fullName) return fullName;
+  if (thread?.user_id != null) return `User #${thread.user_id}`;
+  return "Unknown user";
+}
+
+function pickEmergencyTypeText(thread, events) {
+  const threadMessage = String(thread?.latest_message || "").trim();
+  if (threadMessage) return threadMessage;
+
+  const latestEventWithMessage = (Array.isArray(events) ? events : [])
+    .filter((event) => String(event?.message || "").trim())
+    .sort((a, b) => new Date(b?.created_at || 0).getTime() - new Date(a?.created_at || 0).getTime())[0];
+
+  return String(latestEventWithMessage?.message || "").trim();
+}
+
+export function deriveEmergencyType(text) {
+  const normalized = String(text || "").toLowerCase();
+
+  if (EMERGENCY_TYPES.medical.some((keyword) => normalized.includes(keyword))) return "medical";
+  if (EMERGENCY_TYPES.fire.some((keyword) => normalized.includes(keyword))) return "fire";
+  if (EMERGENCY_TYPES.violence.some((keyword) => normalized.includes(keyword))) return "violence";
+  return "i dont know";
+}
+
+export function toSosDetailViewModel(data) {
+  const thread = data?.thread || null;
+  const events = Array.isArray(data?.events) ? data.events : [];
+  const latitude = toFiniteNumber(thread?.latest_latitude);
+  const longitude = toFiniteNumber(thread?.latest_longitude);
+
+  const emergencyTypeSource = pickEmergencyTypeText(thread, events);
+  const emergencyType = deriveEmergencyType(emergencyTypeSource);
+
+  return {
+    id: thread?.sos_id ? String(thread.sos_id) : "",
+    status: String(thread?.latest_status || "active"),
+    userName: toDisplayName(thread),
+    userPhone: thread?.phone_number || null,
+    role: thread?.role || null,
+    message: thread?.latest_message || null,
+    timestamp: thread?.latest_event_at || thread?.opened_at || null,
+    emergencyType,
+    location: {
+      latitude,
+      longitude,
+      address: thread?.latest_address || null,
+    },
+    timeline: [...events].sort(
+      (a, b) => new Date(b?.created_at || 0).getTime() - new Date(a?.created_at || 0).getTime()
+    ),
+    raw: data,
+  };
+}
+

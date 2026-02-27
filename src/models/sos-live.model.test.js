@@ -50,4 +50,18 @@ describe("sos-live.model", () => {
       address: null,
     });
   });
+
+  it("normalizes invalid latest coordinates to null", () => {
+    const result = toSosFeedAlert({
+      sos_id: 10,
+      latest_latitude: "bad-latitude",
+      latest_longitude: "120.12",
+    });
+
+    expect(result.location).toEqual({
+      latitude: null,
+      longitude: 120.12,
+      address: null,
+    });
+  });
 });

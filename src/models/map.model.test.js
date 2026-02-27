@@ -66,6 +66,18 @@ describe("map.model", () => {
     expect(marker.lng).toBe(121.01);
   });
 
+  it("normalizes coordinates from GeoJSON-like arrays", () => {
+    const marker = toIncidentMarker({
+      id: 4,
+      title: "Flood",
+      location: { coordinates: [121.23, 14.81] },
+    });
+
+    expect(marker).toBeTruthy();
+    expect(marker.lat).toBe(14.81);
+    expect(marker.lng).toBe(121.23);
+  });
+
   it("dedupes SOS points by latest latest_event_at per user", () => {
     const result = dedupeLatestSosByUser([
       { id: 1, user_id: 99, latest_event_at: "2026-02-27T01:00:00.000Z" },

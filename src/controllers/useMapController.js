@@ -1,8 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
-import { useActiveSOSMap } from "@/api/useSosAPI";
+import { useSOSLiveQueue } from "@/api/useSosAPI";
 import { useMapIncidents } from "@/api/useIncidentsAPI";
 import {
-  dedupeLatestSosByUser,
   toIncidentMarker,
   toRoutePreview,
   toSosMarker,
@@ -22,16 +21,12 @@ export function useMapController() {
   const [mapCenter, setMapCenter] = useState(MAP_DEFAULT_CENTER);
   const [routePreview, setRoutePreview] = useState(null);
 
-  const sosQuery = useActiveSOSMap();
+  const sosQuery = useSOSLiveQueue({ status: "open", limit: 500 });
   const incidentsQuery = useMapIncidents();
 
   const sosMarkers = useMemo(() => {
     const list = Array.isArray(sosQuery.data) ? sosQuery.data : [];
-    const needsDefensiveDedupe = list.some(
-      (item) => item?.sos_id == null && item?.latest_event_at == null
-    );
-    const raw = needsDefensiveDedupe ? dedupeLatestSosByUser(list) : list;
-    return raw.map(toSosMarker).filter(Boolean);
+    return list.map(toSosMarker).filter(Boolean);
   }, [sosQuery.data]);
 
   const incidentMarkers = useMemo(() => {

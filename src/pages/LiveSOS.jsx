@@ -1,15 +1,21 @@
+import { useState } from 'react';
 import { DashboardLayout } from '@/components/layout';
-import { LiveSOSFeed } from '@/components/dashboard';
+import { LiveSOSDetailsDialog, LiveSOSFeed } from '@/components/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useAcknowledgeSOS, useSOSLiveQueue } from '@/api/useSosAPI';
+import { useAcknowledgeSOS, useSOSDetail, useSOSLiveQueue } from '@/api/useSosAPI';
 import { toSosFeedAlert } from '@/models/sos-live.model';
 import { Radio, Wifi, WifiOff } from 'lucide-react';
 
 export default function LiveSOS() {
+    const [isDetailOpen, setIsDetailOpen] = useState(false);
+    const [selectedSosId, setSelectedSosId] = useState(null);
     const queueQuery = useSOSLiveQueue({ status: 'open', limit: 100 });
     const acknowledgeMutation = useAcknowledgeSOS();
+    const detailQuery = useSOSDetail(selectedSosId, {
+        enabled: isDetailOpen && Number.isFinite(selectedSosId),
+    });
     const feedAlerts = Array.isArray(queueQuery.data) ? queueQuery.data.map(toSosFeedAlert) : [];
     const activeAlerts = feedAlerts.filter((a) => a.status === 'active');
     const acknowledgedAlerts = feedAlerts.filter((a) => a.status === 'acknowledged');
@@ -113,7 +119,22 @@ export default function LiveSOS() {
                 onAcknowledge={(id) =>
                     acknowledgeMutation.mutate({ sosId: Number(id), note: 'Acknowledged from live feed' })
                 }
-                onViewDetails={(id) => console.log('View SOS:', id)}
+                onViewDetails={(id) => {
+                    const parsedId = Number(id);
+                    if (!Number.isFinite(parsedId)) return;
+                    setSelectedSosId(parsedId);
+                    setIsDetailOpen(true);
+                }}
+            />
+            <LiveSOSDetailsDialog
+                open={isDetailOpen}
+                detailQuery={detailQuery}
+                onOpenChange={(open) => {
+                    setIsDetailOpen(open);
+                    if (!open) {
+                        setSelectedSosId(null);
+                    }
+                }}
             />
         </DashboardLayout>
     );
