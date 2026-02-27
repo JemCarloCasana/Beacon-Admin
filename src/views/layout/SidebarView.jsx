@@ -11,6 +11,7 @@ import {
   FileText,
   Shield,
   Activity,
+  Megaphone,
 } from "lucide-react";
 
 const iconMap = {
@@ -22,6 +23,7 @@ const iconMap = {
   UserCog,
   FileText,
   Activity,
+  Megaphone,
 };
 
 export default function SidebarView({ pathname, visibleNavItems, profile }) {

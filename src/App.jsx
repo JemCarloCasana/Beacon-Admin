@@ -4,7 +4,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Routes, Route, Navigate } from "react-router-dom";
 
-// Pages
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Incidents from "./pages/Incidents";
@@ -14,9 +13,9 @@ import MapView from "./pages/MapView";
 import Users from "./pages/Users";
 import AdminRequests from "./pages/AdminRequests";
 import Reports from "./pages/Reports";
+import Broadcasts from "./pages/Broadcasts";
 import NotFound from "./pages/NotFound";
 
-// Protection
 import ProtectedRoute from "@/auth/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -29,13 +28,9 @@ const App = () => {
         <SonnerToaster />
 
         <Routes>
-          {/* Auth page */}
           <Route path="/" element={<Auth />} />
-
-          {/* Optional: if someone hits /login, send to / */}
           <Route path="/login" element={<Navigate to="/" replace />} />
 
-          {/* Authenticated routes */}
           <Route
             path="/dashboard"
             element={
@@ -99,22 +94,25 @@ const App = () => {
             }
           />
 
-          {/* ✅ Permission-protected route: Users requires manage_users */}
           <Route
-  path="/personnel"
-  element={
-    <ProtectedRoute requiredPermission="manage_users">
-      <Users />
-    </ProtectedRoute>
-  }
-/>
+            path="/broadcasts"
+            element={
+              <ProtectedRoute requiredPermission="manage_broadcasts">
+                <Broadcasts />
+              </ProtectedRoute>
+            }
+          />
 
+          <Route
+            path="/personnel"
+            element={
+              <ProtectedRoute requiredPermission="manage_users">
+                <Users />
+              </ProtectedRoute>
+            }
+          />
 
-          {/* ✅ Settings removed (you said it will be deleted)
-              If you still have Settings page file, keep this redirect to avoid 404s: */}
           <Route path="/settings" element={<Navigate to="/dashboard" replace />} />
-
-          {/* Catch-all */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </TooltipProvider>
@@ -123,3 +121,4 @@ const App = () => {
 };
 
 export default App;
+

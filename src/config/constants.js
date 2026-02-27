@@ -68,6 +68,12 @@ export const NAV_ITEMS = [
       { path: "/dashboard", label: "Overview", icon: "LayoutDashboard" },
       { path: "/sos", label: "Live Operations", icon: "Radio" },
       { path: "/incidents", label: "Incidents", icon: "AlertTriangle" },
+      {
+        path: "/broadcasts",
+        label: "Broadcasts",
+        icon: "Megaphone",
+        requiredPermission: "manage_broadcasts",
+      },
     ],
   },
   {
