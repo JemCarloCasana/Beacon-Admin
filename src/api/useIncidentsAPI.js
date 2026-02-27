@@ -43,6 +43,28 @@ export const useIncidentsByStatus = (status, options = {}) => {
 };
 
 /**
+ * Hook to fetch incidents for the map (only rows with valid coordinates).
+ */
+export const useMapIncidents = (options = {}) => {
+  return useQuery({
+    queryKey: ['incidents', 'map'],
+    queryFn: async () => {
+      const response = await apiGet('/admin/incidents');
+      const list = Array.isArray(response) ? response : [];
+      return list.filter((item) => {
+        const lat = Number(item?.latitude ?? item?.lat ?? item?.location?.latitude ?? item?.location?.lat);
+        const lng = Number(item?.longitude ?? item?.lng ?? item?.location?.longitude ?? item?.location?.lng);
+        return Number.isFinite(lat) && Number.isFinite(lng);
+      });
+    },
+    staleTime: 1000 * 10,
+    gcTime: 1000 * 60 * 5,
+    refetchInterval: 15000,
+    ...options,
+  });
+};
+
+/**
  * Hook to fetch a single incident by ID
  * 
  * Usage:

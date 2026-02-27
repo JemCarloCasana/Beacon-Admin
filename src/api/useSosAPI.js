@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiGet, apiPost, apiPatch } from '@/services/api';
+import { apiGet, apiPost } from '@/services/api';
 
 /**
  * Hook to fetch all SOS alerts
@@ -32,7 +32,7 @@ export const useActiveSOSAlerts = (options = {}) => {
   return useQuery({
     queryKey: ['sos-alerts', 'active'],
     queryFn: async () => {
-      const response = await apiGet('/admin/sos?status=active');
+      const response = await apiGet('/admin/sos/live?status=active');
       return response || [];
     },
     staleTime: 1000 * 30, // 30 seconds
@@ -43,88 +43,111 @@ export const useActiveSOSAlerts = (options = {}) => {
 };
 
 /**
- * Hook to fetch a single SOS alert by ID
+ * Hook to fetch map-ready active SOS points.
+ */
+export const useActiveSOSMap = (options = {}) => {
+  return useQuery({
+    queryKey: ['sos-alerts', 'map-live'],
+    queryFn: async () => {
+      const response = await apiGet('/admin/sos/live-map');
+      return response || [];
+    },
+    staleTime: 1000 * 5,
+    gcTime: 1000 * 60 * 5,
+    refetchInterval: 5000,
+    ...options,
+  });
+};
+
+/**
+ * Hook to fetch SOS live queue.
+ *
+ * Usage:
+ * const { data } = useSOSLiveQueue({ status: 'open', limit: 100 });
+ */
+export const useSOSLiveQueue = ({ status = 'open', limit = 100, cursor = null } = {}, options = {}) => {
+  return useQuery({
+    queryKey: ['sos-live', status, limit, cursor],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (status) params.set('status', status);
+      if (limit) params.set('limit', String(limit));
+      if (cursor) params.set('cursor', String(cursor));
+      const suffix = params.toString();
+      const response = await apiGet(`/admin/sos/live${suffix ? `?${suffix}` : ''}`);
+      return response || [];
+    },
+    staleTime: 1000 * 5,
+    gcTime: 1000 * 60 * 5,
+    refetchInterval: 5000,
+    ...options,
+  });
+};
+
+/**
+ * Hook to fetch a single SOS thread by sosId.
  * 
  * Usage:
- * const { data: sosAlert } = useSOSDetail(123);
+ * const { data: detail } = useSOSDetail(123);
  */
-export const useSOSDetail = (id, options = {}) => {
+export const useSOSDetail = (sosId, options = {}) => {
   return useQuery({
-    queryKey: ['sos-alerts', id],
+    queryKey: ['sos-alerts', 'detail', sosId],
     queryFn: async () => {
-      const response = await apiGet(`/admin/sos/${id}`);
+      const response = await apiGet(`/admin/sos/${sosId}`);
       return response;
     },
     staleTime: 1000 * 30,
     gcTime: 1000 * 60 * 10,
-    enabled: !!id,
+    enabled: !!sosId,
     ...options,
   });
 };
 
 /**
- * Hook to mark SOS alert as safe/resolved
+ * Hook to resolve an SOS thread.
  * 
  * Usage:
- * const markSafe = useMarkSOSSafe();
- * markSafe.mutate({ id: 123 });
+ * const resolve = useResolveSOS();
+ * resolve.mutate({ sosId: 123, note: "Case closed" });
  */
-export const useMarkSOSSafe = (options = {}) => {
+export const useResolveSOS = (options = {}) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id }) => {
-      return apiPatch(`/admin/sos/${id}/safe`, {});
+    mutationFn: async ({ sosId, note }) => {
+      return apiPost(`/admin/sos/${sosId}/resolve`, note ? { note } : {});
     },
     onSuccess: (data, variables) => {
       // Invalidate SOS caches
       queryClient.invalidateQueries({ queryKey: ['sos-alerts'] });
-      queryClient.invalidateQueries({ queryKey: ['sos-alerts', 'active'] });
-      queryClient.invalidateQueries({ queryKey: ['sos-alerts', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['sos-alerts', 'map-live'] });
+      queryClient.invalidateQueries({ queryKey: ['sos-live'] });
+      queryClient.invalidateQueries({ queryKey: ['sos-alerts', 'detail', variables.sosId] });
     },
     ...options,
   });
 };
 
 /**
- * Hook to dispatch to an SOS alert
- * 
- * Usage:
- * const dispatch = useDispatchSOS();
- * dispatch.mutate({ id: 123, responder_id: 456 });
- */
-export const useDispatchSOS = (options = {}) => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ id, responder_id }) => {
-      return apiPatch(`/admin/sos/${id}/dispatch`, { responder_id });
-    },
-    onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['sos-alerts'] });
-      queryClient.invalidateQueries({ queryKey: ['sos-alerts', variables.id] });
-    },
-    ...options,
-  });
-};
-
-/**
- * Hook to acknowledge an SOS alert
+ * Hook to acknowledge an SOS thread.
  * 
  * Usage:
  * const ack = useAcknowledgeSOS();
- * ack.mutate({ id: 123 });
+ * ack.mutate({ sosId: 123, note: "Responder assigned" });
  */
 export const useAcknowledgeSOS = (options = {}) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id }) => {
-      return apiPatch(`/admin/sos/${id}/acknowledge`, {});
+    mutationFn: async ({ sosId, note }) => {
+      return apiPost(`/admin/sos/${sosId}/acknowledge`, note ? { note } : {});
     },
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['sos-alerts'] });
-      queryClient.invalidateQueries({ queryKey: ['sos-alerts', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['sos-alerts', 'map-live'] });
+      queryClient.invalidateQueries({ queryKey: ['sos-live'] });
+      queryClient.invalidateQueries({ queryKey: ['sos-alerts', 'detail', variables.sosId] });
     },
     ...options,
   });

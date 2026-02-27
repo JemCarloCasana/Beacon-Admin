@@ -3,16 +3,18 @@ export { useUsers } from './useUsers';
 export {
   useIncidentsAPI,
   useIncidentsByStatus,
+  useMapIncidents,
   useIncidentDetail,
   useUpdateIncident,
 } from './useIncidentsAPI';
 export {
   useSOSAlerts,
   useActiveSOSAlerts,
+  useActiveSOSMap,
+  useSOSLiveQueue,
   useSOSDetail,
-  useMarkSOSSafe,
-  useDispatchSOS,
   useAcknowledgeSOS,
+  useResolveSOS,
 } from './useSosAPI';
 export { useNotifications, useMarkNotificationRead } from './useNotifications';
 export {
