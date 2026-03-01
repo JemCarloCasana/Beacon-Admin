@@ -1,107 +1,140 @@
-import { MapPin, Send, Phone, MoreHorizontal, User } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import { CalendarClock, ExternalLink, Phone, Send } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import MapCanvas from "@/components/map/MapCanvas";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 
-export function IncidentDetailPanel({ incident }) {
-    if (!incident) return (
-        <div className="flex flex-1 items-center justify-center p-8 text-slate-400 bg-white border-l">
-            Select an incident to view details
-        </div>
-    );
+function formatDate(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return formatDistanceToNow(date, { addSuffix: true });
+}
 
+function formatCoordinates(location) {
+  if (!Number.isFinite(location?.latitude) || !Number.isFinite(location?.longitude)) {
+    return "Coordinates unavailable";
+  }
+  return `Lat ${location.latitude.toFixed(5)}, Lng ${location.longitude.toFixed(5)}`;
+}
+
+export function IncidentDetailPanel({ incident, mapState, actions }) {
+  if (!incident) {
     return (
-        <div className="flex flex-col h-full bg-white border-l overflow-y-auto">
-            {/* Header */}
-            <div className="p-6 pb-4">
-                <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-                        Incident #{incident.id || '101'}
-                    </span>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400">
-                        <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                </div>
-                <h2 className="text-2xl font-bold text-slate-900 mb-2">{incident.title || 'Medical Emergency'}</h2>
-                <div className="flex gap-2 mb-6">
-                    <Badge className="bg-red-100 text-red-600 hover:bg-red-100 border-none font-bold uppercase text-[10px] px-2 py-0.5 rounded">
-                        {incident.priority || 'CRITICAL'}
-                    </Badge>
-                    <Badge variant="outline" className="text-slate-500 border-slate-200 font-medium text-[10px] px-2 py-0.5 rounded">
-                        {incident.categoryLabel || 'Cardiac Arrest'}
-                    </Badge>
-                </div>
-
-                <div className="flex gap-2">
-                    <Button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold h-10 gap-2">
-                        <Send className="h-4 w-4" />
-                        Dispatch Unit
-                    </Button>
-                    <Button variant="outline" className="flex-1 border-slate-200 text-slate-600 font-bold h-10 gap-2">
-                        <Phone className="h-4 w-4" />
-                        Contact Reporter
-                    </Button>
-                </div>
-            </div>
-
-            <Separator className="bg-slate-100" />
-
-            {/* Content */}
-            <div className="p-6 space-y-8">
-                {/* Location & Context */}
-                <div>
-                    <h3 className="text-[10px] font-bold tracking-widest text-slate-400 uppercase mb-4">Location & Context</h3>
-                    <div className="flex gap-3 mb-4">
-                        <div className="bg-slate-100 p-2 rounded h-fit">
-                            <MapPin className="h-4 w-4 text-slate-400" />
-                        </div>
-                        <div>
-                            <p className="text-sm font-bold text-slate-900">{incident.address || '123 Main St, Manila'}</p>
-                            <p className="text-[11px] text-slate-500">Cross St: Rizal Ave • Dist: 1.2km from HQ</p>
-                        </div>
-                    </div>
-                    {/* Map Preview Placeholder */}
-                    <div className="aspect-video w-full bg-slate-100 rounded-lg border border-slate-200 flex flex-col items-center justify-center text-slate-400">
-                        <MapPin className="h-6 w-6 mb-2 opacity-20" />
-                        <span className="text-xs font-medium opacity-50">Map Preview (Leaflet/Mapbox)</span>
-                    </div>
-                </div>
-
-                {/* Operational Details */}
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <h3 className="text-[10px] font-bold tracking-widest text-slate-400 uppercase mb-2">Operational Details</h3>
-                        <div>
-                            <p className="text-[10px] font-medium text-slate-400 mb-1">Assigned Unit</p>
-                            <div className="flex items-center gap-2">
-                                <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                                <span className="text-xs font-bold text-slate-900">{incident.assignedUnit || 'Amb-01'}</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="flex flex-col justify-end">
-                        <p className="text-[10px] font-medium text-slate-400 mb-1">Reported By</p>
-                        <p className="text-xs font-bold text-slate-900">{incident.reportedBy || 'John Doe'}</p>
-                    </div>
-                </div>
-
-                {/* Dispatcher Notes */}
-                <div>
-                    <h3 className="text-[10px] font-bold tracking-widest text-slate-400 uppercase mb-4">Dispatcher Notes</h3>
-                    <div className="bg-amber-50 border border-amber-100 rounded p-4 mb-4">
-                        <p className="text-xs text-amber-900 leading-relaxed font-medium">
-                            {incident.notes || 'Elderly male, 72yo, history of heart failure. CPR in progress by bystander.'}
-                        </p>
-                    </div>
-                    <div className="relative">
-                        <input
-                            type="text"
-                            placeholder="Add a note..."
-                            className="w-full text-xs py-2 border-b border-slate-200 focus:outline-none focus:border-blue-500 bg-transparent text-slate-600"
-                        />
-                    </div>
-                </div>
-            </div>
-        </div>
+      <div className="flex flex-1 items-center justify-center border-l bg-white p-8 text-sm text-slate-500">
+        Select an incident to view details.
+      </div>
     );
+  }
+
+  return (
+    <div className="flex h-full flex-col overflow-y-auto border-l bg-white">
+      <div className="space-y-4 p-5">
+        <div className="space-y-1">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+            Incident #{incident.id || "-"}
+          </p>
+          <h2 className="text-xl font-semibold text-slate-900">{incident.title || "Untitled Incident"}</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge className="bg-slate-900 text-white hover:bg-slate-900">
+              {(incident.priority || "unknown").toUpperCase()}
+            </Badge>
+            <Badge variant="outline">{incident.statusLabel || incident.status || "Unknown"}</Badge>
+            <Badge variant="outline">{incident.categoryLabel || "Other"}</Badge>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <Button className="gap-2" onClick={actions?.onGoToIncidentWorkspace}>
+            <Send className="h-4 w-4" />
+            Open Incident Workspace
+          </Button>
+          <Button variant="outline" className="gap-2" onClick={actions?.onContactReporter}>
+            <Phone className="h-4 w-4" />
+            Contact Reporter
+          </Button>
+        </div>
+      </div>
+
+      <Separator className="bg-slate-100" />
+
+      <div className="space-y-6 p-5">
+        <section>
+          <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+            Location
+          </h3>
+          <div className="mb-3 rounded-md border border-slate-200 bg-slate-50 p-3">
+            <p className="text-sm font-medium text-slate-900">{incident.address || "Address unavailable"}</p>
+            <p className="mt-1 text-xs text-slate-500">{formatCoordinates(incident.location)}</p>
+          </div>
+
+          {mapState?.hasValidMap && mapState?.marker ? (
+            <div className="overflow-hidden rounded-lg border">
+              <MapCanvas markers={[mapState.marker]} selectedMarker={mapState.marker} heightClassName="h-[220px]" />
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4">
+              <p className="text-xs text-slate-600">
+                {mapState?.error || "Map is unavailable. Open Map View for full context."}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3 gap-2"
+                onClick={actions?.onOpenMap}
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                Open Map View
+              </Button>
+            </div>
+          )}
+        </section>
+
+        <section>
+          <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+            Operational Details
+          </h3>
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <div className="rounded-md border p-3">
+              <p className="text-slate-500">Assigned Department</p>
+              <p className="mt-1 font-semibold text-slate-900">
+                {incident.assignedDepartment || "Unassigned"}
+              </p>
+            </div>
+            <div className="rounded-md border p-3">
+              <p className="text-slate-500">Reported By User ID</p>
+              <p className="mt-1 font-semibold text-slate-900">
+                {incident.reportedByUserId || "-"}
+              </p>
+            </div>
+            <div className="rounded-md border p-3">
+              <p className="text-slate-500">Created</p>
+              <p className="mt-1 font-semibold text-slate-900">{formatDate(incident.createdAt)}</p>
+            </div>
+            <div className="rounded-md border p-3">
+              <p className="text-slate-500">Updated</p>
+              <p className="mt-1 font-semibold text-slate-900">{formatDate(incident.updatedAt)}</p>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+            Notes
+          </h3>
+          <div className="rounded-md border p-3 text-sm text-slate-700">
+            {incident.description || "No dispatcher notes available."}
+          </div>
+          <div className="mt-2 rounded-md border bg-slate-50 p-3 text-xs text-slate-600">
+            <p className="flex items-center gap-1.5 font-medium">
+              <CalendarClock className="h-3.5 w-3.5" />
+              Resolution Notes
+            </p>
+            <p className="mt-1">{incident.resolutionNotes || "No resolution notes yet."}</p>
+          </div>
+        </section>
+      </div>
+    </div>
+  );
 }

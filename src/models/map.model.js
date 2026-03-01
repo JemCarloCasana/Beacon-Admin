@@ -4,6 +4,28 @@ function toFiniteNumber(value) {
   return Number.isFinite(num) ? num : null;
 }
 
+function isValidLatitude(value) {
+  return Number.isFinite(value) && value >= -90 && value <= 90;
+}
+
+function isValidLongitude(value) {
+  return Number.isFinite(value) && value >= -180 && value <= 180;
+}
+
+function normalizeCoordinates(lat, lng) {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+  if (isValidLatitude(lat) && isValidLongitude(lng)) {
+    return { lat, lng };
+  }
+
+  if (isValidLatitude(lng) && isValidLongitude(lat)) {
+    return { lat: lng, lng: lat };
+  }
+
+  return null;
+}
+
 function pickCoordinates(input) {
   const locationCoords = Array.isArray(input?.location?.coordinates) ? input.location.coordinates : null;
   const geometryCoords = Array.isArray(input?.geometry?.coordinates) ? input.geometry.coordinates : null;
@@ -28,7 +50,7 @@ function pickCoordinates(input) {
     toFiniteNumber(geometryCoords?.[0]);
 
   if (lat === null || lng === null) return null;
-  return { lat, lng };
+  return normalizeCoordinates(lat, lng);
 }
 
 function parseTime(value) {
@@ -95,24 +117,4 @@ export function dedupeLatestSosByUser(items) {
     }
   });
   return Array.from(map.values());
-}
-
-export function toRoutePreview(from, marker) {
-  const fromLat = toFiniteNumber(from?.lat);
-  const fromLng = toFiniteNumber(from?.lng);
-  const toLat = toFiniteNumber(marker?.lat);
-  const toLng = toFiniteNumber(marker?.lng);
-
-  if (fromLat === null || fromLng === null || toLat === null || toLng === null) {
-    return null;
-  }
-
-  return {
-    from: { lat: fromLat, lng: fromLng },
-    to: { lat: toLat, lng: toLng },
-    line: [
-      [fromLng, fromLat],
-      [toLng, toLat],
-    ],
-  };
 }

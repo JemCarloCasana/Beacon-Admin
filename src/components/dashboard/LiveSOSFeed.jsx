@@ -7,7 +7,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
 const statusStyles = {
-  active: "bg-emergency text-emergency-foreground pulse-emergency",
+  needs_attention: "bg-emergency text-emergency-foreground pulse-emergency",
+  active: "bg-info text-info-foreground",
   acknowledged: "bg-warning text-warning-foreground",
   responding: "bg-info text-info-foreground",
   resolved: "bg-success text-success-foreground",
@@ -27,8 +28,24 @@ function formatLocation(location) {
 }
 
 export function LiveSOSFeed({ alerts, onAcknowledge, onViewDetails }) {
-  const activeAlerts = alerts.filter((a) => a.status === "active");
-  const otherAlerts = alerts.filter((a) => a.status !== "active");
+  const attentionAlerts = alerts.filter((a) => a.requires_attention === true);
+  const otherAlerts = alerts.filter((a) => a.requires_attention !== true);
+
+  const getVisualState = (alert) => {
+    const status = String(alert?.status || "").toLowerCase();
+    if (status === "resolved") return "resolved";
+    if (alert?.requires_attention === true) return "needs_attention";
+    if (status === "active") return "active";
+    return status || "active";
+  };
+
+  const getBadgeLabel = (alert) => {
+    const status = String(alert?.status || "").toLowerCase();
+    if (alert?.requires_attention === true) return "NEEDS ATTENTION";
+    if (status === "resolved") return "RESOLVED";
+    if (status === "active") return "ACKNOWLEDGED";
+    return status ? status.toUpperCase() : "ACTIVE";
+  };
 
   return (
     <Card className="border-emergency/20">
@@ -36,9 +53,9 @@ export function LiveSOSFeed({ alerts, onAcknowledge, onViewDetails }) {
         <div className="flex items-center gap-2">
           <Radio className="h-5 w-5 text-emergency" />
           <CardTitle>Live SOS Feed</CardTitle>
-          {activeAlerts.length > 0 && (
+          {attentionAlerts.length > 0 && (
             <Badge variant="destructive" className="ml-2">
-              {activeAlerts.length} Active
+              {attentionAlerts.length} Needs Attention
             </Badge>
           )}
         </div>
@@ -50,17 +67,17 @@ export function LiveSOSFeed({ alerts, onAcknowledge, onViewDetails }) {
       <CardContent className="p-0">
         <ScrollArea className="h-[400px]">
           <div className="space-y-2 p-4 pt-0">
-            {activeAlerts.map((alert) => (
+            {attentionAlerts.map((alert) => (
               <div
                 key={alert.id}
                 className={cn(
                   "rounded-lg border-2 border-emergency/50 bg-emergency/5 p-4",
-                  "animate-pulse"
+                  alert.requires_attention ? "animate-pulse" : ""
                 )}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <Badge className={statusStyles.active}>SOS ACTIVE</Badge>
+                    <Badge className={statusStyles.needs_attention}>{getBadgeLabel(alert)}</Badge>
                     <span className="text-xs text-muted-foreground">
                       {formatDistanceToNow(new Date(alert.timestamp), { addSuffix: true })}
                     </span>
@@ -88,7 +105,12 @@ export function LiveSOSFeed({ alerts, onAcknowledge, onViewDetails }) {
                   )}
                 </div>
                 <div className="mt-4 flex gap-2">
-                  <Button size="sm" className="flex-1" onClick={() => onAcknowledge?.(alert.id)}>
+                  <Button
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => onAcknowledge?.(alert.id)}
+                    disabled={!alert.requires_attention}
+                  >
                     <CheckCircle className="mr-1 h-4 w-4" />
                     Acknowledge
                   </Button>
@@ -107,8 +129,8 @@ export function LiveSOSFeed({ alerts, onAcknowledge, onViewDetails }) {
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">
-                    <Badge className={cn("text-xs", statusStyles[alert.status])}>
-                      {alert.status.toUpperCase()}
+                    <Badge className={cn("text-xs", statusStyles[getVisualState(alert)] || statusStyles.active)}>
+                      {getBadgeLabel(alert)}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
                       {formatDistanceToNow(new Date(alert.timestamp), { addSuffix: true })}

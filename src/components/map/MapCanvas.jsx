@@ -19,34 +19,13 @@ function markersToGeoJson(markers) {
   };
 }
 
-function routeToGeoJson(routePreview) {
-  if (!routePreview?.line?.length) {
-    return { type: "FeatureCollection", features: [] };
-  }
-
-  return {
-    type: "FeatureCollection",
-    features: [
-      {
-        type: "Feature",
-        properties: {},
-        geometry: {
-          type: "LineString",
-          coordinates: routePreview.line,
-        },
-      },
-    ],
-  };
-}
-
 export const MapCanvas = forwardRef(function MapCanvas(
-  { markers, selectedMarker, routePreview, onSelectMarker, onCenterChanged, heightClassName = "h-[560px]" },
+  { markers, selectedMarker, onSelectMarker, onCenterChanged, heightClassName = "h-full" },
   ref
 ) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const markerSourceReadyRef = useRef(false);
-  const routeSourceReadyRef = useRef(false);
   const selectedMarkerRef = useRef(selectedMarker);
   const markersRef = useRef(markers);
   const styleConfig = useMemo(() => getMapStyleConfig(), []);
@@ -82,6 +61,7 @@ export const MapCanvas = forwardRef(function MapCanvas(
 
     let cancelled = false;
     let localMap = null;
+    let styleImageMissingHandler = null;
 
     (async () => {
       let maplibre = null;
@@ -102,6 +82,24 @@ export const MapCanvas = forwardRef(function MapCanvas(
         zoom: MAP_DEFAULT_ZOOM,
       });
       mapRef.current = localMap;
+      const transparentPixel = {
+        width: 1,
+        height: 1,
+        data: new Uint8Array([0, 0, 0, 0]),
+      };
+      styleImageMissingHandler = (event) => {
+        const missingId = typeof event?.id === "string" ? event.id : "";
+        // Some remote styles request an invalid blank icon id (" ").
+        // Register a transparent placeholder so rendering can proceed.
+        if (!missingId || missingId.trim() !== "") return;
+        if (localMap.hasImage(missingId)) return;
+        try {
+          localMap.addImage(missingId, transparentPixel);
+        } catch (_error) {
+          // Ignore duplicate/invalid image registration noise.
+        }
+      };
+      localMap.on("styleimagemissing", styleImageMissingHandler);
       localMap.on("error", (event) => {
         if (cancelled) return;
         const message =
@@ -148,24 +146,7 @@ export const MapCanvas = forwardRef(function MapCanvas(
             },
           });
         }
-        if (!localMap.getSource("route")) {
-          localMap.addSource("route", { type: "geojson", data: routeToGeoJson(null) });
-        }
-        if (!localMap.getLayer("route-line")) {
-          localMap.addLayer({
-            id: "route-line",
-            type: "line",
-            source: "route",
-            paint: {
-              "line-color": "#2563eb",
-              "line-width": 4,
-              "line-opacity": 0.8,
-            },
-          });
-        }
-
         markerSourceReadyRef.current = true;
-        routeSourceReadyRef.current = true;
 
         // Ensure first render in detail modals starts focused on selected SOS marker.
         const initialSelectedMarker = selectedMarkerRef.current;
@@ -211,27 +192,44 @@ export const MapCanvas = forwardRef(function MapCanvas(
     return () => {
       cancelled = true;
       markerSourceReadyRef.current = false;
-      routeSourceReadyRef.current = false;
       if (mapRef.current) {
+        if (styleImageMissingHandler) {
+          mapRef.current.off("styleimagemissing", styleImageMissingHandler);
+        }
         mapRef.current.remove();
         mapRef.current = null;
       } else if (localMap) {
+        if (styleImageMissingHandler) {
+          localMap.off("styleimagemissing", styleImageMissingHandler);
+        }
         localMap.remove();
       }
     };
   }, [onCenterChanged, onSelectMarker, styleConfig.isValid, styleConfig.styleUrl]);
 
   useEffect(() => {
+    if (!containerRef.current || !mapRef.current) return undefined;
+
+    const resizeMap = () => mapRef.current?.resize();
+    resizeMap();
+
+    if (typeof ResizeObserver !== "undefined") {
+      const observer = new ResizeObserver(() => {
+        resizeMap();
+      });
+      observer.observe(containerRef.current);
+      return () => observer.disconnect();
+    }
+
+    window.addEventListener("resize", resizeMap);
+    return () => window.removeEventListener("resize", resizeMap);
+  }, [heightClassName]);
+
+  useEffect(() => {
     const source = mapRef.current?.getSource("markers");
     if (!source || !markerSourceReadyRef.current) return;
     source.setData(markersToGeoJson(markers));
   }, [markers]);
-
-  useEffect(() => {
-    const source = mapRef.current?.getSource("route");
-    if (!source || !routeSourceReadyRef.current) return;
-    source.setData(routeToGeoJson(routePreview));
-  }, [routePreview]);
 
   useEffect(() => {
     if (!selectedMarker || !mapRef.current) return;

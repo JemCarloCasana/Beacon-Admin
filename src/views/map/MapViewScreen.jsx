@@ -5,13 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle, Navigation, Radio, RefreshCw, Route } from "lucide-react";
+import { AlertTriangle, Navigation, Radio, RefreshCw } from "lucide-react";
 import MapCanvas from "@/components/map/MapCanvas";
 
 export default function MapViewScreen({
   markers,
   selectedMarker,
-  routePreview,
   filters,
   stats,
   isLoading,
@@ -23,7 +22,7 @@ export default function MapViewScreen({
 
   return (
     <DashboardLayout>
-      <div className="space-y-4 p-4 md:p-6">
+      <div className="flex h-full min-h-0 flex-col gap-4 p-4 md:p-6">
         <Card>
           <CardContent className="flex flex-wrap items-center justify-between gap-4 py-3">
             <div className="flex items-center gap-4">
@@ -54,21 +53,21 @@ export default function MapViewScreen({
           </CardContent>
         </Card>
 
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
-          <Card>
-            <CardContent className="p-0">
+        <div className="flex min-h-0 flex-1 flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_340px]">
+          <Card className="flex min-h-[420px] flex-col lg:h-full lg:min-h-0">
+            <CardContent className="min-h-0 flex-1 p-0">
               <MapCanvas
                 ref={mapRef}
                 markers={markers}
                 selectedMarker={selectedMarker}
-                routePreview={routePreview}
                 onSelectMarker={actions.onSelectMarker}
                 onCenterChanged={actions.onCenterChanged}
+                heightClassName="h-full"
               />
             </CardContent>
           </Card>
 
-          <div className="space-y-4">
+          <div className="space-y-4 lg:overflow-auto">
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">Live Status</CardTitle>
@@ -107,10 +106,6 @@ export default function MapViewScreen({
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                      <Button size="sm" onClick={actions.onPreviewRoute}>
-                        <Route className="mr-2 h-4 w-4" />
-                        Preview Route
-                      </Button>
                       <Button
                         size="sm"
                         variant="outline"
@@ -126,25 +121,6 @@ export default function MapViewScreen({
                 )}
               </CardContent>
             </Card>
-
-            {routePreview && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Route Preview</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3 text-xs text-muted-foreground">
-                  <p>
-                    From: {routePreview.from.lat.toFixed(5)}, {routePreview.from.lng.toFixed(5)}
-                  </p>
-                  <p>
-                    To: {routePreview.to.lat.toFixed(5)}, {routePreview.to.lng.toFixed(5)}
-                  </p>
-                  <Button size="sm" variant="outline" onClick={actions.onClearRoute}>
-                    Clear Route
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
           </div>
         </div>
 

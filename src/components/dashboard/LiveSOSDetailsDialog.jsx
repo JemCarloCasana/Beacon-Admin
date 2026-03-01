@@ -14,7 +14,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toSosDetailViewModel } from "@/models/sos-detail.model";
 
 const statusStyles = {
-  active: "bg-emergency text-emergency-foreground",
+  needs_attention: "bg-emergency text-emergency-foreground pulse-emergency",
+  active: "bg-info text-info-foreground",
   acknowledged: "bg-warning text-warning-foreground",
   resolved: "bg-success text-success-foreground",
 };
@@ -54,9 +55,16 @@ function toMapMarker(detail) {
   };
 }
 
-export function LiveSOSDetailsDialog({ open, onOpenChange, detailQuery }) {
-  const detail = detailQuery?.data ? toSosDetailViewModel(detailQuery.data) : null;
+export function LiveSOSDetailsDialog({ open, onOpenChange, detailQuery, detailOverride = null }) {
+  const detail = detailQuery?.data ? { ...toSosDetailViewModel(detailQuery.data), ...(detailOverride || {}) } : null;
   const mapMarker = detail ? toMapMarker(detail) : null;
+  const detailBadge = (() => {
+    const status = String(detail?.status || "").toLowerCase();
+    if (detail?.requires_attention === true) return { key: "needs_attention", label: "Needs Attention" };
+    if (status === "active") return { key: "acknowledged", label: "Acknowledged" };
+    if (status === "resolved") return { key: "resolved", label: "Resolved" };
+    return { key: "active", label: status ? status.toUpperCase() : "Active" };
+  })();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -89,8 +97,8 @@ export function LiveSOSDetailsDialog({ open, onOpenChange, detailQuery }) {
             <div className="space-y-4">
               <div className="rounded-lg border p-4">
                 <div className="mb-3 flex items-center gap-2">
-                  <Badge className={statusStyles[detail.status] || statusStyles.active}>
-                    {detail.status.toUpperCase()}
+                  <Badge className={statusStyles[detailBadge.key] || statusStyles.active}>
+                    {detailBadge.label}
                   </Badge>
                   <span className="text-xs text-muted-foreground">SOS #{detail.id || "-"}</span>
                   <span className="text-xs text-muted-foreground">{formatEventDate(detail.timestamp)}</span>
@@ -167,4 +175,3 @@ export function LiveSOSDetailsDialog({ open, onOpenChange, detailQuery }) {
     </Dialog>
   );
 }
-

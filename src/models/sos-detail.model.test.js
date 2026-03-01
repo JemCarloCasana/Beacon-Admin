@@ -13,9 +13,9 @@ describe("sos-detail.model", () => {
     expect(deriveEmergencyType("Possible attack with a gun nearby")).toBe("violence");
   });
 
-  it("falls back to i dont know when no keywords are present", () => {
-    expect(deriveEmergencyType("Need urgent help")).toBe("i dont know");
-    expect(deriveEmergencyType("")).toBe("i dont know");
+  it("falls back to unknown when no keywords are present", () => {
+    expect(deriveEmergencyType("Need urgent help")).toBe("unknown");
+    expect(deriveEmergencyType("")).toBe("unknown");
   });
 
   it("builds SOS detail view model with name fallback and sorted timeline", () => {
@@ -38,11 +38,39 @@ describe("sos-detail.model", () => {
     });
 
     expect(result.id).toBe("55");
+    expect(result.requires_attention).toBe(true);
     expect(result.userName).toBe("User #9");
     expect(result.emergencyType).toBe("fire");
     expect(result.location.latitude).toBe(16.123);
     expect(result.location.longitude).toBe(120.456);
     expect(result.timeline.map((event) => event.id)).toEqual([3, 2]);
   });
-});
 
+  it("honors explicit requires_attention value", () => {
+    const result = toSosDetailViewModel({
+      thread: {
+        sos_id: 56,
+        latest_status: "active",
+        acknowledged_at: "2026-03-01T04:00:00.000Z",
+        requires_attention: false,
+      },
+      events: [],
+    });
+
+    expect(result.requires_attention).toBe(false);
+  });
+
+  it("prefers emergency_category from SOS thread when available", () => {
+    const result = toSosDetailViewModel({
+      thread: {
+        sos_id: 57,
+        latest_status: "active",
+        emergency_category: "medical",
+        latest_message: "There is fire outside",
+      },
+      events: [],
+    });
+
+    expect(result.emergencyType).toBe("medical");
+  });
+});

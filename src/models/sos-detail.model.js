@@ -17,6 +17,15 @@ function toDisplayName(thread) {
   return "Unknown user";
 }
 
+function computeRequiresAttention(thread) {
+  const explicit = thread?.requires_attention;
+  if (explicit === true || explicit === false) return explicit;
+
+  const status = String(thread?.latest_status || "active").toLowerCase();
+  const acknowledgedAt = thread?.acknowledged_at || thread?.acknowledgedAt || null;
+  return status === "active" && !acknowledgedAt;
+}
+
 function pickEmergencyTypeText(thread, events) {
   const threadMessage = String(thread?.latest_message || "").trim();
   if (threadMessage) return threadMessage;
@@ -28,13 +37,25 @@ function pickEmergencyTypeText(thread, events) {
   return String(latestEventWithMessage?.message || "").trim();
 }
 
+function normalizeEmergencyCategory(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (!normalized) return null;
+
+  if (normalized === "medical" || normalized === "fire" || normalized === "violence" || normalized === "unknown") {
+    return normalized;
+  }
+
+  if (normalized === "i dont know" || normalized === "i don't know") return "unknown";
+  return null;
+}
+
 export function deriveEmergencyType(text) {
   const normalized = String(text || "").toLowerCase();
 
   if (EMERGENCY_TYPES.medical.some((keyword) => normalized.includes(keyword))) return "medical";
   if (EMERGENCY_TYPES.fire.some((keyword) => normalized.includes(keyword))) return "fire";
   if (EMERGENCY_TYPES.violence.some((keyword) => normalized.includes(keyword))) return "violence";
-  return "i dont know";
+  return "unknown";
 }
 
 export function toSosDetailViewModel(data) {
@@ -43,12 +64,20 @@ export function toSosDetailViewModel(data) {
   const latitude = toFiniteNumber(thread?.latest_latitude);
   const longitude = toFiniteNumber(thread?.latest_longitude);
 
+  const emergencyTypeFromThread =
+    normalizeEmergencyCategory(thread?.emergency_category) ||
+    normalizeEmergencyCategory(thread?.category);
   const emergencyTypeSource = pickEmergencyTypeText(thread, events);
-  const emergencyType = deriveEmergencyType(emergencyTypeSource);
+  const emergencyType = emergencyTypeFromThread || deriveEmergencyType(emergencyTypeSource);
+
+  const requiresAttention = computeRequiresAttention(thread);
 
   return {
     id: thread?.sos_id ? String(thread.sos_id) : "",
     status: String(thread?.latest_status || "active"),
+    requires_attention: requiresAttention,
+    requiresAttention,
+    acknowledged_at: thread?.acknowledged_at || thread?.acknowledgedAt || null,
     userName: toDisplayName(thread),
     userPhone: thread?.phone_number || null,
     role: thread?.role || null,
@@ -66,4 +95,3 @@ export function toSosDetailViewModel(data) {
     raw: data,
   };
 }
-

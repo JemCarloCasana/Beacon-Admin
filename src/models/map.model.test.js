@@ -1,4 +1,4 @@
-import { dedupeLatestSosByUser, toIncidentMarker, toRoutePreview, toSosMarker } from "@/models/map.model";
+import { dedupeLatestSosByUser, toIncidentMarker, toSosMarker } from "@/models/map.model";
 
 describe("map.model", () => {
   it("normalizes SOS marker coordinates from latest_latitude/latest_longitude", () => {
@@ -78,6 +78,30 @@ describe("map.model", () => {
     expect(marker.lng).toBe(121.23);
   });
 
+  it("auto-swaps coordinates when lat/lng are reversed", () => {
+    const marker = toIncidentMarker({
+      id: 5,
+      title: "Swapped Coordinates",
+      lat: 120.95,
+      lng: 14.67,
+    });
+
+    expect(marker).toBeTruthy();
+    expect(marker.lat).toBe(14.67);
+    expect(marker.lng).toBe(120.95);
+  });
+
+  it("rejects out-of-range coordinates", () => {
+    const marker = toIncidentMarker({
+      id: 6,
+      title: "Invalid Coordinates",
+      lat: 301.33,
+      lng: 512.77,
+    });
+
+    expect(marker).toBeNull();
+  });
+
   it("dedupes SOS points by latest latest_event_at per user", () => {
     const result = dedupeLatestSosByUser([
       { id: 1, user_id: 99, latest_event_at: "2026-02-27T01:00:00.000Z" },
@@ -89,19 +113,4 @@ describe("map.model", () => {
     expect(result.find((item) => item.user_id === 99).id).toBe(2);
   });
 
-  it("builds route preview line", () => {
-    const route = toRoutePreview(
-      { lat: 14.5, lng: 121.0 },
-      { lat: 14.7, lng: 121.2 }
-    );
-
-    expect(route).toEqual({
-      from: { lat: 14.5, lng: 121.0 },
-      to: { lat: 14.7, lng: 121.2 },
-      line: [
-        [121.0, 14.5],
-        [121.2, 14.7],
-      ],
-    });
-  });
 });

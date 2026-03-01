@@ -3,10 +3,8 @@ import { useSOSLiveQueue } from "@/api/useSosAPI";
 import { useMapIncidents } from "@/api/useIncidentsAPI";
 import {
   toIncidentMarker,
-  toRoutePreview,
   toSosMarker,
 } from "@/models/map.model";
-import { MAP_DEFAULT_CENTER } from "@/lib/mapStyle";
 
 function byLatest(a, b) {
   const aTime = new Date(a?.updatedAt || 0).getTime();
@@ -18,8 +16,6 @@ export function useMapController() {
   const [showSos, setShowSos] = useState(true);
   const [showIncidents, setShowIncidents] = useState(true);
   const [selectedMarkerId, setSelectedMarkerId] = useState(null);
-  const [mapCenter, setMapCenter] = useState(MAP_DEFAULT_CENTER);
-  const [routePreview, setRoutePreview] = useState(null);
 
   const sosQuery = useSOSLiveQueue({ status: "open", limit: 500 });
   const incidentsQuery = useMapIncidents();
@@ -57,21 +53,10 @@ export function useMapController() {
 
   const onClearSelection = useCallback(() => {
     setSelectedMarkerId(null);
-    setRoutePreview(null);
   }, []);
 
-  const onPreviewRoute = useCallback(() => {
-    if (!selectedMarker) return;
-    setRoutePreview(toRoutePreview(mapCenter, selectedMarker));
-  }, [mapCenter, selectedMarker]);
-
-  const onClearRoute = useCallback(() => {
-    setRoutePreview(null);
-  }, []);
-
-  const onCenterChanged = useCallback((center) => {
-    if (!center) return;
-    setMapCenter(center);
+  const onCenterChanged = useCallback(() => {
+    // Reserved for future map interactions.
   }, []);
 
   const onRefresh = useCallback(() => {
@@ -82,7 +67,6 @@ export function useMapController() {
   return {
     markers: visibleMarkers,
     selectedMarker,
-    routePreview,
     filters: {
       showSos,
       showIncidents,
@@ -101,8 +85,6 @@ export function useMapController() {
       onToggleIncidents: () => setShowIncidents((prev) => !prev),
       onSelectMarker,
       onClearSelection,
-      onPreviewRoute,
-      onClearRoute,
       onCenterChanged,
       onRefresh,
     },

@@ -18,6 +18,9 @@ describe("sos-live.model", () => {
     expect(result).toEqual({
       id: "123",
       status: "active",
+      requires_attention: true,
+      requiresAttention: true,
+      acknowledged_at: null,
       timestamp: "2026-02-27T10:01:12.000Z",
       userName: "Juan Dela Cruz",
       userPhone: "+639171234567",
@@ -43,6 +46,7 @@ describe("sos-live.model", () => {
     });
 
     expect(result.status).toBe("active");
+    expect(result.requires_attention).toBe(true);
     expect(result.userName).toBe("User #9");
     expect(result.location).toEqual({
       latitude: null,
@@ -63,5 +67,16 @@ describe("sos-live.model", () => {
       longitude: 120.12,
       address: null,
     });
+  });
+
+  it("uses explicit requires_attention from payload when present", () => {
+    const result = toSosFeedAlert({
+      sos_id: 33,
+      latest_status: "active",
+      acknowledged_at: "2026-03-01T02:00:00.000Z",
+      requires_attention: true,
+    });
+
+    expect(result.requires_attention).toBe(true);
   });
 });

@@ -1,6 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPatch } from '@/services/api';
 
+const ALLOWED_ASSIGNED_DEPARTMENTS = [
+  'Emergency Medical Unit',
+  'Fire Station Unit',
+  'Police Personnel',
+  'Traffic Enforcement Unit',
+];
+
 function normalizeIncidentsPayload(payload) {
   if (Array.isArray(payload)) return payload;
   if (Array.isArray(payload?.data)) return payload.data;
@@ -11,17 +18,29 @@ function normalizeIncidentsPayload(payload) {
   return [];
 }
 
+function buildIncidentsUrl({ page, limit, status } = {}) {
+  const params = new URLSearchParams();
+  if (Number.isInteger(page) && page > 0) params.set('page', String(page));
+  if (Number.isInteger(limit) && limit > 0) params.set('limit', String(limit));
+  if (status) params.set('status', String(status));
+
+  const query = params.toString();
+  return query ? `/admin/incidents?${query}` : '/admin/incidents';
+}
+
 /**
  * Hook to fetch all incidents
  * 
  * Usage:
  * const { data: incidents, isLoading, error } = useIncidentsAPI();
  */
-export const useIncidentsAPI = (options = {}) => {
+export const useIncidentsAPI = (params = {}, options = {}) => {
+  const { page = 1, limit = 20, status = '' } = params;
+
   return useQuery({
-    queryKey: ['incidents'],
+    queryKey: ['incidents', { page, limit, status }],
     queryFn: async () => {
-      const response = await apiGet('/admin/incidents');
+      const response = await apiGet(buildIncidentsUrl({ page, limit, status }));
       return normalizeIncidentsPayload(response);
     },
     staleTime: 1000 * 60 * 1, // 1 minute (incidents may update frequently)
@@ -42,7 +61,7 @@ export const useIncidentsByStatus = (status, options = {}) => {
   return useQuery({
     queryKey: ['incidents', status],
     queryFn: async () => {
-      const response = await apiGet(`/admin/incidents?status=${status}`);
+      const response = await apiGet(buildIncidentsUrl({ status }));
       return normalizeIncidentsPayload(response);
     },
     staleTime: 1000 * 60 * 1,
@@ -102,7 +121,48 @@ export const useUpdateIncident = (options = {}) => {
 
   return useMutation({
     mutationFn: async ({ id, ...data }) => {
-      return apiPatch(`/admin/incidents/${id}`, data);
+      const payload = {};
+
+      if (Object.prototype.hasOwnProperty.call(data, 'status')) payload.status = data.status;
+      if (Object.prototype.hasOwnProperty.call(data, 'priority')) payload.priority = data.priority;
+      if (Object.prototype.hasOwnProperty.call(data, 'incidentType')) {
+        payload.incident_type = data.incidentType;
+      }
+      if (Object.prototype.hasOwnProperty.call(data, 'category')) {
+        payload.incident_type = data.category;
+      }
+      if (Object.prototype.hasOwnProperty.call(data, 'incident_type')) {
+        payload.incident_type = data.incident_type;
+      }
+
+      if (
+        Object.prototype.hasOwnProperty.call(data, 'assignedDepartment') ||
+        Object.prototype.hasOwnProperty.call(data, 'assigned_department')
+      ) {
+        const assignedDepartment =
+          data.assignedDepartment ?? data.assigned_department ?? null;
+
+        if (
+          assignedDepartment !== null &&
+          !ALLOWED_ASSIGNED_DEPARTMENTS.includes(assignedDepartment)
+        ) {
+          const error = new Error(
+            'Invalid assigned_department. Must be one of: Emergency Medical Unit, Fire Station Unit, Police Personnel, Traffic Enforcement Unit, or null.'
+          );
+          error.status = 400;
+          throw error;
+        }
+
+        payload.assigned_department = assignedDepartment;
+      }
+      if (Object.prototype.hasOwnProperty.call(data, 'resolutionNotes')) {
+        payload.resolutionNotes = data.resolutionNotes;
+      }
+      if (Object.prototype.hasOwnProperty.call(data, 'resolution_notes')) {
+        payload.resolutionNotes = data.resolution_notes;
+      }
+
+      return apiPatch(`/admin/incidents/${id}`, payload);
     },
     onSuccess: (data, variables) => {
       // Invalidate incident cache so it refetches

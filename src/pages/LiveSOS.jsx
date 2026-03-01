@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { DashboardLayout } from '@/components/layout';
 import { LiveSOSDetailsDialog, LiveSOSFeed } from '@/components/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,18 +8,78 @@ import { useAcknowledgeSOS, useSOSDetail, useSOSLiveQueue } from '@/api/useSosAP
 import { toSosFeedAlert } from '@/models/sos-live.model';
 import { Radio, Wifi, WifiOff } from 'lucide-react';
 
+function toSosId(thread) {
+    if (!thread) return '';
+    return String(thread?.sos_id ?? thread?.id ?? '');
+}
+
+function applySnapshot(_previous, snapshotThreads) {
+    const map = new Map();
+    for (const thread of Array.isArray(snapshotThreads) ? snapshotThreads : []) {
+        const id = toSosId(thread);
+        if (!id) continue;
+        map.set(id, thread);
+    }
+    return Array.from(map.values());
+}
+
 export default function LiveSOS() {
     const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [selectedSosId, setSelectedSosId] = useState(null);
+    const [streamThreads, setStreamThreads] = useState([]);
+    const [optimisticById, setOptimisticById] = useState({});
     const queueQuery = useSOSLiveQueue({ status: 'open', limit: 100 });
     const acknowledgeMutation = useAcknowledgeSOS();
     const detailQuery = useSOSDetail(selectedSosId, {
         enabled: isDetailOpen && Number.isFinite(selectedSosId),
     });
-    const feedAlerts = Array.isArray(queueQuery.data) ? queueQuery.data.map(toSosFeedAlert) : [];
-    const activeAlerts = feedAlerts.filter((a) => a.status === 'active');
-    const acknowledgedAlerts = feedAlerts.filter((a) => a.status === 'acknowledged');
+
+    useEffect(() => {
+        if (!Array.isArray(queueQuery.data)) return;
+        setStreamThreads((previous) => applySnapshot(previous, queueQuery.data));
+        setOptimisticById((previous) => {
+            const next = { ...previous };
+            for (const thread of queueQuery.data) {
+                const status = String(thread?.latest_status || thread?.status || '').toLowerCase();
+                const hasServerAttentionFlag = Object.prototype.hasOwnProperty.call(thread || {}, 'requires_attention');
+                const hasAcknowledgedAt = Boolean(thread?.acknowledged_at || thread?.acknowledgedAt);
+                if (!hasServerAttentionFlag && !hasAcknowledgedAt && status === 'active') continue;
+                delete next[toSosId(thread)];
+            }
+            return next;
+        });
+    }, [queueQuery.data]);
+
+    const feedAlerts = useMemo(() => {
+        const sourceRows = streamThreads;
+        return sourceRows.map((thread) => {
+            const normalized = toSosFeedAlert(thread);
+            const optimistic = optimisticById[normalized.id];
+            return optimistic ? { ...normalized, ...optimistic } : normalized;
+        });
+    }, [streamThreads, optimisticById]);
+    const activeAlerts = feedAlerts.filter((a) => a.requires_attention === true);
+    const acknowledgedAlerts = feedAlerts.filter((a) => a.status === 'active' && a.requires_attention === false);
     const isConnected = !queueQuery.isError;
+
+    const handleAcknowledge = async (id) => {
+        const parsedId = Number(id);
+        if (!Number.isFinite(parsedId)) return;
+        const nowIso = new Date().toISOString();
+
+        try {
+            await acknowledgeMutation.mutateAsync({ sosId: parsedId, note: 'Acknowledged from live feed' });
+            setOptimisticById((previous) => ({
+                ...previous,
+                [String(parsedId)]: {
+                    requires_attention: false,
+                    acknowledged_at: nowIso,
+                },
+            }));
+        } catch (_error) {
+            // Keep existing server-driven state on mutation failure.
+        }
+    };
 
     return (
         <DashboardLayout
@@ -116,9 +176,7 @@ export default function LiveSOS() {
             {/* Live Feed */}
             <LiveSOSFeed
                 alerts={feedAlerts}
-                onAcknowledge={(id) =>
-                    acknowledgeMutation.mutate({ sosId: Number(id), note: 'Acknowledged from live feed' })
-                }
+                onAcknowledge={handleAcknowledge}
                 onViewDetails={(id) => {
                     const parsedId = Number(id);
                     if (!Number.isFinite(parsedId)) return;
@@ -129,6 +187,7 @@ export default function LiveSOS() {
             <LiveSOSDetailsDialog
                 open={isDetailOpen}
                 detailQuery={detailQuery}
+                detailOverride={selectedSosId ? optimisticById[String(selectedSosId)] : null}
                 onOpenChange={(open) => {
                     setIsDetailOpen(open);
                     if (!open) {

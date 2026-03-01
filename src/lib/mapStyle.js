@@ -19,5 +19,10 @@ export function getMapStyleConfig() {
   };
 }
 
-export const MAP_DEFAULT_CENTER = { lat: 14.5995, lng: 120.9842 };
-export const MAP_DEFAULT_ZOOM = 11;
+export const MAP_HQ_COORDINATES = {
+  lat: 16.043502806506392,
+  lng: 120.3354064229617,
+};
+
+export const MAP_DEFAULT_CENTER = MAP_HQ_COORDINATES;
+export const MAP_DEFAULT_ZOOM = 13;
