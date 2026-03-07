@@ -46,8 +46,6 @@ export function AdminAuthProvider({ children }) {
         ...basePermissions,
         "manage_admins",
         "manage_users",
-        "manage_incidents",
-        "view_incidents",
       ])
     );
   }, [me, role]);

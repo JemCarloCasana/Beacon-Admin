@@ -151,4 +151,18 @@ describe("useDashboardController", () => {
 
     expect(mockNavigate).toHaveBeenCalledWith("/admin-requests");
   });
+
+  it("returns incidents even when permission checks are false", async () => {
+    useAdminAuth.mockReturnValue({
+      me: { id: 7, full_name: "Default Admin", role: "admin", permissions: [] },
+      loading: false,
+      hasPermission: vi.fn(() => false),
+    });
+
+    const { result } = renderHook(() => useDashboardController());
+
+    await waitFor(() => {
+      expect(result.current.incidents.length).toBeGreaterThan(0);
+    });
+  });
 });

@@ -28,7 +28,6 @@ export default function DashboardView({
   me,
   canManageUsers,
   canManageAdmins,
-  canViewIncidents,
   incidents,
   selectedIncident,
   filters,
@@ -129,14 +128,11 @@ export default function DashboardView({
               onTogglePrioritySort={actions.onTogglePrioritySort}
               onSelect={actions.onSelectIncident}
             />
-            {!canViewIncidents && (
-              <div className="p-4 text-xs text-slate-500">You do not have permission to view incidents.</div>
-            )}
           </div>
 
           <div className="flex h-full flex-1 flex-col overflow-hidden bg-slate-50/30">
             <IncidentDetailPanel
-              incident={selectedIncident && canViewIncidents ? selectedIncident : null}
+              incident={selectedIncident}
               mapState={{
                 hasValidMap: mapStyleConfig.isValid,
                 error: !mapStyleConfig.isValid

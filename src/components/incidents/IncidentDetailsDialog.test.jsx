@@ -52,7 +52,6 @@ describe("IncidentDetailsDialog", () => {
         open
         onOpenChange={() => {}}
         incidentId={7}
-        canManageIncidents
       />
     );
 
@@ -83,7 +82,6 @@ describe("IncidentDetailsDialog", () => {
         open
         onOpenChange={() => {}}
         incidentId={8}
-        canManageIncidents
       />
     );
 
@@ -96,7 +94,6 @@ describe("IncidentDetailsDialog", () => {
         open
         onOpenChange={() => {}}
         incidentId={7}
-        canManageIncidents
       />
     );
 

@@ -4,8 +4,6 @@ import { apiGet, apiPatch } from "@/services/api";
 const DEFAULT_PROMOTED_ADMIN_PERMISSIONS = [
   "manage_admins",
   "manage_users",
-  "manage_incidents",
-  "view_incidents",
 ];
 
 function normalizeAdminRequestsPayload(payload) {

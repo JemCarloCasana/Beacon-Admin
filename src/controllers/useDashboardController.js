@@ -69,8 +69,6 @@ export function useDashboardController() {
     [reportsQuery.data]
   );
 
-  const canManageIncidents = hasPermission("manage_incidents");
-  const canViewIncidents = hasPermission("view_incidents") || canManageIncidents;
   const canManageUsers = hasPermission("manage_users");
   const canManageAdmins = hasPermission("manage_admins");
 
@@ -129,9 +127,7 @@ export function useDashboardController() {
     me: admin,
     canManageUsers,
     canManageAdmins,
-    canManageIncidents,
-    canViewIncidents,
-    incidents: canViewIncidents ? transformedIncidents : [],
+    incidents: transformedIncidents,
     selectedIncident,
     filters: {
       status: statusFilter,

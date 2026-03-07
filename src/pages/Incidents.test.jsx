@@ -27,7 +27,7 @@ describe("Incidents page", () => {
     useAdminAuth.mockReturnValue({
       me: { id: 1 },
       loading: false,
-      hasPermission: (permission) => permission === "manage_incidents" || permission === "view_incidents",
+      hasPermission: () => false,
     });
     useIncidentsAPI.mockReturnValue({
       data: [],
@@ -45,18 +45,6 @@ describe("Incidents page", () => {
       mutateAsync: vi.fn().mockResolvedValue({ ok: true }),
       isPending: false,
     });
-  });
-
-  it("shows 403 state when user has no incident permissions", () => {
-    useAdminAuth.mockReturnValue({
-      me: { id: 1 },
-      loading: false,
-      hasPermission: () => false,
-    });
-
-    render(<Incidents />);
-
-    expect(screen.getByText(/403 Forbidden: You do not have permission to view incidents./i)).toBeInTheDocument();
   });
 
   it("renders incidents from API and removes New Incident button", () => {

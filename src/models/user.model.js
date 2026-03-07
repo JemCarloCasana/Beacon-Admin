@@ -65,8 +65,7 @@ export function toUserModel(input) {
   const mergedPermissions = [...permissions, ...rolePermissions].map((p) => String(p || "").toLowerCase());
   const hasAdminPermissions =
     mergedPermissions.includes("manage_admins") ||
-    mergedPermissions.includes("manage_users") ||
-    mergedPermissions.includes("manage_incidents");
+    mergedPermissions.includes("manage_users");
 
   const isTruthyAdminFlag = (value) =>
     value === true || value === 1 || value === "1" || String(value || "").toLowerCase() === "true";

@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { DashboardLayout } from '@/components/layout';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -47,9 +46,7 @@ const statusStyles = {
 };
 
 export default function Incidents() {
-    const { me, loading: authLoading, hasPermission } = useAdminAuth();
-    const canManageIncidents = hasPermission('manage_incidents');
-    const canViewIncidents = hasPermission('view_incidents') || canManageIncidents;
+    const { me, loading: authLoading } = useAdminAuth();
     const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [selectedIncidentId, setSelectedIncidentId] = useState(null);
     const [selectedIncidentPreview, setSelectedIncidentPreview] = useState(null);
@@ -65,7 +62,7 @@ export default function Incidents() {
             status: statusFilter === 'all' ? '' : statusFilter,
         },
         {
-            enabled: !authLoading && !!me && canViewIncidents,
+            enabled: !authLoading && !!me,
         }
     );
     const incidents = useMemo(
@@ -126,14 +123,6 @@ export default function Incidents() {
             title="Incidents"
             subtitle="Manage and track all reported incidents"
         >
-            {!authLoading && !canViewIncidents && (
-                <Alert variant="destructive" className="mb-6">
-                    <AlertDescription>
-                        403 Forbidden: You do not have permission to view incidents.
-                    </AlertDescription>
-                </Alert>
-            )}
-
             {/* Filters */}
             <Card className="mb-6">
                 <CardContent className="flex flex-wrap items-center gap-4 py-4">
@@ -144,7 +133,6 @@ export default function Incidents() {
                             className="pl-9"
                             value={searchTerm}
                             onChange={(event) => setSearchTerm(event.target.value)}
-                            disabled={!canViewIncidents}
                         />
                     </div>
                     <Select
@@ -153,7 +141,6 @@ export default function Incidents() {
                             setStatusFilter(value);
                             setPage(1);
                         }}
-                        disabled={!canViewIncidents}
                     >
                         <SelectTrigger className="w-[150px]">
                             <SelectValue placeholder="Status" />
@@ -169,7 +156,6 @@ export default function Incidents() {
                     <Select
                         value={priorityFilter}
                         onValueChange={setPriorityFilter}
-                        disabled={!canViewIncidents}
                     >
                         <SelectTrigger className="w-[150px]">
                             <SelectValue placeholder="Priority" />
@@ -205,7 +191,7 @@ export default function Incidents() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {(authLoading || incidentsQuery.isLoading) && canViewIncidents && (
+                            {(authLoading || incidentsQuery.isLoading) && (
                                 <TableRow>
                                     <TableCell colSpan={8} className="text-center text-sm text-muted-foreground">
                                         Loading incidents...
@@ -213,17 +199,15 @@ export default function Incidents() {
                                 </TableRow>
                             )}
 
-                            {!authLoading && canViewIncidents && incidentsQuery.isError && (
+                            {!authLoading && incidentsQuery.isError && (
                                 <TableRow>
                                     <TableCell colSpan={8} className="text-center text-sm text-destructive">
-                                        {incidentsQuery.error?.status === 403
-                                            ? '403 Forbidden: You do not have permission to view incidents.'
-                                            : incidentsQuery.error?.message || 'Failed to load incidents.'}
+                                        {incidentsQuery.error?.message || 'Failed to load incidents.'}
                                     </TableCell>
                                 </TableRow>
                             )}
 
-                            {!authLoading && canViewIncidents && !incidentsQuery.isLoading && !incidentsQuery.isError && filteredIncidents.length === 0 && (
+                            {!authLoading && !incidentsQuery.isLoading && !incidentsQuery.isError && filteredIncidents.length === 0 && (
                                 <TableRow>
                                     <TableCell colSpan={8} className="text-center text-sm text-muted-foreground">
                                         No incidents found.
@@ -231,7 +215,7 @@ export default function Incidents() {
                                 </TableRow>
                             )}
 
-                            {!authLoading && canViewIncidents && !incidentsQuery.isLoading && !incidentsQuery.isError && filteredIncidents.map((incident) => (
+                            {!authLoading && !incidentsQuery.isLoading && !incidentsQuery.isError && filteredIncidents.map((incident) => (
                                 <TableRow key={incident.id}>
                                     <TableCell>
                                         {incident.imageUrl ? (
@@ -291,27 +275,25 @@ export default function Incidents() {
                             ))}
                         </TableBody>
                     </Table>
-                    {canViewIncidents && (
-                        <div className="mt-4 flex items-center justify-end gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-                                disabled={!canGoPreviousPage || incidentsQuery.isFetching}
-                            >
-                                Previous
-                            </Button>
-                            <span className="text-sm text-muted-foreground">Page {page}</span>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setPage((prev) => prev + 1)}
-                                disabled={!canGoNextPage || incidentsQuery.isFetching}
-                            >
-                                Next
-                            </Button>
-                        </div>
-                    )}
+                    <div className="mt-4 flex items-center justify-end gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                            disabled={!canGoPreviousPage || incidentsQuery.isFetching}
+                        >
+                            Previous
+                        </Button>
+                        <span className="text-sm text-muted-foreground">Page {page}</span>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setPage((prev) => prev + 1)}
+                            disabled={!canGoNextPage || incidentsQuery.isFetching}
+                        >
+                            Next
+                        </Button>
+                    </div>
                 </CardContent>
             </Card>
 
@@ -320,7 +302,6 @@ export default function Incidents() {
                 onOpenChange={handleDetailOpenChange}
                 incidentId={selectedIncidentId}
                 incidentPreview={selectedIncidentPreview}
-                canManageIncidents={canManageIncidents}
             />
         </DashboardLayout>
     );

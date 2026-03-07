@@ -7,58 +7,131 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { adminLogin, adminSignup } from "@/api/adminAuth";
+import {
+  authValidationConfig,
+  normalizeEmail,
+  normalizeName,
+  validateLogin,
+  validateSignup,
+} from "@/auth/validation";
+
+function hasErrors(errors) {
+  return Object.keys(errors).length > 0;
+}
 
 export default function Auth() {
   const navigate = useNavigate();
 
   const [tab, setTab] = useState("signin");
 
-  // Sign in fields
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
 
-  // Register fields
   const [regFullName, setRegFullName] = useState("");
   const [regEmail, setRegEmail] = useState("");
   const [regPassword, setRegPassword] = useState("");
 
-  // Loading + errors (separate per tab)
   const [loginLoading, setLoginLoading] = useState(false);
   const [registerLoading, setRegisterLoading] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [registerError, setRegisterError] = useState("");
 
+  const [loginTouched, setLoginTouched] = useState({});
+  const [registerTouched, setRegisterTouched] = useState({});
+  const [loginErrors, setLoginErrors] = useState({});
+  const [registerErrors, setRegisterErrors] = useState({});
+
+  const loginValidationErrors = useMemo(
+    () => validateLogin({ email: loginEmail, password: loginPassword }),
+    [loginEmail, loginPassword]
+  );
+
+  const registerValidationErrors = useMemo(
+    () =>
+      validateSignup({
+        full_name: regFullName,
+        email: regEmail,
+        password: regPassword,
+      }),
+    [regFullName, regEmail, regPassword]
+  );
+
   const isLoginDisabled = useMemo(() => {
-    return loginLoading || !loginEmail.trim() || !loginPassword;
-  }, [loginLoading, loginEmail, loginPassword]);
+    return loginLoading || hasErrors(loginValidationErrors);
+  }, [loginLoading, loginValidationErrors]);
 
   const isRegisterDisabled = useMemo(() => {
-    return (
-      registerLoading ||
-      !regFullName.trim() ||
-      !regEmail.trim() ||
-      !regPassword ||
-      regPassword.length < 8
-    );
-  }, [registerLoading, regFullName, regEmail, regPassword]);
+    return registerLoading || hasErrors(registerValidationErrors);
+  }, [registerLoading, registerValidationErrors]);
 
-  const saveSessionAndGo = ({ admin, token }) => {
-    // Only store token in localStorage - permissions are fetched from /admin/me endpoint
+  const saveSessionAndGo = ({ token }) => {
     localStorage.setItem("admin_token", token);
     navigate("/dashboard");
+  };
+
+  const handleLoginFieldChange = (field, value) => {
+    if (field === "email") setLoginEmail(value);
+    if (field === "password") setLoginPassword(value);
+    setLoginError("");
+
+    if (loginTouched[field]) {
+      const nextErrors = validateLogin({
+        email: field === "email" ? value : loginEmail,
+        password: field === "password" ? value : loginPassword,
+      });
+      setLoginErrors((prev) => ({ ...prev, [field]: nextErrors[field] || "" }));
+    }
+  };
+
+  const handleRegisterFieldChange = (field, value) => {
+    if (field === "full_name") setRegFullName(value);
+    if (field === "email") setRegEmail(value);
+    if (field === "password") setRegPassword(value);
+    setRegisterError("");
+
+    if (registerTouched[field]) {
+      const nextErrors = validateSignup({
+        full_name: field === "full_name" ? value : regFullName,
+        email: field === "email" ? value : regEmail,
+        password: field === "password" ? value : regPassword,
+      });
+      setRegisterErrors((prev) => ({ ...prev, [field]: nextErrors[field] || "" }));
+    }
+  };
+
+  const handleLoginFieldBlur = (field) => {
+    setLoginTouched((prev) => ({ ...prev, [field]: true }));
+    const nextErrors = validateLogin({ email: loginEmail, password: loginPassword });
+    setLoginErrors((prev) => ({ ...prev, [field]: nextErrors[field] || "" }));
+  };
+
+  const handleRegisterFieldBlur = (field) => {
+    setRegisterTouched((prev) => ({ ...prev, [field]: true }));
+    const nextErrors = validateSignup({
+      full_name: regFullName,
+      email: regEmail,
+      password: regPassword,
+    });
+    setRegisterErrors((prev) => ({ ...prev, [field]: nextErrors[field] || "" }));
   };
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError("");
+
+    const nextErrors = validateLogin({ email: loginEmail, password: loginPassword });
+    setLoginTouched({ email: true, password: true });
+    setLoginErrors(nextErrors);
+    if (hasErrors(nextErrors)) return;
+
     setLoginLoading(true);
 
     try {
-      const { admin, token } = await adminLogin({
-        email: loginEmail.trim(),
+      const { token } = await adminLogin({
+        email: normalizeEmail(loginEmail),
         password: loginPassword,
       });
-      saveSessionAndGo({ admin, token });
+      saveSessionAndGo({ token });
     } catch (err) {
       setLoginError(err?.message || "Login failed");
     } finally {
@@ -70,21 +143,25 @@ export default function Auth() {
     e.preventDefault();
     setRegisterError("");
 
-    if (regPassword.length < 8) {
-      setRegisterError("Password must be at least 8 characters.");
-      return;
-    }
+    const nextErrors = validateSignup({
+      full_name: regFullName,
+      email: regEmail,
+      password: regPassword,
+    });
+    setRegisterTouched({ full_name: true, email: true, password: true });
+    setRegisterErrors(nextErrors);
+    if (hasErrors(nextErrors)) return;
 
     setRegisterLoading(true);
 
     try {
-      const { admin, token } = await adminSignup({
-        full_name: regFullName.trim(),
-        email: regEmail.trim(),
+      const { token } = await adminSignup({
+        full_name: normalizeName(regFullName),
+        email: normalizeEmail(regEmail),
         password: regPassword,
         role: "personnel",
       });
-      saveSessionAndGo({ admin, token });
+      saveSessionAndGo({ token });
     } catch (err) {
       setRegisterError(err?.message || "Registration failed");
     } finally {
@@ -94,7 +171,6 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#F8FAFC] relative overflow-hidden font-sans">
-      {/* Grid Background Pattern */}
       <div
         className="absolute inset-0 z-0 opacity-[0.03]"
         style={{
@@ -105,7 +181,6 @@ export default function Auth() {
       />
 
       <div className="z-10 w-full max-w-md px-6 flex flex-col items-center">
-        {/* Logo Section */}
         <div className="mb-8 flex flex-col items-center transform transition-all duration-700 hover:scale-105">
           <div className="h-12 w-12 bg-[#1E3A8A] rounded-xl flex items-center justify-center shadow-lg mb-4">
             <Shield className="text-white h-7 w-7" />
@@ -119,15 +194,17 @@ export default function Auth() {
           </p>
         </div>
 
-        {/* Auth Card */}
         <Card className="w-full border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-2xl overflow-hidden bg-white">
           <Tabs
             value={tab}
             onValueChange={(v) => {
               setTab(v);
-              // clear errors when switching tabs
               setLoginError("");
               setRegisterError("");
+              setLoginTouched({});
+              setRegisterTouched({});
+              setLoginErrors({});
+              setRegisterErrors({});
             }}
             className="w-full"
           >
@@ -168,10 +245,17 @@ export default function Auth() {
                         placeholder="name@dagupan.gov"
                         className="pl-10 h-11 bg-slate-50/50 border-slate-200 focus-visible:ring-[#2563EB] rounded-lg text-sm transition-all"
                         value={loginEmail}
-                        onChange={(e) => setLoginEmail(e.target.value)}
+                        onChange={(e) => handleLoginFieldChange("email", e.target.value)}
+                        onBlur={() => handleLoginFieldBlur("email")}
                         required
+                        aria-invalid={Boolean(loginErrors.email)}
                       />
                     </div>
+                    {loginErrors.email && (
+                      <p className="text-[10px] text-red-600 px-1" role="alert">
+                        {loginErrors.email}
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -190,13 +274,20 @@ export default function Auth() {
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#2563EB] transition-colors" />
                       <Input
                         type="password"
-                        placeholder="••••••••"
+                        placeholder="********"
                         className="pl-10 h-11 bg-slate-50/50 border-slate-200 focus-visible:ring-[#2563EB] rounded-lg text-sm font-mono transition-all"
                         value={loginPassword}
-                        onChange={(e) => setLoginPassword(e.target.value)}
+                        onChange={(e) => handleLoginFieldChange("password", e.target.value)}
+                        onBlur={() => handleLoginFieldBlur("password")}
                         required
+                        aria-invalid={Boolean(loginErrors.password)}
                       />
                     </div>
+                    {loginErrors.password && (
+                      <p className="text-[10px] text-red-600 px-1" role="alert">
+                        {loginErrors.password}
+                      </p>
+                    )}
                   </div>
 
                   <div className="flex items-center space-x-2 px-1">
@@ -241,7 +332,6 @@ export default function Auth() {
                     </p>
                   </div>
 
-                  {/* Full Name */}
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-[#2563EB] uppercase tracking-widest px-1">Full Name</label>
                     <div className="relative group">
@@ -251,13 +341,19 @@ export default function Auth() {
                         placeholder="Juan Dela Cruz"
                         className="pl-10 h-11 bg-slate-50/50 border-slate-200 focus-visible:ring-[#2563EB] rounded-lg text-sm transition-all"
                         value={regFullName}
-                        onChange={(e) => setRegFullName(e.target.value)}
+                        onChange={(e) => handleRegisterFieldChange("full_name", e.target.value)}
+                        onBlur={() => handleRegisterFieldBlur("full_name")}
                         required
+                        aria-invalid={Boolean(registerErrors.full_name)}
                       />
                     </div>
+                    {registerErrors.full_name && (
+                      <p className="text-[10px] text-red-600 px-1" role="alert">
+                        {registerErrors.full_name}
+                      </p>
+                    )}
                   </div>
 
-                  {/* Email */}
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-[#2563EB] uppercase tracking-widest px-1">Email Address</label>
                     <div className="relative group">
@@ -267,29 +363,44 @@ export default function Auth() {
                         placeholder="name@dagupan.gov"
                         className="pl-10 h-11 bg-slate-50/50 border-slate-200 focus-visible:ring-[#2563EB] rounded-lg text-sm transition-all"
                         value={regEmail}
-                        onChange={(e) => setRegEmail(e.target.value)}
+                        onChange={(e) => handleRegisterFieldChange("email", e.target.value)}
+                        onBlur={() => handleRegisterFieldBlur("email")}
                         required
+                        aria-invalid={Boolean(registerErrors.email)}
                       />
                     </div>
+                    {registerErrors.email && (
+                      <p className="text-[10px] text-red-600 px-1" role="alert">
+                        {registerErrors.email}
+                      </p>
+                    )}
                   </div>
 
-                  {/* Password */}
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-[#2563EB] uppercase tracking-widest px-1">Password</label>
                     <div className="relative group">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#2563EB] transition-colors" />
                       <Input
                         type="password"
-                        placeholder="••••••••"
+                        placeholder="********"
                         className="pl-10 h-11 bg-slate-50/50 border-slate-200 focus-visible:ring-[#2563EB] rounded-lg text-sm font-mono transition-all"
                         value={regPassword}
-                        onChange={(e) => setRegPassword(e.target.value)}
+                        onChange={(e) => handleRegisterFieldChange("password", e.target.value)}
+                        onBlur={() => handleRegisterFieldBlur("password")}
                         required
+                        aria-invalid={Boolean(registerErrors.password)}
                       />
                     </div>
-                    <p className="text-[10px] text-slate-400 px-1">
-                      Minimum 8 characters.
-                    </p>
+                    {registerErrors.password ? (
+                      <p className="text-[10px] text-red-600 px-1" role="alert">
+                        {registerErrors.password}
+                      </p>
+                    ) : (
+                      <p className="text-[10px] text-slate-400 px-1">
+                        Minimum {authValidationConfig.minPasswordLength} characters and at least 3 of: uppercase,
+                        lowercase, number, special character.
+                      </p>
+                    )}
                   </div>
 
                   <Button
@@ -309,7 +420,6 @@ export default function Auth() {
                 </form>
               </TabsContent>
 
-              {/* Security Footer Notice */}
               <div className="mt-8 p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-3">
                 <CheckCircle2 className="h-4 w-4 text-[#2563EB] mt-0.5 shrink-0" />
                 <p className="text-[10px] text-slate-500 leading-normal font-medium">
@@ -320,9 +430,8 @@ export default function Auth() {
           </Tabs>
         </Card>
 
-        {/* Footer Section */}
         <div className="mt-12 text-center space-y-1 opacity-50">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Powered by CITO Dagupan — V2.4.0</p>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Powered by CITO Dagupan - V2.4.0</p>
         </div>
       </div>
     </div>

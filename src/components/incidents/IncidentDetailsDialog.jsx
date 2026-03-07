@@ -67,7 +67,7 @@ function getDetailErrorMessage(statusCode, fallback) {
   return fallback || "Failed to load incident details.";
 }
 
-export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incidentPreview, canManageIncidents = false }) {
+export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incidentPreview }) {
   const { toast } = useToast();
   const detailQuery = useIncidentDetail(incidentId, {
     enabled: open && !!incidentId,
@@ -275,97 +275,95 @@ export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incident
               )}
             </div>
 
-            {canManageIncidents && (
-              <div className="rounded-lg border p-4">
-                <div className="mb-3 text-sm font-medium">Update Incident</div>
-                <div className="grid gap-3 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="incident-status">Status</Label>
-                    <Select value={status} onValueChange={setStatus}>
-                      <SelectTrigger id="incident-status">
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {STATUS_FLOW.map((item) => (
-                          <SelectItem
-                            key={item}
-                            value={item}
-                            disabled={!selectableStatuses.includes(item)}
-                          >
-                            {getStatusLabel(item)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+            <div className="rounded-lg border p-4">
+              <div className="mb-3 text-sm font-medium">Update Incident</div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="incident-status">Status</Label>
+                  <Select value={status} onValueChange={setStatus}>
+                    <SelectTrigger id="incident-status">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATUS_FLOW.map((item) => (
+                        <SelectItem
+                          key={item}
+                          value={item}
+                          disabled={!selectableStatuses.includes(item)}
+                        >
+                          {getStatusLabel(item)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="incident-priority">Priority</Label>
-                    <Select value={priority} onValueChange={setPriority}>
-                      <SelectTrigger id="incident-priority">
-                        <SelectValue placeholder="Select priority" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PRIORITY_FLOW.map((item) => (
-                          <SelectItem key={item} value={item}>
-                            {getPriorityLabel(item)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="incident-priority">Priority</Label>
+                  <Select value={priority} onValueChange={setPriority}>
+                    <SelectTrigger id="incident-priority">
+                      <SelectValue placeholder="Select priority" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PRIORITY_FLOW.map((item) => (
+                        <SelectItem key={item} value={item}>
+                          {getPriorityLabel(item)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="incident-type">Incident Type</Label>
-                    <div
-                      id="incident-type"
-                      className="flex h-10 items-center rounded-md border bg-muted/40 px-3 text-sm text-muted-foreground"
-                    >
-                      {getIncidentTypeLabel(fixedIncidentType)}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="incident-assigned-department">Assign Department</Label>
-                    <Select
-                      value={assignedDepartment || UNASSIGNED_DEPARTMENT_VALUE}
-                      onValueChange={(value) =>
-                        setAssignedDepartment(
-                          value === UNASSIGNED_DEPARTMENT_VALUE ? "" : value
-                        )
-                      }
-                    >
-                      <SelectTrigger id="incident-assigned-department">
-                        <SelectValue placeholder="Select department" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={UNASSIGNED_DEPARTMENT_VALUE}>Unassigned</SelectItem>
-                        {ASSIGN_DEPARTMENT_OPTIONS.map((item) => (
-                          <SelectItem key={item} value={item}>
-                            {item}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="incident-resolution-notes">Resolution Notes</Label>
-                    <Textarea
-                      id="incident-resolution-notes"
-                      value={resolutionNotes}
-                      onChange={(event) => setResolutionNotes(event.target.value)}
-                      placeholder="Add notes for dispatch/progress/resolution updates"
-                    />
+                <div className="space-y-2">
+                  <Label htmlFor="incident-type">Incident Type</Label>
+                  <div
+                    id="incident-type"
+                    className="flex h-10 items-center rounded-md border bg-muted/40 px-3 text-sm text-muted-foreground"
+                  >
+                    {getIncidentTypeLabel(fixedIncidentType)}
                   </div>
                 </div>
-                <div className="mt-3 flex justify-end">
-                  <Button onClick={onSave} disabled={updateIncidentMutation.isPending || !incident?.id}>
-                    {updateIncidentMutation.isPending ? "Saving..." : "Save Changes"}
-                  </Button>
+
+                <div className="space-y-2">
+                  <Label htmlFor="incident-assigned-department">Assign Department</Label>
+                  <Select
+                    value={assignedDepartment || UNASSIGNED_DEPARTMENT_VALUE}
+                    onValueChange={(value) =>
+                      setAssignedDepartment(
+                        value === UNASSIGNED_DEPARTMENT_VALUE ? "" : value
+                      )
+                    }
+                  >
+                    <SelectTrigger id="incident-assigned-department">
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={UNASSIGNED_DEPARTMENT_VALUE}>Unassigned</SelectItem>
+                      {ASSIGN_DEPARTMENT_OPTIONS.map((item) => (
+                        <SelectItem key={item} value={item}>
+                          {item}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="incident-resolution-notes">Resolution Notes</Label>
+                  <Textarea
+                    id="incident-resolution-notes"
+                    value={resolutionNotes}
+                    onChange={(event) => setResolutionNotes(event.target.value)}
+                    placeholder="Add notes for dispatch/progress/resolution updates"
+                  />
                 </div>
               </div>
-            )}
+              <div className="mt-3 flex justify-end">
+                <Button onClick={onSave} disabled={updateIncidentMutation.isPending || !incident?.id}>
+                  {updateIncidentMutation.isPending ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
+            </div>
           </div>
         )}
         </div>
