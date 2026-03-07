@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchAdminMe, clearSession } from "@/api/adminMe";
+import { fetchAdminMe, clearSession, getToken } from "@/api/adminMe";
 
 const AdminAuthContext = createContext(null);
 
@@ -14,6 +14,15 @@ export function AdminAuthProvider({ children }) {
   useEffect(() => {
     let mounted = true;
 
+    // No token means logged out state; do not bounce through redirects.
+    if (!getToken()) {
+      setMe(null);
+      setLoading(false);
+      return () => {
+        mounted = false;
+      };
+    }
+
     (async () => {
       try {
         const data = await fetchAdminMe(); // must send Bearer token internally
@@ -24,7 +33,7 @@ export function AdminAuthProvider({ children }) {
         if (!mounted) return;
         clearSession();
         setMe(null);
-        navigate("/", { replace: true }); // adjust if your auth route differs
+        navigate("/login", { replace: true });
       } finally {
         if (mounted) setLoading(false);
       }
@@ -58,7 +67,7 @@ export function AdminAuthProvider({ children }) {
     } catch (e) {
       clearSession();
       setMe(null);
-      navigate("/", { replace: true });
+      navigate("/login", { replace: true });
       throw e;
     }
   }, [navigate]);
@@ -76,7 +85,7 @@ export function AdminAuthProvider({ children }) {
       logout: () => {
         clearSession();
         setMe(null);
-        navigate("/", { replace: true });
+        navigate("/login", { replace: true });
       },
     }),
     [me, loading, permissions, role, navigate, refreshMe]

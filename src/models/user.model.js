@@ -1,6 +1,7 @@
 /**
  * @typedef {Object} UserModel
  * @property {string|number} id
+ * @property {string|number|null} statusTargetId
  * @property {string} full_name
  * @property {string} email
  * @property {string} role
@@ -107,11 +108,22 @@ export function toUserModel(input) {
           ? normalizedRole
           : "personnel";
 
+  const normalizedStatus = String(input?.status || "").trim().toLowerCase();
+  const status = normalizedStatus === "deactivated" ? "deactivated" : "active";
+  const statusTargetId =
+    input?.id ??
+    input?.user_id ??
+    input?.userId ??
+    input?._id ??
+    null;
+
   return {
     id: input?.id ?? "",
+    statusTargetId,
     full_name: input?.full_name ?? "",
     email: input?.email ?? "",
     role,
+    status,
   };
 }
 

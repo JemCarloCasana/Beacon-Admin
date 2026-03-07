@@ -17,13 +17,3 @@ export async function adminLogin({ email, password }) {
 
   return parseJson(res);
 }
-
-export async function adminSignup({ full_name, email, password, role = "personnel" }) {
-  const res = await fetch(`${API_BASE}/admin/auth/signup`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ full_name, email, password, role }),
-  });
-
-  return parseJson(res);
-}

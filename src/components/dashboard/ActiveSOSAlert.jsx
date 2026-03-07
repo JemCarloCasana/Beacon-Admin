@@ -79,10 +79,17 @@ export function ActiveSOSAlert({
         </Button>
         <Button
           variant="outline"
-          onClick={() => onAcknowledge(alert.id)}
+          disabled
           className="h-9 border-red-200 font-semibold text-red-700 hover:bg-red-50"
         >
-          Acknowledge
+          Acknowledge (Live SOS)
+        </Button>
+        <Button
+          variant="outline"
+          onClick={onGoToSosWorkspace}
+          className="h-9 border-slate-200 font-semibold text-slate-700 hover:bg-slate-50"
+        >
+          Open Live SOS
         </Button>
         <Button variant="ghost" size="icon" onClick={onClose} className="text-slate-400 hover:text-slate-600">
           <X className="h-5 w-5" />

@@ -61,5 +61,26 @@ describe("LiveSOSFeed", () => {
 
     expect(screen.getByText("Location unavailable")).toBeInTheDocument();
   });
-});
 
+  it("shows assigned unit badge when present", () => {
+    render(
+      <LiveSOSFeed
+        alerts={[
+          {
+            id: "1",
+            status: "active",
+            requires_attention: true,
+            timestamp: "2026-02-27T10:00:00.000Z",
+            userName: "Juan",
+            userPhone: null,
+            assigned_unit: "Police Personnel",
+            location: { address: "Dagupan City", latitude: null, longitude: null },
+            message: null,
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByText("Police Personnel")).toBeInTheDocument();
+  });
+});

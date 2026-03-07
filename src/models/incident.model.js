@@ -1,6 +1,22 @@
 import { formatDistanceToNow } from "date-fns";
 
 const API_BASE_URL = String(import.meta.env.VITE_API_BASE_URL || "http://localhost:3000").replace(/\/+$/, "");
+const AUTO_PRIORITY_BY_INCIDENT_TYPE = {
+  medical_emergency: "critical",
+  fire: "critical",
+  accident: "high",
+  suspicious_activity: "medium",
+  harassment: "medium",
+  theft: "medium",
+};
+const AUTO_ASSIGNED_DEPARTMENT_BY_INCIDENT_TYPE = {
+  medical_emergency: "Emergency Medical Unit",
+  fire: "Fire Station Unit",
+  accident: "Traffic Enforcement Unit",
+  suspicious_activity: "Police Personnel",
+  harassment: "Police Personnel",
+  theft: "Police Personnel",
+};
 
 function toFiniteNumber(value) {
   if (value === null || value === undefined || value === "") return null;
@@ -64,6 +80,13 @@ function unwrapIncidentPayload(payload) {
   if (payload?.data && !Array.isArray(payload.data)) return unwrapIncidentPayload(payload.data);
   if (payload?.item) return unwrapIncidentPayload(payload.item);
   return payload;
+}
+
+function normalizeIncidentType(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
 }
 
 function isNonEmptyString(value) {
@@ -241,6 +264,17 @@ export function toIncidentViewModel(input) {
   const id = incident?.id ?? incident?.incident_id ?? "";
   const coords = pickCoordinates(incident);
   const imageUrls = pickIncidentImageUrls(incident);
+  const incidentType = incident?.incident_type || incident?.category || "other";
+  const normalizedIncidentType = normalizeIncidentType(incidentType);
+  const typeBasedPriority = AUTO_PRIORITY_BY_INCIDENT_TYPE[normalizedIncidentType] || null;
+  const effectivePriority = typeBasedPriority || incident?.priority || null;
+  const typeBasedAssignedDepartment =
+    AUTO_ASSIGNED_DEPARTMENT_BY_INCIDENT_TYPE[normalizedIncidentType] || null;
+  const effectiveAssignedDepartment =
+    typeBasedAssignedDepartment ||
+    incident?.assignedDepartment ||
+    incident?.assigned_department ||
+    null;
   const location = {
     latitude: coords?.latitude ?? null,
     longitude: coords?.longitude ?? null,
@@ -251,9 +285,9 @@ export function toIncidentViewModel(input) {
     id,
     title: incident?.title || incident?.incident_type || `Incident #${id || "Unknown"}`,
     description: incident?.description || incident?.notes || "",
-    incidentType: incident?.incident_type || incident?.category || "other",
+    incidentType,
     category: incident?.category || incident?.incident_type || "other",
-    priority: incident?.priority || null,
+    priority: effectivePriority,
     status: incident?.status || null,
     imageUrl: imageUrls[0] || "",
     imageUrls,
@@ -263,7 +297,7 @@ export function toIncidentViewModel(input) {
     dispatchedAt: incident?.dispatchedAt || incident?.dispatched_at || null,
     resolvedAt: incident?.resolvedAt || incident?.resolved_at || null,
     reportedByUserId: incident?.reportedByUserId ?? incident?.reported_by_user_id ?? null,
-    assignedDepartment: incident?.assignedDepartment ?? incident?.assigned_department ?? null,
+    assignedDepartment: effectiveAssignedDepartment,
     assignedAdminId: incident?.assignedAdminId ?? incident?.assigned_admin_id ?? null,
     resolutionNotes: incident?.resolutionNotes || incident?.resolution_notes || "",
     raw: incident,

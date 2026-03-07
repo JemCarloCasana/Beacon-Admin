@@ -73,4 +73,18 @@ describe("sos-detail.model", () => {
 
     expect(result.emergencyType).toBe("medical");
   });
+
+  it("maps assigned unit on detail thread when present", () => {
+    const result = toSosDetailViewModel({
+      thread: {
+        sos_id: 58,
+        latest_status: "active",
+        assigned_unit: "Emergency Medical Unit",
+      },
+      events: [],
+    });
+
+    expect(result.assigned_unit).toBe("Emergency Medical Unit");
+    expect(result.assignedUnit).toBe("Emergency Medical Unit");
+  });
 });

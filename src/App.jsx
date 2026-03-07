@@ -28,8 +28,8 @@ const App = () => {
         <SonnerToaster />
 
         <Routes>
-          <Route path="/" element={<Auth />} />
-          <Route path="/login" element={<Navigate to="/" replace />} />
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/login" element={<Auth />} />
 
           <Route
             path="/dashboard"

@@ -88,6 +88,11 @@ export function LiveSOSFeed({ alerts, onAcknowledge, onViewDetails }) {
                     <User className="h-4 w-4 text-muted-foreground" />
                     <span className="font-medium">{alert.userName}</span>
                   </div>
+                  {alert.assigned_unit && (
+                    <div className="text-xs">
+                      <Badge variant="outline">{alert.assigned_unit}</Badge>
+                    </div>
+                  )}
                   {alert.userPhone && (
                     <div className="flex items-center gap-2 text-sm">
                       <Phone className="h-4 w-4 text-muted-foreground" />
@@ -140,6 +145,14 @@ export function LiveSOSFeed({ alerts, onAcknowledge, onViewDetails }) {
                 <div className="mt-2 flex items-center gap-2 text-sm">
                   <User className="h-3 w-3 text-muted-foreground" />
                   <span>{alert.userName}</span>
+                  {alert.assigned_unit && (
+                    <>
+                      <span className="text-muted-foreground">-</span>
+                      <Badge variant="outline" className="text-[10px]">
+                        {alert.assigned_unit}
+                      </Badge>
+                    </>
+                  )}
                   <span className="text-muted-foreground">-</span>
                   <MapPin className="h-3 w-3 text-muted-foreground" />
                   <span className="truncate text-muted-foreground">{formatLocation(alert.location)}</span>

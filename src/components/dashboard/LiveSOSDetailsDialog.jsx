@@ -102,6 +102,16 @@ export function LiveSOSDetailsDialog({ open, onOpenChange, detailQuery, detailOv
                   </Badge>
                   <span className="text-xs text-muted-foreground">SOS #{detail.id || "-"}</span>
                   <span className="text-xs text-muted-foreground">{formatEventDate(detail.timestamp)}</span>
+                  {detail.assigned_unit && (
+                    <Badge variant="outline" className="text-[10px]">
+                      {detail.assigned_unit}
+                    </Badge>
+                  )}
+                  {detail.acknowledged_at && (
+                    <span className="text-xs text-muted-foreground">
+                      Acknowledged: {formatEventDate(detail.acknowledged_at)}
+                    </span>
+                  )}
                 </div>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2">

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAdminAuth } from "@/auth/AdminAuthProvider";
 import { useIncidentsAPI } from "@/api/useIncidentsAPI";
-import { useSOSLiveQueue, useAcknowledgeSOS } from "@/api/useSosAPI";
+import { useSOSLiveQueue } from "@/api/useSosAPI";
 import { useReportsOverview } from "@/api/useReportsAPI";
 import { toAdminModel } from "@/models/admin.model";
 import { toDashboardIncidentListModel, toIncidentListViewModel } from "@/models/incident.model";
@@ -31,7 +31,6 @@ export function useDashboardController() {
     { range: REPORT_RANGE, timezone: REPORT_TIMEZONE },
     { refetchInterval: 30000 }
   );
-  const acknowledgeMutation = useAcknowledgeSOS();
 
   const [selectedIncidentId, setSelectedIncidentId] = useState(null);
   const [dismissedSosId, setDismissedSosId] = useState(null);
@@ -147,7 +146,7 @@ export function useDashboardController() {
       onAcknowledgeSos: async (id) => {
         const sosId = Number(id);
         if (!Number.isFinite(sosId)) return;
-        await acknowledgeMutation.mutateAsync({ sosId, note: "Acknowledged from dashboard overview" });
+        navigate("/sos");
       },
       onDispatchSos: () => {
         navigate("/sos");

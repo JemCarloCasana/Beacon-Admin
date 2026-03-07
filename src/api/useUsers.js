@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { apiGet } from "@/services/api";
+import { apiGet, apiPatch } from "@/services/api";
+
+export const USER_STATUSES = ["active", "deactivated", "all"];
 
 function normalizeUsersPayload(payload) {
   if (Array.isArray(payload)) return payload;
@@ -25,8 +27,18 @@ function normalizeUsersPayload(payload) {
   return unique;
 }
 
-async function fetchUsersFromApi() {
-  const endpoints = ["/admin/admins"];
+function buildAdminsUrl(status = "all") {
+  const normalizedStatus = String(status || "all").trim().toLowerCase();
+  const params = new URLSearchParams();
+  if (USER_STATUSES.includes(normalizedStatus)) {
+    params.set("status", normalizedStatus);
+  }
+  const query = params.toString();
+  return `/admin/admins${query ? `?${query}` : ""}`;
+}
+
+async function fetchUsersFromApi(status = "all") {
+  const endpoints = [buildAdminsUrl(status)];
   const errors = [];
   const byId = new Map();
   let hasSuccess = false;
@@ -70,13 +82,29 @@ async function fetchUsersFromApi() {
   return [];
 }
 
+export async function updateUserStatus(userId, status) {
+  const normalizedStatus = String(status || "").trim().toLowerCase();
+  if (!USER_STATUSES.includes(normalizedStatus) || normalizedStatus === "all") {
+    const error = new Error('Invalid status. Must be "active" or "deactivated".');
+    error.status = 400;
+    throw error;
+  }
+
+  return apiPatch(`/admin/users/${userId}`, { status: normalizedStatus });
+}
+
 /**
  * Hook to fetch all personnel/admin accounts
  */
 export const useUsers = (options = {}) => {
+  const { status = "all", ...queryOptions } = options;
+  const normalizedStatus = USER_STATUSES.includes(String(status || "").toLowerCase())
+    ? String(status).toLowerCase()
+    : "all";
+
   return useQuery({
-    queryKey: ["users"],
-    queryFn: fetchUsersFromApi,
+    queryKey: ["users", normalizedStatus],
+    queryFn: () => fetchUsersFromApi(normalizedStatus),
     staleTime: 0,
     gcTime: 1000 * 60 * 10,
     refetchOnMount: "always",
@@ -86,7 +114,7 @@ export const useUsers = (options = {}) => {
     refetchIntervalInBackground: true,
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    ...options,
+    ...queryOptions,
   });
 };
 

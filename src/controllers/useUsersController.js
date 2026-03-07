@@ -5,29 +5,8 @@ import { toAdminModel } from "@/models/admin.model";
 import { toUserListModel } from "@/models/user.model";
 import { useToast } from "@/hooks/use-toast";
 import { sendAdminRequest } from "@/api/adminRequests";
-import { apiDelete, apiPatch } from "@/services/api";
-
-async function deleteUserById(userId) {
-  const candidateEndpoints = [
-    `/admin/admins/${userId}`,
-    `/admin/users/${userId}`,
-    `/admin/personnel/${userId}`,
-  ];
-
-  let lastError = null;
-  for (const endpoint of candidateEndpoints) {
-    try {
-      await apiDelete(endpoint);
-      return;
-    } catch (error) {
-      lastError = error;
-      if (error?.status === 404 || error?.status === 405) continue;
-      throw error;
-    }
-  }
-
-  throw lastError || new Error("Failed to delete user.");
-}
+import { apiPatch } from "@/services/api";
+import { updateUserStatus } from "@/api/useUsers";
 
 async function updateUserById(userId, { full_name, email }) {
   const candidateEndpoints = [
@@ -59,13 +38,28 @@ async function updateUserById(userId, { full_name, email }) {
   throw lastError || new Error("Failed to update user.");
 }
 
+function getStatusMutationErrorDescription(error) {
+  if (Number(error?.status) === 409) {
+    return error?.data?.message || error?.message || "Only personnel accounts can be deactivated/reactivated";
+  }
+  return "Please try again.";
+}
+
+function getStatusTargetId(user) {
+  const candidate = user?.statusTargetId ?? user?.id;
+  if (candidate === null || candidate === undefined) return null;
+  if (typeof candidate === "string" && candidate.trim() === "") return null;
+  return candidate;
+}
+
 /**
  * ViewController for Personnel Management page.
  */
 export function useUsersController() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [sendingAdminRequestId, setSendingAdminRequestId] = useState(null);
-  const [deletingUserId, setDeletingUserId] = useState(null);
+  const [statusUpdatingUserId, setStatusUpdatingUserId] = useState(null);
   const [editingUserId, setEditingUserId] = useState(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -78,6 +72,7 @@ export function useUsersController() {
   const canManageUsers = hasPermission("manage_users");
 
   const usersQuery = useUsers({
+    status: statusFilter,
     enabled: !loading && !!me && canManageUsers,
   });
 
@@ -95,6 +90,14 @@ export function useUsersController() {
 
   const onSendAdminRequest = async (user) => {
     if (!user?.id) return;
+    if (user?.status === "deactivated") {
+      toast({
+        title: "User is deactivated",
+        description: "Reactivate this account first before sending an admin request.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (user?.role?.toLowerCase() === "admin") {
       toast({
         title: "Already an admin",
@@ -122,37 +125,81 @@ export function useUsersController() {
     }
   };
 
-  const onDeleteUser = async (user) => {
-    if (!user?.id) return;
+  const onDeactivateUser = async (user) => {
+    const targetId = getStatusTargetId(user);
+    if (!targetId) {
+      toast({
+        title: "Cannot update user status",
+        description: "Missing user identifier for status update.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (user?.status === "deactivated") return;
     if (String(user.id) === String(me?.id)) {
       toast({
-        title: "Cannot delete your own account",
-        description: "Use another admin account to remove this user.",
+        title: "Cannot deactivate your own account",
+        description: "Use another admin account to deactivate this user.",
         variant: "destructive",
       });
       return;
     }
 
     const userLabel = user.full_name || user.email || `User #${user.id}`;
-    const isConfirmed = window.confirm(`Delete ${userLabel}? This action cannot be undone.`);
+    const isConfirmed = window.confirm(`Deactivate ${userLabel}?`);
     if (!isConfirmed) return;
 
     try {
-      setDeletingUserId(user.id);
-      await deleteUserById(user.id);
+      setStatusUpdatingUserId(user.id ?? targetId);
+      await updateUserStatus(targetId, "deactivated");
       toast({
-        title: "User deleted",
-        description: `${userLabel} has been removed.`,
+        title: "User deactivated",
+        description: `${userLabel} has been deactivated.`,
       });
       await usersQuery.refetch();
     } catch (error) {
       toast({
-        title: "Failed to delete user",
-        description: error?.message || "Please try again.",
+        title: "Failed to deactivate user",
+        description: getStatusMutationErrorDescription(error),
         variant: "destructive",
       });
     } finally {
-      setDeletingUserId(null);
+      setStatusUpdatingUserId(null);
+    }
+  };
+
+  const onReactivateUser = async (user) => {
+    const targetId = getStatusTargetId(user);
+    if (!targetId) {
+      toast({
+        title: "Cannot update user status",
+        description: "Missing user identifier for status update.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (user?.status !== "deactivated") return;
+
+    const userLabel = user.full_name || user.email || `User #${user.id}`;
+    const isConfirmed = window.confirm(`Reactivate ${userLabel}?`);
+    if (!isConfirmed) return;
+
+    try {
+      setStatusUpdatingUserId(user.id ?? targetId);
+      await updateUserStatus(targetId, "active");
+      toast({
+        title: "User reactivated",
+        description: `${userLabel} has been reactivated.`,
+      });
+      await usersQuery.refetch();
+    } catch (error) {
+      toast({
+        title: "Failed to reactivate user",
+        description: getStatusMutationErrorDescription(error),
+        variant: "destructive",
+      });
+    } finally {
+      setStatusUpdatingUserId(null);
     }
   };
 
@@ -239,16 +286,18 @@ export function useUsersController() {
     loading,
     canManageUsers,
     searchQuery,
+    statusFilter,
     users: filteredUsers,
     usersLoading: usersQuery.isLoading,
     usersError: usersQuery.isError ? usersQuery.error : null,
     sendingAdminRequestId,
-    deletingUserId,
+    statusUpdatingUserId,
     editingUserId,
     isEditDialogOpen,
     editForm,
     actions: {
       setSearchQuery,
+      setStatusFilter,
       refresh: usersQuery.refetch,
       onSendAdminRequest,
       onEditUser,
@@ -256,7 +305,8 @@ export function useUsersController() {
       onEditFormChange,
       onCancelEditUser,
       onSaveEditedUser,
-      onDeleteUser,
+      onDeactivateUser,
+      onReactivateUser,
     },
   };
 }

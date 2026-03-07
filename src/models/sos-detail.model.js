@@ -78,6 +78,8 @@ export function toSosDetailViewModel(data) {
     requires_attention: requiresAttention,
     requiresAttention,
     acknowledged_at: thread?.acknowledged_at || thread?.acknowledgedAt || null,
+    assigned_unit: thread?.assigned_unit || thread?.assignedUnit || null,
+    assignedUnit: thread?.assigned_unit || thread?.assignedUnit || null,
     userName: toDisplayName(thread),
     userPhone: thread?.phone_number || null,
     role: thread?.role || null,

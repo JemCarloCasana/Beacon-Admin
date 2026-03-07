@@ -21,6 +21,9 @@ describe("sos-live.model", () => {
       requires_attention: true,
       requiresAttention: true,
       acknowledged_at: null,
+      assigned_unit: null,
+      assignedUnit: null,
+      emergencyType: "unknown",
       timestamp: "2026-02-27T10:01:12.000Z",
       userName: "Juan Dela Cruz",
       userPhone: "+639171234567",
@@ -78,5 +81,26 @@ describe("sos-live.model", () => {
     });
 
     expect(result.requires_attention).toBe(true);
+  });
+
+  it("maps assigned unit fields when present", () => {
+    const result = toSosFeedAlert({
+      sos_id: 44,
+      latest_status: "active",
+      assigned_unit: "Fire Station Unit",
+    });
+
+    expect(result.assigned_unit).toBe("Fire Station Unit");
+    expect(result.assignedUnit).toBe("Fire Station Unit");
+  });
+
+  it("maps emergency type from payload category when present", () => {
+    const result = toSosFeedAlert({
+      sos_id: 45,
+      latest_status: "active",
+      emergency_category: "medical",
+    });
+
+    expect(result.emergencyType).toBe("medical");
   });
 });

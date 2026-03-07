@@ -134,4 +134,38 @@ describe("incident.model", () => {
     expect(markerA).toMatchObject({ id: "incident-1", type: "incident", lat: 14.6, lng: 121.0 });
     expect(markerB).toBeNull();
   });
+
+  it("auto-derives priority from incident type for non-others", () => {
+    const fireIncident = toIncidentViewModel({
+      id: 21,
+      category: "fire",
+      priority: "medium",
+    });
+
+    const othersIncident = toIncidentViewModel({
+      id: 22,
+      category: "others",
+      priority: "low",
+    });
+
+    expect(fireIncident.priority).toBe("critical");
+    expect(othersIncident.priority).toBe("low");
+  });
+
+  it("auto-derives assigned department from incident type for non-others", () => {
+    const fireIncident = toIncidentViewModel({
+      id: 23,
+      category: "fire",
+      assigned_department: null,
+    });
+
+    const othersIncident = toIncidentViewModel({
+      id: 24,
+      category: "others",
+      assigned_department: "Police Personnel",
+    });
+
+    expect(fireIncident.assignedDepartment).toBe("Fire Station Unit");
+    expect(othersIncident.assignedDepartment).toBe("Police Personnel");
+  });
 });

@@ -1,6 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPost } from '@/services/api';
 
+export const SOS_ASSIGNED_UNITS = [
+  "Emergency Medical Unit",
+  "Fire Station Unit",
+  "Police Personnel",
+  "Traffic Enforcement Unit",
+];
+
 function normalizeListPayload(payload, keys = []) {
   if (Array.isArray(payload)) return payload;
   if (Array.isArray(payload?.data)) return payload.data;
@@ -149,8 +156,19 @@ export const useAcknowledgeSOS = (options = {}) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ sosId, note }) => {
-      return apiPost(`/admin/sos/${sosId}/acknowledge`, note ? { note } : {});
+    mutationFn: async ({ sosId, assigned_unit, note }) => {
+      const normalizedAssignedUnit = String(assigned_unit || "").trim();
+      if (!SOS_ASSIGNED_UNITS.includes(normalizedAssignedUnit)) {
+        const error = new Error(
+          "assigned_unit is required and must be one of: Emergency Medical Unit, Fire Station Unit, Police Personnel, Traffic Enforcement Unit."
+        );
+        error.status = 400;
+        throw error;
+      }
+
+      const payload = { assigned_unit: normalizedAssignedUnit };
+      if (note) payload.note = note;
+      return apiPost(`/admin/sos/${sosId}/acknowledge`, payload);
     },
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['sos-alerts'] });

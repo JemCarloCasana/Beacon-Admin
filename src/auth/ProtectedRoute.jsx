@@ -5,7 +5,7 @@ export default function ProtectedRoute({ children, requiredPermission }) {
   const { me, loading, hasPermission } = useAdminAuth();
 
   if (loading) return null;
-  if (!me) return <Navigate to="/" replace />;
+  if (!me) return <Navigate to="/login" replace />;
 
   if (requiredPermission && !hasPermission(requiredPermission)) {
     return <Navigate to="/dashboard" replace />;

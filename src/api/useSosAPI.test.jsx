@@ -62,10 +62,27 @@ describe("useSosAPI", () => {
     const { result: ackHook } = renderHook(() => useAcknowledgeSOS(), { wrapper });
     const { result: resolveHook } = renderHook(() => useResolveSOS(), { wrapper });
 
-    await ackHook.current.mutateAsync({ sosId: 123, note: "ack" });
+    await ackHook.current.mutateAsync({
+      sosId: 123,
+      assigned_unit: "Police Personnel",
+      note: "ack",
+    });
     await resolveHook.current.mutateAsync({ sosId: 123, note: "resolve" });
 
-    expect(apiPost).toHaveBeenCalledWith("/admin/sos/123/acknowledge", { note: "ack" });
+    expect(apiPost).toHaveBeenCalledWith("/admin/sos/123/acknowledge", {
+      assigned_unit: "Police Personnel",
+      note: "ack",
+    });
     expect(apiPost).toHaveBeenCalledWith("/admin/sos/123/resolve", { note: "resolve" });
+  });
+
+  it("acknowledge mutation throws when assigned_unit is missing", async () => {
+    const wrapper = createWrapper();
+    const { result } = renderHook(() => useAcknowledgeSOS(), { wrapper });
+
+    await expect(result.current.mutateAsync({ sosId: 123, note: "ack" })).rejects.toMatchObject({
+      status: 400,
+    });
+    expect(apiPost).not.toHaveBeenCalled();
   });
 });

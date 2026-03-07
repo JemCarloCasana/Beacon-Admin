@@ -2,7 +2,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { useDashboardController } from "@/controllers/useDashboardController";
 import { useAdminAuth } from "@/auth/AdminAuthProvider";
 import { useIncidentsAPI } from "@/api/useIncidentsAPI";
-import { useSOSLiveQueue, useAcknowledgeSOS } from "@/api/useSosAPI";
+import { useSOSLiveQueue } from "@/api/useSosAPI";
 import { useReportsOverview } from "@/api/useReportsAPI";
 
 const mockNavigate = vi.fn();
@@ -25,7 +25,6 @@ vi.mock("@/api/useIncidentsAPI", () => ({
 
 vi.mock("@/api/useSosAPI", () => ({
   useSOSLiveQueue: vi.fn(),
-  useAcknowledgeSOS: vi.fn(),
 }));
 
 vi.mock("@/api/useReportsAPI", () => ({
@@ -102,9 +101,6 @@ describe("useDashboardController", () => {
       refetch: vi.fn(),
     });
 
-    useAcknowledgeSOS.mockReturnValue({
-      mutateAsync: vi.fn(),
-    });
   });
 
   it("selects first active incident and keeps priority sort enabled by default", async () => {

@@ -5,6 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -51,7 +59,8 @@ export default function UsersView({
   usersLoading,
   usersError,
   sendingAdminRequestId,
-  deletingUserId,
+  statusFilter,
+  statusUpdatingUserId,
   editingUserId,
   isEditDialogOpen,
   editForm,
@@ -115,7 +124,7 @@ export default function UsersView({
           </Dialog>
 
           <Card className="mb-6">
-            <CardContent className="flex items-center gap-4 py-4">
+            <CardContent className="flex flex-col gap-4 py-4 md:flex-row md:items-center">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -124,6 +133,18 @@ export default function UsersView({
                   value={searchQuery}
                   onChange={(e) => actions.setSearchQuery(e.target.value)}
                 />
+              </div>
+              <div className="w-full md:w-52">
+                <Select value={statusFilter} onValueChange={(value) => actions.setStatusFilter?.(value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="deactivated">Deactivated</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>
@@ -155,6 +176,7 @@ export default function UsersView({
                       <TableHead>User</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Role</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -180,6 +202,11 @@ export default function UsersView({
                         <TableCell className="text-sm text-muted-foreground capitalize">
                           {user.role || "personnel"}
                         </TableCell>
+                        <TableCell>
+                          <Badge variant={user.status === "deactivated" ? "secondary" : "outline"}>
+                            {user.status || "active"}
+                          </Badge>
+                        </TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -189,7 +216,7 @@ export default function UsersView({
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              {user.role?.toLowerCase() !== "admin" && (
+                              {user.role?.toLowerCase() !== "admin" && user.status !== "deactivated" && (
                                 <DropdownMenuItem
                                   onClick={() => actions.onSendAdminRequest?.(user)}
                                   disabled={sendingAdminRequestId === user.id}
@@ -205,10 +232,18 @@ export default function UsersView({
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 className="text-destructive focus:text-destructive"
-                                onClick={() => actions.onDeleteUser?.(user)}
-                                disabled={deletingUserId === user.id}
+                                onClick={() =>
+                                  user.status === "deactivated"
+                                    ? actions.onReactivateUser?.(user)
+                                    : actions.onDeactivateUser?.(user)
+                                }
+                                disabled={statusUpdatingUserId === user.id}
                               >
-                                {deletingUserId === user.id ? "Deleting..." : "Delete"}
+                                {statusUpdatingUserId === user.id
+                                  ? "Updating..."
+                                  : user.status === "deactivated"
+                                    ? "Reactivate"
+                                    : "Deactivate"}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>

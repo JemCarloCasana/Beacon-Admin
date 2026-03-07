@@ -24,6 +24,7 @@ import { PRIORITY_CONFIG, STATUS_CONFIG, CATEGORY_CONFIG } from "@/config/consta
 import { useToast } from "@/hooks/use-toast";
 import { toIncidentMapMarker, toIncidentViewModel } from "@/models/incident.model";
 import { ProtectedIncidentImage } from "@/components/ProtectedIncidentImage";
+import { TimelineLog } from "@/components/incidents/TimelineLog";
 
 const STATUS_FLOW = ["pending", "dispatched", "in_progress", "resolved"];
 const PRIORITY_FLOW = ["critical", "high", "medium", "low"];
@@ -34,6 +35,22 @@ const ASSIGN_DEPARTMENT_OPTIONS = [
   "Traffic Enforcement Unit",
 ];
 const UNASSIGNED_DEPARTMENT_VALUE = "__unassigned__";
+const AUTO_PRIORITY_BY_INCIDENT_TYPE = {
+  medical_emergency: "critical",
+  fire: "critical",
+  accident: "high",
+  suspicious_activity: "medium",
+  harassment: "medium",
+  theft: "medium",
+};
+const AUTO_ASSIGNED_DEPARTMENT_BY_INCIDENT_TYPE = {
+  medical_emergency: "Emergency Medical Unit",
+  fire: "Fire Station Unit",
+  accident: "Traffic Enforcement Unit",
+  suspicious_activity: "Police Personnel",
+  harassment: "Police Personnel",
+  theft: "Police Personnel",
+};
 
 function formatCoordinates(location) {
   if (!Number.isFinite(location?.latitude) || !Number.isFinite(location?.longitude)) return "-";
@@ -51,6 +68,13 @@ function getPriorityLabel(value) {
 
 function getStatusLabel(value) {
   return STATUS_CONFIG[value]?.label || "Unknown";
+}
+
+function normalizeIncidentType(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
 }
 
 function getStatusErrorMessage(statusCode, fallback) {
@@ -100,13 +124,22 @@ export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incident
     );
   }, [normalizedCurrentStatus, nextAllowedStatus]);
   const fixedIncidentType = String(incident?.incidentType || incident?.category || "other").trim();
+  const normalizedIncidentType = normalizeIncidentType(fixedIncidentType);
+  const typeBasedPriority = AUTO_PRIORITY_BY_INCIDENT_TYPE[normalizedIncidentType] || null;
+  const typeBasedAssignedDepartment =
+    AUTO_ASSIGNED_DEPARTMENT_BY_INCIDENT_TYPE[normalizedIncidentType] || null;
+  const isManualPriorityType =
+    !typeBasedPriority && (normalizedIncidentType === "other" || normalizedIncidentType === "others");
+  const isManualAssignedDepartmentType =
+    !typeBasedAssignedDepartment &&
+    (normalizedIncidentType === "other" || normalizedIncidentType === "others");
   const currentImageUrl = incident?.imageUrls?.[imageIndex] || incident?.imageUrl || "";
 
   useEffect(() => {
     if (!open || !incident) return;
     setStatus(normalizedCurrentStatus || "pending");
-    setPriority(incident.priority || "medium");
-    setAssignedDepartment(incident.assignedDepartment || "");
+    setPriority(typeBasedPriority || incident.priority || "medium");
+    setAssignedDepartment(typeBasedAssignedDepartment || incident.assignedDepartment || "");
     setResolutionNotes(incident.resolutionNotes || "");
   }, [
     incident?.id,
@@ -115,6 +148,8 @@ export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incident
     incident?.assignedDepartment,
     incident?.resolutionNotes,
     normalizedCurrentStatus,
+    typeBasedPriority,
+    typeBasedAssignedDepartment,
     open,
   ]);
 
@@ -124,8 +159,10 @@ export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incident
 
   const onSave = async () => {
     if (!incident?.id) return;
+    const effectivePriority = typeBasedPriority || priority;
+    const effectiveAssignedDepartment = typeBasedAssignedDepartment || assignedDepartment || null;
 
-    if (!PRIORITY_FLOW.includes(priority)) {
+    if (!PRIORITY_FLOW.includes(effectivePriority)) {
       toast({
         title: "Invalid priority",
         description: "Priority must be one of: critical, high, medium, low.",
@@ -162,8 +199,8 @@ export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incident
     }
 
     if (
-      assignedDepartment &&
-      !ASSIGN_DEPARTMENT_OPTIONS.includes(assignedDepartment)
+      effectiveAssignedDepartment &&
+      !ASSIGN_DEPARTMENT_OPTIONS.includes(effectiveAssignedDepartment)
     ) {
       toast({
         title: "Invalid department",
@@ -177,9 +214,9 @@ export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incident
       await updateIncidentMutation.mutateAsync({
         id: incident.id,
         status,
-        priority,
+        priority: effectivePriority,
         incidentType: fixedIncidentType,
-        assignedDepartment: assignedDepartment || null,
+        assignedDepartment: effectiveAssignedDepartment,
         resolutionNotes: resolutionNotes.trim(),
       });
 
@@ -275,6 +312,8 @@ export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incident
               )}
             </div>
 
+            <TimelineLog incident={incident} />
+
             <div className="rounded-lg border p-4">
               <div className="mb-3 text-sm font-medium">Update Incident</div>
               <div className="grid gap-3 md:grid-cols-2">
@@ -300,7 +339,7 @@ export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incident
 
                 <div className="space-y-2">
                   <Label htmlFor="incident-priority">Priority</Label>
-                  <Select value={priority} onValueChange={setPriority}>
+                  <Select value={priority} onValueChange={setPriority} disabled={!isManualPriorityType}>
                     <SelectTrigger id="incident-priority">
                       <SelectValue placeholder="Select priority" />
                     </SelectTrigger>
@@ -312,6 +351,11 @@ export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incident
                       ))}
                     </SelectContent>
                   </Select>
+                  {!isManualPriorityType && typeBasedPriority && (
+                    <p className="text-xs text-muted-foreground">
+                      Auto-assigned from incident type: {getPriorityLabel(typeBasedPriority)}.
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -328,6 +372,7 @@ export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incident
                   <Label htmlFor="incident-assigned-department">Assign Department</Label>
                   <Select
                     value={assignedDepartment || UNASSIGNED_DEPARTMENT_VALUE}
+                    disabled={!isManualAssignedDepartmentType}
                     onValueChange={(value) =>
                       setAssignedDepartment(
                         value === UNASSIGNED_DEPARTMENT_VALUE ? "" : value
@@ -346,6 +391,11 @@ export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incident
                       ))}
                     </SelectContent>
                   </Select>
+                  {!isManualAssignedDepartmentType && typeBasedAssignedDepartment && (
+                    <p className="text-xs text-muted-foreground">
+                      Auto-assigned from incident type: {typeBasedAssignedDepartment}.
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2 md:col-span-2">

@@ -4,9 +4,31 @@ import { LiveSOSDetailsDialog, LiveSOSFeed } from '@/components/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useAcknowledgeSOS, useSOSDetail, useSOSLiveQueue } from '@/api/useSosAPI';
+import { useAcknowledgeSOS, SOS_ASSIGNED_UNITS, useSOSDetail, useSOSLiveQueue } from '@/api/useSosAPI';
 import { toSosFeedAlert } from '@/models/sos-live.model';
+import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Radio, Wifi, WifiOff } from 'lucide-react';
+
+const ASSIGNED_UNIT_BY_EMERGENCY_TYPE = {
+    medical: "Emergency Medical Unit",
+    fire: "Fire Station Unit",
+    violence: "Police Personnel",
+};
 
 function toSosId(thread) {
     if (!thread) return '';
@@ -28,6 +50,8 @@ export default function LiveSOS() {
     const [selectedSosId, setSelectedSosId] = useState(null);
     const [streamThreads, setStreamThreads] = useState([]);
     const [optimisticById, setOptimisticById] = useState({});
+    const [ackTargetId, setAckTargetId] = useState(null);
+    const [ackAssignedUnit, setAckAssignedUnit] = useState("");
     const queueQuery = useSOSLiveQueue({ status: 'open', limit: 100 });
     const acknowledgeMutation = useAcknowledgeSOS();
     const detailQuery = useSOSDetail(selectedSosId, {
@@ -61,21 +85,47 @@ export default function LiveSOS() {
     const activeAlerts = feedAlerts.filter((a) => a.requires_attention === true);
     const acknowledgedAlerts = feedAlerts.filter((a) => a.status === 'active' && a.requires_attention === false);
     const isConnected = !queueQuery.isError;
+    const alertById = useMemo(() => {
+        const map = new Map();
+        for (const alert of feedAlerts) {
+            map.set(String(alert.id), alert);
+        }
+        return map;
+    }, [feedAlerts]);
 
-    const handleAcknowledge = async (id) => {
+    const handleAcknowledge = (id) => {
         const parsedId = Number(id);
         if (!Number.isFinite(parsedId)) return;
+        const alert = alertById.get(String(parsedId));
+        const emergencyType = String(alert?.emergencyType || "").trim().toLowerCase();
+        const autoUnit = ASSIGNED_UNIT_BY_EMERGENCY_TYPE[emergencyType] || "";
+        setAckTargetId(parsedId);
+        setAckAssignedUnit(autoUnit);
+    };
+
+    const handleConfirmAcknowledge = async () => {
+        const parsedId = Number(ackTargetId);
+        const assignedUnit = String(ackAssignedUnit || "").trim();
+        if (!Number.isFinite(parsedId) || !assignedUnit) return;
         const nowIso = new Date().toISOString();
 
         try {
-            await acknowledgeMutation.mutateAsync({ sosId: parsedId, note: 'Acknowledged from live feed' });
+            await acknowledgeMutation.mutateAsync({
+                sosId: parsedId,
+                assigned_unit: assignedUnit,
+                note: `Acknowledged and assigned to ${assignedUnit}`,
+            });
             setOptimisticById((previous) => ({
                 ...previous,
                 [String(parsedId)]: {
                     requires_attention: false,
                     acknowledged_at: nowIso,
+                    assigned_unit: assignedUnit,
+                    assignedUnit,
                 },
             }));
+            setAckTargetId(null);
+            setAckAssignedUnit("");
         } catch (_error) {
             // Keep existing server-driven state on mutation failure.
         }
@@ -184,6 +234,66 @@ export default function LiveSOS() {
                     setIsDetailOpen(true);
                 }}
             />
+            <Dialog
+                open={ackTargetId !== null && Number.isFinite(Number(ackTargetId))}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setAckTargetId(null);
+                        setAckAssignedUnit("");
+                    }
+                }}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Acknowledge SOS</DialogTitle>
+                        <DialogDescription>
+                            Select the assigned unit before confirming acknowledgement.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {(() => {
+                        const alert = ackTargetId ? alertById.get(String(ackTargetId)) : null;
+                        if (!alert?.emergencyType || alert.emergencyType === "unknown") return null;
+                        return (
+                            <p className="text-xs text-muted-foreground">
+                                Auto-selected from emergency type: <span className="font-medium capitalize">{alert.emergencyType}</span>
+                            </p>
+                        );
+                    })()}
+                    <div className="space-y-2">
+                        <p className="text-sm font-medium">Assigned Unit</p>
+                        <Select value={ackAssignedUnit} onValueChange={setAckAssignedUnit}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select assigned unit" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {SOS_ASSIGNED_UNITS.map((unit) => (
+                                    <SelectItem key={unit} value={unit}>
+                                        {unit}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setAckTargetId(null);
+                                setAckAssignedUnit("");
+                            }}
+                            disabled={acknowledgeMutation.isPending}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleConfirmAcknowledge}
+                            disabled={!ackAssignedUnit || acknowledgeMutation.isPending}
+                        >
+                            {acknowledgeMutation.isPending ? "Acknowledging..." : "Confirm Acknowledge"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
             <LiveSOSDetailsDialog
                 open={isDetailOpen}
                 detailQuery={detailQuery}

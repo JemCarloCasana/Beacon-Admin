@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Bell, Search, MapPin, Clock, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
@@ -34,7 +35,8 @@ export function Header({ onMenuClick }) {
     const [dismissedInviteIds, setDismissedInviteIds] = useState([]);
     const [inviteActionLoading, setInviteActionLoading] = useState(false);
     const navigate = useNavigate();
-    const { logout, refreshMe } = useAuth();
+    const queryClient = useQueryClient();
+    const { me, logout, refreshMe } = useAuth();
     const { toast } = useToast();
 
     const notificationsQuery = useNotifications();
@@ -48,12 +50,47 @@ export function Header({ onMenuClick }) {
         [notifications]
     );
     const hasUnread = unreadCount > 0;
+    const renderedNotifications = notifications.slice(0, 8);
+
+    useEffect(() => {
+        if (!import.meta.env.DEV) return;
+        const typeCounts = notifications.reduce((acc, item) => {
+            const key = String(item?.type || 'unknown');
+            acc[key] = (acc[key] || 0) + 1;
+            return acc;
+        }, {});
+        console.debug('[notifications] current admin id:', me?.id ?? null);
+        console.debug('[notifications] mapped count by type:', typeCounts);
+        console.debug('[notifications] rendered count:', renderedNotifications.length);
+    }, [me?.id, notifications, renderedNotifications.length]);
+
+    const getActionableAdminRequestId = (notification) => {
+        if (notification?.type !== 'admin_request') return null;
+        const candidate = notification?.reference_id ?? notification?.metadata?.admin_request_id;
+        const requestId = Number(candidate);
+        return Number.isFinite(requestId) ? requestId : null;
+    };
+
+    const getRouteableId = (value) => {
+        const id = Number(value);
+        return Number.isFinite(id) ? id : null;
+    };
+
+    const getSosTargetId = (notification) => {
+        if (notification?.type !== 'sos') return null;
+        return getRouteableId(notification?.metadata?.reference_id ?? notification?.metadata?.sos_id);
+    };
+
+    const getIncidentTargetId = (notification) => {
+        if (notification?.type !== 'incident') return null;
+        return getRouteableId(notification?.metadata?.reference_id ?? notification?.metadata?.incident_id);
+    };
 
     useEffect(() => {
         if (invitePopupNotification) return;
         const unreadInvite = notifications.find(
             (notification) =>
-                notification?.type === 'admin_request' &&
+                getActionableAdminRequestId(notification) !== null &&
                 !notification?.is_read &&
                 !dismissedInviteIds.includes(notification?.id)
         );
@@ -86,140 +123,41 @@ export function Header({ onMenuClick }) {
     };
 
     const handleNotificationClick = async (notification) => {
-        if (notification?.type === 'admin_request') {
-            setInvitePopupNotification(notification);
+        const requestId = getActionableAdminRequestId(notification);
+        if (requestId !== null) {
+            setInvitePopupNotification({
+                ...notification,
+                reference_id: requestId,
+            });
             return;
         }
-        await handleMarkAsRead(notification);
-    };
 
-    const normalizeId = (value) => {
-        if (value === null || value === undefined) return null;
-        const text = String(value).trim();
-        if (!text) return null;
-        return text;
-    };
-
-    const parseObjectLike = (value) => {
-        if (!value) return {};
-        if (typeof value === 'object') return value;
-        if (typeof value === 'string') {
-            try {
-                const parsed = JSON.parse(value);
-                return parsed && typeof parsed === 'object' ? parsed : {};
-            } catch {
-                return {};
-            }
+        const sosId = getSosTargetId(notification);
+        if (sosId !== null) {
+            void handleMarkAsRead(notification);
+            navigate(`/sos/${sosId}`);
+            return;
         }
-        return {};
-    };
 
-    const resolveRequestId = (notification) => {
-        const nestedData = parseObjectLike(notification?.data);
-        const nestedPayload = parseObjectLike(notification?.payload);
-        const nestedMeta = parseObjectLike(notification?.meta);
-        const nestedMetadata = parseObjectLike(notification?.metadata);
-        const preferredCandidates = [
-            nestedMetadata?.admin_request_id,
-            nestedMetadata?.adminRequestId,
-            nestedMetadata?.request_id,
-            notification?.admin_request_id,
-        ];
+        const incidentId = getIncidentTargetId(notification);
+        if (incidentId !== null) {
+            void handleMarkAsRead(notification);
+            navigate(`/incidents/${incidentId}`);
+            return;
+        }
 
-        const candidates = [
-            ...preferredCandidates,
-            notification?.adminRequestId,
-            notification?.request_id,
-            notification?.requestId,
-            notification?.resource_id,
-            notification?.resourceId,
-            notification?.source_id,
-            notification?.sourceId,
-            notification?.entity_id,
-            notification?.entityId,
-            notification?.target_id,
-            notification?.targetId,
-            notification?.reference_id,
-            notification?.referenceId,
-            nestedData?.admin_request_id,
-            nestedData?.adminRequestId,
-            nestedData?.request_id,
-            nestedData?.requestId,
-            nestedData?.resource_id,
-            nestedData?.resourceId,
-            nestedData?.source_id,
-            nestedData?.sourceId,
-            nestedData?.entity_id,
-            nestedData?.entityId,
-            nestedData?.target_id,
-            nestedData?.targetId,
-            nestedData?.reference_id,
-            nestedData?.referenceId,
-            nestedPayload?.admin_request_id,
-            nestedPayload?.adminRequestId,
-            nestedPayload?.request_id,
-            nestedPayload?.requestId,
-            nestedMeta?.admin_request_id,
-            nestedMeta?.adminRequestId,
-            nestedMeta?.request_id,
-            nestedMeta?.requestId,
-            nestedMetadata?.requestId,
-        ];
-
-        const found = candidates.find((value) => normalizeId(value));
-        if (found) return normalizeId(found);
-
-        const searchableText = [
-            notification?.title,
-            notification?.message,
-            notification?.body,
-            notification?.data,
-            notification?.payload,
-            notification?.meta,
-            notification?.metadata,
-            nestedData?.title,
-            nestedData?.message,
-            nestedData?.body,
-            nestedPayload?.title,
-            nestedPayload?.message,
-            nestedPayload?.body,
-            nestedMeta?.title,
-            nestedMeta?.message,
-            nestedMeta?.body,
-            nestedMetadata?.title,
-            nestedMetadata?.message,
-            nestedMetadata?.body,
-        ]
-            .filter(Boolean)
-            .join(' ');
-
-        if (!searchableText) return null;
-
-        const strictMatch = searchableText.match(
-            /(?:request[_\s-]?id|admin[_\s-]?request)\D{0,8}([a-zA-Z0-9-]{2,64})/i
-        );
-        if (strictMatch?.[1]) return normalizeId(strictMatch[1]);
-
-        const hashMatch = searchableText.match(/#([a-zA-Z0-9-]{2,64})/);
-        if (hashMatch?.[1]) return normalizeId(hashMatch[1]);
-
-        // Last fallback: some backends use notification.id as request id.
-        return normalizeId(notification?.id);
+        await handleMarkAsRead(notification);
     };
 
     const handleInviteDecision = async (decision) => {
         const current = invitePopupNotification;
         if (!current) return;
 
-        const requestId = resolveRequestId(current);
-        if (!requestId) {
-            console.error('Missing admin request id in notification payload:', current);
-            const availableKeys = Object.keys(current || {}).slice(0, 12).join(', ');
+        const requestId = getActionableAdminRequestId(current);
+        if (requestId === null) {
             toast({
                 title: 'Unable to process request',
-                description: availableKeys
-                    ? `Missing request id. Available fields: ${availableKeys}`
-                    : 'Missing request id in the notification payload.',
+                description: 'Notification is missing a valid admin request id.',
                 variant: 'destructive',
             });
             return;
@@ -249,7 +187,8 @@ export function Header({ onMenuClick }) {
 
             await handleMarkAsRead(current);
             setInvitePopupNotification(null);
-            notificationsQuery.refetch();
+            await queryClient.invalidateQueries({ queryKey: ['notifications'] });
+            await queryClient.invalidateQueries({ queryKey: ['admin-requests'] });
         } catch (error) {
             toast({
                 title: `Failed to ${decision} request`,
@@ -272,7 +211,7 @@ export function Header({ onMenuClick }) {
         await logout();
         localStorage.removeItem('admin_token');
         // admin_me is never stored in localStorage, only token
-        navigate('/');
+        navigate('/login');
     };
 
     return (
@@ -397,7 +336,7 @@ export function Header({ onMenuClick }) {
                                         No notifications yet.
                                     </div>
                                 ) : (
-                                    notifications.slice(0, 8).map((notification) => (
+                                    renderedNotifications.map((notification) => (
                                         <DropdownMenuItem
                                             key={notification.id}
                                             onClick={() => handleNotificationClick(notification)}
