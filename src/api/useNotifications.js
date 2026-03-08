@@ -114,6 +114,9 @@ export function useNotifications(options = {}) {
       return normalized;
     },
     staleTime: 1000 * 30,
+    refetchInterval: 5000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
     retry: 1,
     ...options,
   });

@@ -265,4 +265,44 @@ describe("Header notifications", () => {
     });
     expect(mockNavigate).toHaveBeenCalledWith("/incidents");
   });
+
+  it("shows unread badge after notifications refresh without opening bell", async () => {
+    let notificationState = [];
+    useNotifications.mockImplementation(() => ({
+      data: notificationState,
+      isLoading: false,
+      isError: false,
+      isFetching: false,
+      refetch: vi.fn(),
+    }));
+
+    const view = renderWithQueryClient(<Header />);
+    expect(view.container.querySelector("span.bg-red-500")).toBeNull();
+
+    notificationState = [
+      {
+        id: 7,
+        type: "incident",
+        title: "Unread Incident",
+        message: "New incident",
+        metadata: { incident_id: 701 },
+        is_read: false,
+        created_at: "2026-03-07T00:00:00.000Z",
+      },
+    ];
+
+    view.rerender(
+      <QueryClientProvider
+        client={new QueryClient({
+          defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+        })}
+      >
+        <Header />
+      </QueryClientProvider>
+    );
+
+    await waitFor(() => {
+      expect(view.container.querySelector("span.bg-red-500")).not.toBeNull();
+    });
+  });
 });

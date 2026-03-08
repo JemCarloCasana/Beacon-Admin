@@ -1,8 +1,16 @@
 import React from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { useNotifications } from "@/api/useNotifications";
 import { apiGet } from "@/services/api";
+
+vi.mock("@tanstack/react-query", async () => {
+  const actual = await vi.importActual("@tanstack/react-query");
+  return {
+    ...actual,
+    useQuery: vi.fn(actual.useQuery),
+  };
+});
 
 vi.mock("@/services/api", () => ({
   apiGet: vi.fn(),
@@ -104,5 +112,30 @@ describe("useNotifications", () => {
     expect(result.current.data).toHaveLength(1);
     expect(result.current.data?.[0]?.id).toBe(4);
     expect(result.current.data?.[0]?.reference_id).toBe(88);
+  });
+
+  it("configures polling and focus behavior on the notifications query", () => {
+    const wrapper = createWrapper();
+    renderHook(() => useNotifications(), { wrapper });
+
+    expect(useQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        staleTime: 1000 * 30,
+        refetchInterval: 5000,
+        refetchIntervalInBackground: false,
+        refetchOnWindowFocus: true,
+      })
+    );
+  });
+
+  it("allows callers to override query options", () => {
+    const wrapper = createWrapper();
+    renderHook(() => useNotifications({ refetchInterval: 10000 }), { wrapper });
+
+    expect(useQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        refetchInterval: 10000,
+      })
+    );
   });
 });
