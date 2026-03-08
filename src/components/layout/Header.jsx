@@ -78,12 +78,72 @@ export function Header({ onMenuClick }) {
 
     const getSosTargetId = (notification) => {
         if (notification?.type !== 'sos') return null;
-        return getRouteableId(notification?.metadata?.reference_id ?? notification?.metadata?.sos_id);
+        return getRouteableId(notification?.metadata?.sos_id ?? notification?.metadata?.reference_id);
     };
 
     const getIncidentTargetId = (notification) => {
         if (notification?.type !== 'incident') return null;
-        return getRouteableId(notification?.metadata?.reference_id ?? notification?.metadata?.incident_id);
+        return getRouteableId(notification?.metadata?.incident_id ?? notification?.metadata?.reference_id);
+    };
+
+    const normalizeFallbackRoute = (fallbackRoute) => {
+        if (typeof fallbackRoute !== 'string') return null;
+        const trimmed = fallbackRoute.trim();
+        if (!trimmed.startsWith('/')) return null;
+        return trimmed;
+    };
+
+    const mapBackendRouteToAppRoute = (route) => {
+        if (!route) return null;
+
+        const incidentMatch = route.match(/^\/admin\/incidents\/(\d+)(?:\/)?$/i);
+        if (incidentMatch) {
+            return `/incidents/${incidentMatch[1]}`;
+        }
+        if (/^\/admin\/incidents(?:\/)?$/i.test(route)) {
+            return '/incidents';
+        }
+
+        const sosMatch = route.match(/^\/admin\/sos\/(\d+)(?:\/)?$/i);
+        if (sosMatch) {
+            return `/sos/${sosMatch[1]}`;
+        }
+        if (/^\/admin\/sos(?:\/)?$/i.test(route)) {
+            return '/sos';
+        }
+
+        return route;
+    };
+
+    const isRoutableNotificationPath = (route) => {
+        if (!route) return false;
+        return (
+            /^\/incidents(?:\/\d+)?(?:[/?#].*)?$/i.test(route) ||
+            /^\/sos(?:\/\d+)?(?:[/?#].*)?$/i.test(route)
+        );
+    };
+
+    const getFallbackNotificationRoute = (notification) => {
+        const normalized = normalizeFallbackRoute(notification?.metadata?.fallback_route);
+        const mapped = mapBackendRouteToAppRoute(normalized);
+        return isRoutableNotificationPath(mapped) ? mapped : null;
+    };
+
+    const resolveNotificationRoute = (notification) => {
+        const fallbackRoute = getFallbackNotificationRoute(notification);
+        if (fallbackRoute) return fallbackRoute;
+
+        if (notification?.type === 'incident') {
+            const incidentId = getIncidentTargetId(notification);
+            return incidentId !== null ? `/incidents/${incidentId}` : '/incidents';
+        }
+
+        if (notification?.type === 'sos') {
+            const sosId = getSosTargetId(notification);
+            return sosId !== null ? `/sos/${sosId}` : '/sos';
+        }
+
+        return null;
     };
 
     useEffect(() => {
@@ -132,17 +192,10 @@ export function Header({ onMenuClick }) {
             return;
         }
 
-        const sosId = getSosTargetId(notification);
-        if (sosId !== null) {
+        const targetRoute = resolveNotificationRoute(notification);
+        if (targetRoute) {
             void handleMarkAsRead(notification);
-            navigate(`/sos/${sosId}`);
-            return;
-        }
-
-        const incidentId = getIncidentTargetId(notification);
-        if (incidentId !== null) {
-            void handleMarkAsRead(notification);
-            navigate(`/incidents/${incidentId}`);
+            navigate(targetRoute);
             return;
         }
 

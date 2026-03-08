@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -46,6 +47,8 @@ const statusStyles = {
 };
 
 export default function Incidents() {
+    const navigate = useNavigate();
+    const { incidentId: routeIncidentId } = useParams();
     const { me, loading: authLoading } = useAdminAuth();
     const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [selectedIncidentId, setSelectedIncidentId] = useState(null);
@@ -91,11 +94,18 @@ export default function Incidents() {
     const canGoPreviousPage = page > 1;
     const canGoNextPage = incidents.length === pageSize;
 
+    useEffect(() => {
+        if (!routeIncidentId) return;
+        const parsedId = Number(routeIncidentId);
+        if (!Number.isFinite(parsedId)) return;
+        setSelectedIncidentId(parsedId);
+        setSelectedIncidentPreview(null);
+        setIsDetailOpen(true);
+    }, [routeIncidentId]);
+
     const openDetails = (incident) => {
         if (!incident?.id) return;
-        setSelectedIncidentId(incident.id);
-        setSelectedIncidentPreview(incident);
-        setIsDetailOpen(true);
+        navigate(`/incidents/${incident.id}`);
     };
 
     const handleDetailOpenChange = (open) => {
@@ -103,6 +113,9 @@ export default function Incidents() {
         if (!open) {
             setSelectedIncidentId(null);
             setSelectedIncidentPreview(null);
+            if (routeIncidentId) {
+                navigate('/incidents', { replace: true });
+            }
         }
     };
 

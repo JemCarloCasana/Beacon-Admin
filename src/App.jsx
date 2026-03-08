@@ -48,9 +48,25 @@ const App = () => {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/incidents/:incidentId"
+            element={
+              <ProtectedRoute>
+                <Incidents />
+              </ProtectedRoute>
+            }
+          />
 
           <Route
             path="/sos"
+            element={
+              <ProtectedRoute>
+                <LiveSOS />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/sos/:sosId"
             element={
               <ProtectedRoute>
                 <LiveSOS />

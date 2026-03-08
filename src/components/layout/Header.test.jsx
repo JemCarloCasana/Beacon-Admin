@@ -146,7 +146,7 @@ describe("Header notifications", () => {
     expect(screen.queryByText("Accept")).not.toBeInTheDocument();
   });
 
-  it("routes SOS notification to /sos/:id and marks read", async () => {
+  it("routes SOS notification to /sos/:id using sos_id priority and marks read", async () => {
     useNotifications.mockReturnValue({
       data: [
         {
@@ -171,7 +171,7 @@ describe("Header notifications", () => {
     await waitFor(() => {
       expect(mockMarkRead).toHaveBeenCalledWith(3);
     });
-    expect(mockNavigate).toHaveBeenCalledWith("/sos/901");
+    expect(mockNavigate).toHaveBeenCalledWith("/sos/900");
   });
 
   it("routes incident notification to /incidents/:id and marks read", async () => {
@@ -200,5 +200,69 @@ describe("Header notifications", () => {
       expect(mockMarkRead).toHaveBeenCalledWith(4);
     });
     expect(mockNavigate).toHaveBeenCalledWith("/incidents/777");
+  });
+
+  it("uses valid fallback_route first for incident notifications", async () => {
+    useNotifications.mockReturnValue({
+      data: [
+        {
+          id: 5,
+          type: "incident",
+          title: "Incident via fallback route",
+          message: "Open details",
+          metadata: {
+            incident_id: 222,
+            reference_id: 222,
+            fallback_route: "/admin/incidents/222",
+          },
+          is_read: false,
+          created_at: "2026-03-07T00:00:00.000Z",
+        },
+      ],
+      isLoading: false,
+      isError: false,
+      isFetching: false,
+      refetch: vi.fn(),
+    });
+
+    renderWithQueryClient(<Header />);
+    fireEvent.click(screen.getByText("Incident via fallback route"));
+
+    await waitFor(() => {
+      expect(mockMarkRead).toHaveBeenCalledWith(5);
+    });
+    expect(mockNavigate).toHaveBeenCalledWith("/incidents/222");
+  });
+
+  it("falls back to /incidents when incident id and fallback route are missing", async () => {
+    useNotifications.mockReturnValue({
+      data: [
+        {
+          id: 6,
+          type: "incident",
+          title: "Incident missing target",
+          message: "No routeable id",
+          metadata: {
+            incident_id: "not-a-number",
+            reference_id: null,
+            fallback_route: "/admin/unknown/123",
+          },
+          is_read: false,
+          created_at: "2026-03-07T00:00:00.000Z",
+        },
+      ],
+      isLoading: false,
+      isError: false,
+      isFetching: false,
+      refetch: vi.fn(),
+    });
+
+    renderWithQueryClient(<Header />);
+    fireEvent.click(screen.getByText("Incident missing target"));
+
+    await waitFor(() => {
+      expect(mockMarkRead).toHaveBeenCalledWith(6);
+    });
+    expect(mockNavigate).toHaveBeenCalledWith("/incidents");
   });
 });
