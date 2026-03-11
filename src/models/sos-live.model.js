@@ -1,3 +1,5 @@
+import { deriveSosTerminalLabel } from "@/models/sos-terminal-label";
+
 function toFiniteNumber(value) {
   if (value === null || value === undefined || value === "") return null;
   const number = Number(value);
@@ -39,6 +41,12 @@ export function computeRequiresAttention(item) {
 
 export function toSosFeedAlert(item) {
   const requiresAttention = computeRequiresAttention(item);
+  const status = String(item?.latest_status || "active");
+  const terminalLabel = deriveSosTerminalLabel({
+    status,
+    terminal_status: item?.terminal_status,
+    message: item?.latest_message,
+  });
   const assignedUnit = item?.assigned_unit || item?.assignedUnit || null;
   const emergencyTypeFromPayload =
     normalizeEmergencyCategory(item?.emergency_category) || normalizeEmergencyCategory(item?.category);
@@ -46,7 +54,9 @@ export function toSosFeedAlert(item) {
 
   return {
     id: String(item?.sos_id ?? ""),
-    status: String(item?.latest_status || "active"),
+    status,
+    terminal_label: terminalLabel,
+    terminalLabel,
     requires_attention: requiresAttention,
     requiresAttention,
     acknowledged_at: item?.acknowledged_at || item?.acknowledgedAt || null,

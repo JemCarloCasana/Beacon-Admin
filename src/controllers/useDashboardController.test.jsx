@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { useDashboardController } from "@/controllers/useDashboardController";
 import { useAdminAuth } from "@/auth/AdminAuthProvider";
-import { useIncidentsAPI } from "@/api/useIncidentsAPI";
+import { useIncidentsAPI, useReporterDetail } from "@/api/useIncidentsAPI";
 import { useSOSLiveQueue } from "@/api/useSosAPI";
 import { useReportsOverview } from "@/api/useReportsAPI";
 
@@ -21,6 +21,7 @@ vi.mock("@/auth/AdminAuthProvider", () => ({
 
 vi.mock("@/api/useIncidentsAPI", () => ({
   useIncidentsAPI: vi.fn(),
+  useReporterDetail: vi.fn(),
 }));
 
 vi.mock("@/api/useSosAPI", () => ({
@@ -69,6 +70,12 @@ describe("useDashboardController", () => {
       error: null,
       refetch: vi.fn(),
     }));
+    useReporterDetail.mockReturnValue({
+      data: null,
+      isLoading: false,
+      isError: false,
+      error: null,
+    });
 
     useSOSLiveQueue.mockReturnValue({
       data: [
@@ -160,5 +167,28 @@ describe("useDashboardController", () => {
     await waitFor(() => {
       expect(result.current.incidents.length).toBeGreaterThan(0);
     });
+  });
+
+  it("opens reporter dialog when Contact Reporter is clicked", async () => {
+    const { result } = renderHook(() => useDashboardController());
+
+    await waitFor(() => {
+      expect(result.current.selectedIncident?.id).toBe(1);
+    });
+
+    act(() => {
+      result.current.actions.onContactReporter();
+    });
+
+    expect(result.current.reporterDialog.open).toBe(true);
+    expect(result.current.reporterDialog.incidentId).toBe(1);
+    expect(result.current.reporterDialog.baseReporter?.id).toBeNull();
+    expect(mockNavigate).not.toHaveBeenCalledWith("/incidents");
+
+    act(() => {
+      result.current.actions.onCloseReporterDialog();
+    });
+
+    expect(result.current.reporterDialog.open).toBe(false);
   });
 });

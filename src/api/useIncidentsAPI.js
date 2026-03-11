@@ -18,6 +18,51 @@ function normalizeIncidentsPayload(payload) {
   return [];
 }
 
+function normalizeReporterPayload(payload, reporterId = null) {
+  const source =
+    payload?.data?.user ||
+    payload?.data?.personnel ||
+    payload?.data?.admin ||
+    payload?.data ||
+    payload?.user ||
+    payload?.personnel ||
+    payload?.admin ||
+    payload ||
+    {};
+
+  const id =
+    source?.id ??
+    source?._id ??
+    source?.user_id ??
+    source?.userId ??
+    reporterId ??
+    null;
+  const name =
+    source?.full_name ??
+    source?.fullName ??
+    source?.name ??
+    source?.display_name ??
+    source?.displayName ??
+    "";
+  const phone =
+    source?.phone ??
+    source?.phone_number ??
+    source?.phoneNumber ??
+    source?.mobile ??
+    source?.mobile_number ??
+    source?.mobileNumber ??
+    "";
+  const email = source?.email ?? source?.email_address ?? source?.emailAddress ?? "";
+
+  return {
+    id,
+    name: String(name || ""),
+    phone: String(phone || ""),
+    email: String(email || ""),
+    raw: source,
+  };
+}
+
 function buildIncidentsUrl({ page, limit, status } = {}) {
   const params = new URLSearchParams();
   if (Number.isInteger(page) && page > 0) params.set('page', String(page));
@@ -105,6 +150,42 @@ export const useIncidentDetail = (id, options = {}) => {
     staleTime: 1000 * 60 * 2,
     gcTime: 1000 * 60 * 10,
     enabled: !!id, // Only run query if id is provided
+    ...options,
+  });
+};
+
+/**
+ * Hook to fetch reporter detail by user id with endpoint fallback.
+ */
+export const useReporterDetail = (reporterId, options = {}) => {
+  return useQuery({
+    queryKey: ["reporters", reporterId],
+    queryFn: async () => {
+      const endpoints = [
+        `/admin/users/${reporterId}`,
+        `/admin/personnel/${reporterId}`,
+        `/admin/admins/${reporterId}`,
+      ];
+      let lastError = null;
+
+      for (const endpoint of endpoints) {
+        try {
+          const response = await apiGet(endpoint);
+          return normalizeReporterPayload(response, reporterId);
+        } catch (error) {
+          lastError = error;
+          if (error?.status === 404 || error?.status === 405 || error?.status === 422) {
+            continue;
+          }
+          throw error;
+        }
+      }
+
+      throw lastError || new Error("Failed to load reporter details.");
+    },
+    staleTime: 1000 * 60 * 1,
+    gcTime: 1000 * 60 * 10,
+    enabled: !!reporterId,
     ...options,
   });
 };

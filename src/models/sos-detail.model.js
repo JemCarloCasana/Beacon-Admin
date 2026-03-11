@@ -1,3 +1,5 @@
+import { deriveSosTerminalLabel } from "@/models/sos-terminal-label";
+
 const EMERGENCY_TYPES = {
   medical: ["medical", "heart", "stroke", "seizure", "faint", "injury", "bleeding", "ambulance"],
   fire: ["fire", "smoke", "burn", "flame", "nasusunog"],
@@ -49,6 +51,28 @@ function normalizeEmergencyCategory(value) {
   return null;
 }
 
+function hasCancelledPrefix(value) {
+  return /^\s*cancelled\s*:/i.test(String(value || ""));
+}
+
+function toActorLabel(actorType) {
+  if (actorType === "admin") return "Admin";
+  if (actorType === "system") return "System";
+  return "User";
+}
+
+function toEventLabel(event, isOldestEvent) {
+  const status = String(event?.status || "active").trim().toLowerCase();
+  const message = String(event?.message || "").trim();
+
+  if (status === "resolved") return hasCancelledPrefix(message) ? "Cancelled" : "Resolved";
+  if (status === "acknowledged") return "Acknowledged";
+  if (status === "responding") return "Responding";
+  if (status === "active" && isOldestEvent) return "Created";
+  if (status === "active") return "Active";
+  return status ? status.toUpperCase() : "ACTIVE";
+}
+
 export function deriveEmergencyType(text) {
   const normalized = String(text || "").toLowerCase();
 
@@ -61,6 +85,7 @@ export function deriveEmergencyType(text) {
 export function toSosDetailViewModel(data) {
   const thread = data?.thread || null;
   const events = Array.isArray(data?.events) ? data.events : [];
+  const status = String(thread?.latest_status || "active");
   const latitude = toFiniteNumber(thread?.latest_latitude);
   const longitude = toFiniteNumber(thread?.latest_longitude);
 
@@ -71,10 +96,39 @@ export function toSosDetailViewModel(data) {
   const emergencyType = emergencyTypeFromThread || deriveEmergencyType(emergencyTypeSource);
 
   const requiresAttention = computeRequiresAttention(thread);
+  const terminalLabel = deriveSosTerminalLabel({
+    status,
+    terminal_status: thread?.terminal_status,
+    message: thread?.latest_message,
+    events,
+  });
+
+  const descendingTimeline = [...events].sort(
+    (a, b) => new Date(b?.created_at || 0).getTime() - new Date(a?.created_at || 0).getTime()
+  );
+  const oldestEvent = [...events].sort(
+    (a, b) => new Date(a?.created_at || 0).getTime() - new Date(b?.created_at || 0).getTime()
+  )[0] || null;
+
+  const timeline = descendingTimeline.map((event) => {
+    const isOldestEvent = oldestEvent
+      ? (event?.id != null && oldestEvent?.id != null)
+        ? event.id === oldestEvent.id
+        : String(event?.created_at || "") === String(oldestEvent?.created_at || "")
+      : false;
+
+    return {
+      ...event,
+      eventLabel: toEventLabel(event, isOldestEvent),
+      actorLabel: toActorLabel(String(event?.actor_type || "").trim().toLowerCase()),
+    };
+  });
 
   return {
     id: thread?.sos_id ? String(thread.sos_id) : "",
-    status: String(thread?.latest_status || "active"),
+    status,
+    terminal_label: terminalLabel,
+    terminalLabel,
     requires_attention: requiresAttention,
     requiresAttention,
     acknowledged_at: thread?.acknowledged_at || thread?.acknowledgedAt || null,
@@ -91,9 +145,7 @@ export function toSosDetailViewModel(data) {
       longitude,
       address: thread?.latest_address || null,
     },
-    timeline: [...events].sort(
-      (a, b) => new Date(b?.created_at || 0).getTime() - new Date(a?.created_at || 0).getTime()
-    ),
+    timeline,
     raw: data,
   };
 }

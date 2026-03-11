@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAdminAuth } from "@/auth/AdminAuthProvider";
-import { useIncidentsAPI } from "@/api/useIncidentsAPI";
+import { useIncidentsAPI, useReporterDetail } from "@/api/useIncidentsAPI";
 import { useSOSLiveQueue } from "@/api/useSosAPI";
 import { useReportsOverview } from "@/api/useReportsAPI";
 import { toAdminModel } from "@/models/admin.model";
@@ -36,6 +36,8 @@ export function useDashboardController() {
   const [dismissedSosId, setDismissedSosId] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortByPriority, setSortByPriority] = useState(true);
+  const [isReporterDialogOpen, setIsReporterDialogOpen] = useState(false);
+  const [reporterIncidentContext, setReporterIncidentContext] = useState(null);
 
   const admin = useMemo(() => toAdminModel(me), [me]);
   const incidents = useMemo(
@@ -92,6 +94,9 @@ export function useDashboardController() {
     () => transformedIncidents.find((item) => item.id === selectedIncidentId) || null,
     [selectedIncidentId, transformedIncidents]
   );
+  const reporterDetailQuery = useReporterDetail(reporterIncidentContext?.reporter?.id, {
+    enabled: isReporterDialogOpen && !!reporterIncidentContext?.reporter?.id,
+  });
 
   const activeSOS = useMemo(() => {
     const prioritized = [...liveSosAlerts]
@@ -128,6 +133,13 @@ export function useDashboardController() {
     canManageAdmins,
     incidents: transformedIncidents,
     selectedIncident,
+    reporterDialog: {
+      open: isReporterDialogOpen,
+      incidentId: reporterIncidentContext?.id ?? null,
+      incidentTitle: reporterIncidentContext?.title ?? "",
+      baseReporter: reporterIncidentContext?.reporter ?? null,
+      detailQuery: reporterDetailQuery,
+    },
     filters: {
       status: statusFilter,
       sortByPriority,
@@ -160,8 +172,15 @@ export function useDashboardController() {
       onGoToSosWorkspace: () => navigate("/sos"),
       onOpenMap: () => navigate("/map"),
       onContactReporter: () => {
-        navigate("/incidents");
+        if (!selectedIncident) return;
+        setReporterIncidentContext({
+          id: selectedIncident.id ?? null,
+          title: selectedIncident.title || "",
+          reporter: selectedIncident.reporter || null,
+        });
+        setIsReporterDialogOpen(true);
       },
+      onCloseReporterDialog: () => setIsReporterDialogOpen(false),
       onGoToPersonnel: () => navigate("/personnel"),
       onGoToAdmins: () => navigate("/admin-requests"),
     },

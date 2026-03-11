@@ -76,6 +76,18 @@ describe("useSosAPI", () => {
     expect(apiPost).toHaveBeenCalledWith("/admin/sos/123/resolve", { note: "resolve" });
   });
 
+  it("resolve prefixes note with CANCELLED when terminal outcome is cancelled", async () => {
+    apiPost.mockResolvedValue({ ok: true });
+    const wrapper = createWrapper();
+    const { result } = renderHook(() => useResolveSOS(), { wrapper });
+
+    await result.current.mutateAsync({ sosId: 123, terminalOutcome: "cancelled", note: "duplicate trigger" });
+
+    expect(apiPost).toHaveBeenCalledWith("/admin/sos/123/resolve", {
+      note: "CANCELLED: duplicate trigger",
+    });
+  });
+
   it("acknowledge mutation throws when assigned_unit is missing", async () => {
     const wrapper = createWrapper();
     const { result } = renderHook(() => useAcknowledgeSOS(), { wrapper });

@@ -2,7 +2,7 @@ import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { useIncidentsAPI, useMapIncidents, useUpdateIncident } from "@/api/useIncidentsAPI";
+import { useIncidentsAPI, useMapIncidents, useReporterDetail, useUpdateIncident } from "@/api/useIncidentsAPI";
 import { apiGet, apiPatch } from "@/services/api";
 
 vi.mock("@/services/api", () => ({
@@ -85,5 +85,67 @@ describe("useIncidentsAPI", () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(apiPatch).not.toHaveBeenCalled();
     expect(result.current.error?.status).toBe(400);
+  });
+
+  it("useReporterDetail fetches reporter from primary endpoint", async () => {
+    apiGet.mockResolvedValueOnce({
+      id: 44,
+      full_name: "Primary Reporter",
+      phone_number: "+639171111111",
+      email: "primary@example.com",
+    });
+    const wrapper = createWrapper();
+    const { result } = renderHook(() => useReporterDetail(44), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(apiGet).toHaveBeenCalledWith("/admin/users/44");
+    expect(result.current.data).toMatchObject({
+      id: 44,
+      name: "Primary Reporter",
+      phone: "+639171111111",
+      email: "primary@example.com",
+    });
+  });
+
+  it("useReporterDetail falls back through personnel/admin endpoints on 404-style errors", async () => {
+    apiGet
+      .mockRejectedValueOnce({ status: 404 })
+      .mockRejectedValueOnce({ status: 405 })
+      .mockResolvedValueOnce({
+        data: {
+          admin: {
+            id: 88,
+            full_name: "Admin Reporter",
+            phone: "+639172222222",
+            email: "admin@example.com",
+          },
+        },
+      });
+    const wrapper = createWrapper();
+    const { result } = renderHook(() => useReporterDetail(88), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(apiGet).toHaveBeenNthCalledWith(1, "/admin/users/88");
+    expect(apiGet).toHaveBeenNthCalledWith(2, "/admin/personnel/88");
+    expect(apiGet).toHaveBeenNthCalledWith(3, "/admin/admins/88");
+    expect(result.current.data).toMatchObject({
+      id: 88,
+      name: "Admin Reporter",
+      phone: "+639172222222",
+      email: "admin@example.com",
+    });
+  });
+
+  it("useReporterDetail keeps error state when all fallback endpoints fail", async () => {
+    apiGet
+      .mockRejectedValueOnce({ status: 404, message: "Not found" })
+      .mockRejectedValueOnce({ status: 422, message: "Invalid" })
+      .mockRejectedValueOnce({ status: 404, message: "Not found" });
+    const wrapper = createWrapper();
+    const { result } = renderHook(() => useReporterDetail(999), { wrapper });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(apiGet).toHaveBeenCalledTimes(3);
+    expect(result.current.error?.status).toBe(404);
   });
 });

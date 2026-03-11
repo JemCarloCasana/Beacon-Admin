@@ -44,6 +44,7 @@ describe("sos-detail.model", () => {
     expect(result.location.latitude).toBe(16.123);
     expect(result.location.longitude).toBe(120.456);
     expect(result.timeline.map((event) => event.id)).toEqual([3, 2]);
+    expect(result.timeline.map((event) => event.eventLabel)).toEqual(["Active", "Created"]);
   });
 
   it("honors explicit requires_attention value", () => {
@@ -86,5 +87,64 @@ describe("sos-detail.model", () => {
 
     expect(result.assigned_unit).toBe("Emergency Medical Unit");
     expect(result.assignedUnit).toBe("Emergency Medical Unit");
+  });
+
+  it("derives Cancelled SOS terminal label for resolved detail via note convention", () => {
+    const result = toSosDetailViewModel({
+      thread: {
+        sos_id: 59,
+        latest_status: "resolved",
+        latest_message: "CANCELLED: false alarm",
+      },
+      events: [],
+    });
+
+    expect(result.terminal_label).toBe("Cancelled SOS");
+    expect(result.terminalLabel).toBe("Cancelled SOS");
+  });
+
+  it("derives Resolved label for resolved detail without cancelled markers", () => {
+    const result = toSosDetailViewModel({
+      thread: {
+        sos_id: 60,
+        latest_status: "resolved",
+        latest_message: "SAFE: user confirmed",
+      },
+      events: [],
+    });
+
+    expect(result.terminal_label).toBe("Resolved");
+    expect(result.terminalLabel).toBe("Resolved");
+  });
+
+  it("derives Cancelled SOS label when detail status is cancelled", () => {
+    const result = toSosDetailViewModel({
+      thread: {
+        sos_id: 62,
+        latest_status: "cancelled",
+        latest_message: "User cancelled request",
+      },
+      events: [],
+    });
+
+    expect(result.terminal_label).toBe("Cancelled SOS");
+    expect(result.terminalLabel).toBe("Cancelled SOS");
+  });
+
+  it("normalizes timeline labels for cancelled and acknowledged events", () => {
+    const result = toSosDetailViewModel({
+      thread: {
+        sos_id: 61,
+        latest_status: "resolved",
+      },
+      events: [
+        { id: 1, status: "active", created_at: "2026-03-01T08:00:00.000Z", actor_type: "user", message: "Need help" },
+        { id: 2, status: "acknowledged", created_at: "2026-03-01T08:05:00.000Z", actor_type: "admin", message: "Assigned" },
+        { id: 3, status: "resolved", created_at: "2026-03-01T08:10:00.000Z", actor_type: "admin", message: "CANCELLED: duplicate" },
+      ],
+    });
+
+    expect(result.timeline.map((event) => event.eventLabel)).toEqual(["Cancelled", "Acknowledged", "Created"]);
+    expect(result.timeline.map((event) => event.actorLabel)).toEqual(["Admin", "Admin", "User"]);
   });
 });

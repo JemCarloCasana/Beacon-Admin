@@ -8,23 +8,10 @@ const DEFAULT_FORM = {
   body: "",
   severity: "info",
   audience_type: "all",
-  audience_role_ids_input: "",
+  audience_role: "",
 };
 
-function parseRoleIds(raw) {
-  const values = String(raw || "")
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-
-  const ids = values.map((value) => Number(value));
-  if (ids.length === 0) return [];
-  if (ids.some((value) => !Number.isInteger(value) || value <= 0)) {
-    throw new Error("Role IDs must be a comma-separated list of positive integers.");
-  }
-
-  return Array.from(new Set(ids));
-}
+const ALLOWED_AUDIENCE_ROLES = new Set(["citizen", "student"]);
 
 function toSortedBroadcasts(list) {
   return [...(Array.isArray(list) ? list : [])].sort((a, b) => {
@@ -64,7 +51,12 @@ export function useBroadcastsController() {
   );
 
   const onFormChange = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    setForm((prev) => {
+      if (field === "audience_type" && value !== "role") {
+        return { ...prev, audience_type: value, audience_role: "" };
+      }
+      return { ...prev, [field]: value };
+    });
   };
 
   const onCreateDraft = async () => {
@@ -99,28 +91,17 @@ export function useBroadcastsController() {
     };
 
     if (audienceType === "role") {
-      let roleIds = [];
-      try {
-        roleIds = parseRoleIds(form.audience_role_ids_input);
-      } catch (error) {
+      const audienceRole = String(form.audience_role || "").trim().toLowerCase();
+      if (!ALLOWED_AUDIENCE_ROLES.has(audienceRole)) {
         toast({
-          title: "Invalid role IDs",
-          description: error?.message || "Provide valid role IDs.",
+          title: "Role is required",
+          description: "Select a valid role for role-based audience.",
           variant: "destructive",
         });
         return;
       }
 
-      if (roleIds.length === 0) {
-        toast({
-          title: "Role IDs are required",
-          description: "Provide at least one role ID for role-based audience.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      payload.audience_role_ids = roleIds;
+      payload.audience_roles = [audienceRole];
     }
 
     try {
@@ -199,4 +180,3 @@ export function useBroadcastsController() {
 }
 
 export default useBroadcastsController;
-

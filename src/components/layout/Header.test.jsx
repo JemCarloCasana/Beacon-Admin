@@ -305,4 +305,29 @@ describe("Header notifications", () => {
       expect(view.container.querySelector("span.bg-red-500")).not.toBeNull();
     });
   });
+
+  it("renders all notifications inside a scrollable container", () => {
+    const notifications = Array.from({ length: 12 }, (_, index) => ({
+      id: index + 1,
+      type: "incident",
+      title: `Notification ${index + 1}`,
+      message: `Message ${index + 1}`,
+      metadata: { incident_id: index + 100 },
+      is_read: index % 2 === 0,
+      created_at: "2026-03-07T00:00:00.000Z",
+    }));
+
+    useNotifications.mockReturnValue({
+      data: notifications,
+      isLoading: false,
+      isError: false,
+      isFetching: false,
+      refetch: vi.fn(),
+    });
+
+    const view = renderWithQueryClient(<Header />);
+
+    expect(screen.getByText("Notification 12")).toBeInTheDocument();
+    expect(view.container.querySelector(".max-h-96.overflow-y-auto")).not.toBeNull();
+  });
 });

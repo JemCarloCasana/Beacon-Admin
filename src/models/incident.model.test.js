@@ -23,6 +23,12 @@ describe("incident.model", () => {
     expect(incident.location.longitude).toBe(120.3406);
     expect(incident.createdAt).toBe("2026-03-01T01:00:00.000Z");
     expect(incident.updatedAt).toBe("2026-03-01T02:00:00.000Z");
+    expect(incident.reporter).toMatchObject({
+      id: null,
+      name: "",
+      phone: "",
+      email: "",
+    });
   });
 
   it("normalizes image_url and exposes imageUrl/imageUrls", () => {
@@ -167,5 +173,58 @@ describe("incident.model", () => {
 
     expect(fireIncident.assignedDepartment).toBe("Fire Station Unit");
     expect(othersIncident.assignedDepartment).toBe("Police Personnel");
+  });
+
+  it("normalizes reporter details from flat incident payload fields", () => {
+    const incident = toIncidentViewModel({
+      id: 30,
+      reported_by_user_id: 77,
+      reporter_name: "Juan Dela Cruz",
+      reporter_phone: "+639171234567",
+      reporter_email: "juan@example.com",
+    });
+
+    expect(incident.reportedByUserId).toBe(77);
+    expect(incident.reporter).toMatchObject({
+      id: 77,
+      name: "Juan Dela Cruz",
+      phone: "+639171234567",
+      email: "juan@example.com",
+    });
+  });
+
+  it("normalizes reporter details from nested reporter object", () => {
+    const incident = toIncidentViewModel({
+      id: 31,
+      reported_by_user_id: 70,
+      reporter: {
+        user_id: 91,
+        full_name: "Ana Reporter",
+        phone_number: "+639181234567",
+        email: "ana@example.com",
+      },
+    });
+
+    expect(incident.reporter).toMatchObject({
+      id: 91,
+      name: "Ana Reporter",
+      phone: "+639181234567",
+      email: "ana@example.com",
+    });
+  });
+
+  it("uses reportedByUserId fallback when reporter profile fields are missing", () => {
+    const incident = toIncidentViewModel({
+      id: 32,
+      reported_by_user_id: 111,
+    });
+
+    expect(incident.reportedByUserId).toBe(111);
+    expect(incident.reporter).toMatchObject({
+      id: 111,
+      name: "",
+      phone: "",
+      email: "",
+    });
   });
 });

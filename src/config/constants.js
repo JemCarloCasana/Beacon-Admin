@@ -66,7 +66,7 @@ export const NAV_ITEMS = [
     category: "COMMAND",
     items: [
       { path: "/dashboard", label: "Overview", icon: "LayoutDashboard" },
-      { path: "/sos", label: "Live Operations", icon: "Radio" },
+      { path: "/sos", label: "SOS Screen", icon: "Radio" },
       { path: "/incidents", label: "Incidents", icon: "AlertTriangle" },
       {
         path: "/broadcasts",

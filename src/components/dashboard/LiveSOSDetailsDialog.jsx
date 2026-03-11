@@ -17,6 +17,7 @@ const statusStyles = {
   needs_attention: "bg-emergency text-emergency-foreground pulse-emergency",
   active: "bg-info text-info-foreground",
   acknowledged: "bg-warning text-warning-foreground",
+  cancelled: "bg-warning text-warning-foreground",
   resolved: "bg-success text-success-foreground",
 };
 
@@ -33,12 +34,6 @@ function formatEventDate(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
   return format(date, "MMM d, yyyy h:mm a");
-}
-
-function toActorLabel(event) {
-  if (event?.actor_type === "admin") return "Admin";
-  if (event?.actor_type === "system") return "System";
-  return "User";
 }
 
 function toMapMarker(detail) {
@@ -62,7 +57,8 @@ export function LiveSOSDetailsDialog({ open, onOpenChange, detailQuery, detailOv
     const status = String(detail?.status || "").toLowerCase();
     if (detail?.requires_attention === true) return { key: "needs_attention", label: "Needs Attention" };
     if (status === "active") return { key: "acknowledged", label: "Acknowledged" };
-    if (status === "resolved") return { key: "resolved", label: "Resolved" };
+    if (status === "cancelled") return { key: "cancelled", label: detail?.terminal_label || detail?.terminalLabel || "Cancelled SOS" };
+    if (status === "resolved") return { key: "resolved", label: detail?.terminal_label || detail?.terminalLabel || "Resolved" };
     return { key: "active", label: status ? status.toUpperCase() : "Active" };
   })();
 
@@ -152,7 +148,7 @@ export function LiveSOSDetailsDialog({ open, onOpenChange, detailQuery, detailOv
               </div>
 
               <div className="rounded-lg border">
-                <div className="border-b px-4 py-2 text-sm font-medium">Timeline</div>
+                <div className="border-b px-4 py-2 text-sm font-medium">Timeline Logs</div>
                 <div className="divide-y">
                   {detail.timeline.length === 0 && (
                     <div className="px-4 py-3 text-sm text-muted-foreground">No timeline events found.</div>
@@ -161,8 +157,8 @@ export function LiveSOSDetailsDialog({ open, onOpenChange, detailQuery, detailOv
                     <div key={event.id || `${event.created_at}-${event.status}`} className="px-4 py-3 text-sm">
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2">
-                          <Badge variant="outline">{String(event?.status || "active").toUpperCase()}</Badge>
-                          <span className="text-xs text-muted-foreground">{toActorLabel(event)}</span>
+                          <Badge variant="outline">{event?.eventLabel || String(event?.status || "active").toUpperCase()}</Badge>
+                          <span className="text-xs text-muted-foreground">{event?.actorLabel || "User"}</span>
                         </div>
                         <span className="text-xs text-muted-foreground">{formatEventDate(event?.created_at)}</span>
                       </div>

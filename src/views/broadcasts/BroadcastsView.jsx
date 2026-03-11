@@ -47,9 +47,14 @@ function formatDateTime(value) {
 
 function toAudienceLabel(item) {
   if (item?.audience_type === "all") return "All users";
-  const roleIds = Array.isArray(item?.audience_role_ids) ? item.audience_role_ids : [];
-  if (roleIds.length === 0) return "Selected roles";
-  return `Role IDs: ${roleIds.join(", ")}`;
+  const roles = Array.isArray(item?.audience_roles)
+    ? item.audience_roles
+        .map((role) => String(role || "").trim().toLowerCase())
+        .filter((role) => role === "citizen" || role === "student")
+    : [];
+  if (roles.length === 0) return "Selected roles";
+  const labels = roles.map((role) => role.charAt(0).toUpperCase() + role.slice(1));
+  return `Roles: ${labels.join(", ")}`;
 }
 
 function BroadcastTable({ items, isDraft, sending, actions }) {
@@ -205,22 +210,27 @@ export default function BroadcastsView({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All users</SelectItem>
-                      <SelectItem value="role">By role IDs</SelectItem>
+                      <SelectItem value="role">By role</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 {form.audience_type === "role" && (
                   <div className="space-y-2">
-                    <p className="text-sm font-medium">Audience Role IDs</p>
-                    <Input
-                      value={form.audience_role_ids_input}
-                      placeholder="1, 2, 3"
-                      onChange={(e) =>
-                        actions.onFormChange("audience_role_ids_input", e.target.value)
-                      }
-                    />
+                    <p className="text-sm font-medium">Audience Role</p>
+                    <Select
+                      value={form.audience_role}
+                      onValueChange={(value) => actions.onFormChange("audience_role", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="citizen">Citizen</SelectItem>
+                        <SelectItem value="student">Student</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <p className="text-xs text-muted-foreground">
-                      Comma-separated role IDs. Required when audience is role-based.
+                      Select one role. Required when audience is role-based.
                     </p>
                   </div>
                 )}
@@ -357,4 +367,3 @@ export default function BroadcastsView({
     </DashboardLayout>
   );
 }
-

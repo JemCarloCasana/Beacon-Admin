@@ -1,6 +1,6 @@
 import { Activity, AlertTriangle, CheckCircle2, Radio } from "lucide-react";
 import { DashboardLayout } from "@/components/layout";
-import { ActiveSOSAlert, ActiveIncidentsList, IncidentDetailPanel } from "@/components/dashboard";
+import { ActiveSOSAlert, ActiveIncidentsList, IncidentDetailPanel, ReporterDetailsDialog } from "@/components/dashboard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatDurationSeconds } from "@/models/reports.model";
@@ -30,6 +30,7 @@ export default function DashboardView({
   canManageAdmins,
   incidents,
   selectedIncident,
+  reporterDialog,
   filters,
   kpis,
   activeSOS,
@@ -151,6 +152,16 @@ export default function DashboardView({
           </div>
         </div>
       </div>
+      <ReporterDetailsDialog
+        open={Boolean(reporterDialog?.open)}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) actions.onCloseReporterDialog?.();
+        }}
+        incidentId={reporterDialog?.incidentId}
+        incidentTitle={reporterDialog?.incidentTitle}
+        baseReporter={reporterDialog?.baseReporter}
+        detailQuery={reporterDialog?.detailQuery}
+      />
     </DashboardLayout>
   );
 }

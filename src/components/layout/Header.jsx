@@ -50,7 +50,6 @@ export function Header({ onMenuClick }) {
         [notifications]
     );
     const hasUnread = unreadCount > 0;
-    const renderedNotifications = notifications.slice(0, 8);
 
     useEffect(() => {
         if (!import.meta.env.DEV) return;
@@ -61,8 +60,8 @@ export function Header({ onMenuClick }) {
         }, {});
         console.debug('[notifications] current admin id:', me?.id ?? null);
         console.debug('[notifications] mapped count by type:', typeCounts);
-        console.debug('[notifications] rendered count:', renderedNotifications.length);
-    }, [me?.id, notifications, renderedNotifications.length]);
+        console.debug('[notifications] rendered count:', notifications.length);
+    }, [me?.id, notifications]);
 
     const getActionableAdminRequestId = (notification) => {
         if (notification?.type !== 'admin_request') return null;
@@ -389,28 +388,30 @@ export function Header({ onMenuClick }) {
                                         No notifications yet.
                                     </div>
                                 ) : (
-                                    renderedNotifications.map((notification) => (
-                                        <DropdownMenuItem
-                                            key={notification.id}
-                                            onClick={() => handleNotificationClick(notification)}
-                                            className="flex cursor-pointer flex-col items-start gap-1 py-2"
-                                        >
-                                            <div className="flex w-full items-center justify-between gap-2">
-                                                <p className="text-sm font-semibold">
-                                                    {notification.title || 'Notification'}
+                                    <div className="max-h-96 overflow-y-auto">
+                                        {notifications.map((notification) => (
+                                            <DropdownMenuItem
+                                                key={notification.id}
+                                                onClick={() => handleNotificationClick(notification)}
+                                                className="flex cursor-pointer flex-col items-start gap-1 py-2"
+                                            >
+                                                <div className="flex w-full items-center justify-between gap-2">
+                                                    <p className="text-sm font-semibold">
+                                                        {notification.title || 'Notification'}
+                                                    </p>
+                                                    {!notification.is_read && (
+                                                        <span className="h-2 w-2 rounded-full bg-blue-600" />
+                                                    )}
+                                                </div>
+                                                <p className="line-clamp-2 w-full text-xs text-muted-foreground">
+                                                    {notification.message || notification.body || 'No message provided.'}
                                                 </p>
-                                                {!notification.is_read && (
-                                                    <span className="h-2 w-2 rounded-full bg-blue-600" />
-                                                )}
-                                            </div>
-                                            <p className="line-clamp-2 w-full text-xs text-muted-foreground">
-                                                {notification.message || notification.body || 'No message provided.'}
-                                            </p>
-                                            <p className="text-[10px] text-muted-foreground">
-                                                {formatNotificationDate(notification.created_at)}
-                                            </p>
-                                        </DropdownMenuItem>
-                                    ))
+                                                <p className="text-[10px] text-muted-foreground">
+                                                    {formatNotificationDate(notification.created_at)}
+                                                </p>
+                                            </DropdownMenuItem>
+                                        ))}
+                                    </div>
                                 )}
                             </DropdownMenuContent>
                         </DropdownMenu>

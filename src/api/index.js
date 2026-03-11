@@ -5,6 +5,7 @@ export {
   useIncidentsByStatus,
   useMapIncidents,
   useIncidentDetail,
+  useReporterDetail,
   useUpdateIncident,
 } from './useIncidentsAPI';
 export {

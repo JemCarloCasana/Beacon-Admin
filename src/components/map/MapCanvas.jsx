@@ -1,5 +1,6 @@
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM, getMapStyleConfig } from "@/lib/mapStyle";
+import { MAP_MARKER_TYPE_STYLES } from "@/lib/mapMarkerStyles";
 
 function markersToGeoJson(markers) {
   return {
@@ -80,7 +81,9 @@ export const MapCanvas = forwardRef(function MapCanvas(
         style: styleConfig.styleUrl,
         center: [MAP_DEFAULT_CENTER.lng, MAP_DEFAULT_CENTER.lat],
         zoom: MAP_DEFAULT_ZOOM,
+        attributionControl: false,
       });
+      localMap.addControl(new maplibre.AttributionControl({ compact: true }), "bottom-right");
       mapRef.current = localMap;
       const transparentPixel = {
         width: 1,
@@ -125,8 +128,8 @@ export const MapCanvas = forwardRef(function MapCanvas(
             source: "markers",
             filter: ["==", ["get", "type"], "sos"],
             paint: {
-              "circle-radius": 8,
-              "circle-color": "#ef4444",
+              "circle-radius": MAP_MARKER_TYPE_STYLES.sos.radius,
+              "circle-color": MAP_MARKER_TYPE_STYLES.sos.color,
               "circle-stroke-width": 1.5,
               "circle-stroke-color": "#fff",
             },
@@ -139,8 +142,8 @@ export const MapCanvas = forwardRef(function MapCanvas(
             source: "markers",
             filter: ["==", ["get", "type"], "incident"],
             paint: {
-              "circle-radius": 7,
-              "circle-color": "#f59e0b",
+              "circle-radius": MAP_MARKER_TYPE_STYLES.incident.radius,
+              "circle-color": MAP_MARKER_TYPE_STYLES.incident.color,
               "circle-stroke-width": 1.5,
               "circle-stroke-color": "#fff",
             },

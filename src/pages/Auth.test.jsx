@@ -34,6 +34,7 @@ describe("Auth page validation", () => {
   it("shows contact administrator message", () => {
     renderAuth();
     expect(screen.getByText("Contact your administrator for access.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /forgot/i })).not.toBeInTheDocument();
   });
 
   it("shows inline login email error and blocks submit", async () => {

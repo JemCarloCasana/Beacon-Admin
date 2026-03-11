@@ -18,6 +18,8 @@ describe("sos-live.model", () => {
     expect(result).toEqual({
       id: "123",
       status: "active",
+      terminal_label: null,
+      terminalLabel: null,
       requires_attention: true,
       requiresAttention: true,
       acknowledged_at: null,
@@ -102,5 +104,38 @@ describe("sos-live.model", () => {
     });
 
     expect(result.emergencyType).toBe("medical");
+  });
+
+  it("derives Cancelled SOS terminal label for resolved rows with cancelled note convention", () => {
+    const result = toSosFeedAlert({
+      sos_id: 46,
+      latest_status: "resolved",
+      latest_message: "CANCELLED: duplicate tap",
+    });
+
+    expect(result.terminal_label).toBe("Cancelled SOS");
+    expect(result.terminalLabel).toBe("Cancelled SOS");
+  });
+
+  it("uses Resolved terminal label when resolved row is not cancelled", () => {
+    const result = toSosFeedAlert({
+      sos_id: 47,
+      latest_status: "resolved",
+      latest_message: "Handled by responder",
+    });
+
+    expect(result.terminal_label).toBe("Resolved");
+    expect(result.terminalLabel).toBe("Resolved");
+  });
+
+  it("derives Cancelled SOS label when status is cancelled", () => {
+    const result = toSosFeedAlert({
+      sos_id: 48,
+      latest_status: "cancelled",
+      latest_message: "User cancelled request",
+    });
+
+    expect(result.terminal_label).toBe("Cancelled SOS");
+    expect(result.terminalLabel).toBe("Cancelled SOS");
   });
 });

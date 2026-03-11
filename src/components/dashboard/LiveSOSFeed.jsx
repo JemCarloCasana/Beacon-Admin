@@ -11,6 +11,7 @@ const statusStyles = {
   active: "bg-info text-info-foreground",
   acknowledged: "bg-warning text-warning-foreground",
   responding: "bg-info text-info-foreground",
+  cancelled: "bg-warning text-warning-foreground",
   resolved: "bg-success text-success-foreground",
 };
 
@@ -27,12 +28,21 @@ function formatLocation(location) {
   return "Location unavailable";
 }
 
-export function LiveSOSFeed({ alerts, onAcknowledge, onViewDetails }) {
+export function LiveSOSFeed({
+  alerts,
+  onAcknowledge,
+  onViewDetails,
+  title = "Live SOS Feed",
+  emptyTitle = "No active SOS alerts",
+  emptySubtitle = "Monitoring for emergencies...",
+  showAcknowledge = true,
+}) {
   const attentionAlerts = alerts.filter((a) => a.requires_attention === true);
   const otherAlerts = alerts.filter((a) => a.requires_attention !== true);
 
   const getVisualState = (alert) => {
     const status = String(alert?.status || "").toLowerCase();
+    if (status === "cancelled") return "cancelled";
     if (status === "resolved") return "resolved";
     if (alert?.requires_attention === true) return "needs_attention";
     if (status === "active") return "active";
@@ -42,7 +52,8 @@ export function LiveSOSFeed({ alerts, onAcknowledge, onViewDetails }) {
   const getBadgeLabel = (alert) => {
     const status = String(alert?.status || "").toLowerCase();
     if (alert?.requires_attention === true) return "NEEDS ATTENTION";
-    if (status === "resolved") return "RESOLVED";
+    if (status === "cancelled") return alert?.terminal_label || alert?.terminalLabel || "Cancelled SOS";
+    if (status === "resolved") return alert?.terminal_label || alert?.terminalLabel || "Resolved";
     if (status === "active") return "ACKNOWLEDGED";
     return status ? status.toUpperCase() : "ACTIVE";
   };
@@ -52,7 +63,7 @@ export function LiveSOSFeed({ alerts, onAcknowledge, onViewDetails }) {
       <CardHeader className="flex flex-row items-center justify-between">
         <div className="flex items-center gap-2">
           <Radio className="h-5 w-5 text-emergency" />
-          <CardTitle>Live SOS Feed</CardTitle>
+          <CardTitle>{title}</CardTitle>
           {attentionAlerts.length > 0 && (
             <Badge variant="destructive" className="ml-2">
               {attentionAlerts.length} Needs Attention
@@ -110,16 +121,23 @@ export function LiveSOSFeed({ alerts, onAcknowledge, onViewDetails }) {
                   )}
                 </div>
                 <div className="mt-4 flex gap-2">
+                  {showAcknowledge && (
+                    <Button
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => onAcknowledge?.(alert.id)}
+                      disabled={!alert.requires_attention}
+                    >
+                      <CheckCircle className="mr-1 h-4 w-4" />
+                      Acknowledge
+                    </Button>
+                  )}
                   <Button
                     size="sm"
-                    className="flex-1"
-                    onClick={() => onAcknowledge?.(alert.id)}
-                    disabled={!alert.requires_attention}
+                    variant="outline"
+                    className={showAcknowledge ? "" : "w-full"}
+                    onClick={() => onViewDetails?.(alert.id)}
                   >
-                    <CheckCircle className="mr-1 h-4 w-4" />
-                    Acknowledge
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => onViewDetails?.(alert.id)}>
                     Details
                   </Button>
                 </div>
@@ -163,8 +181,8 @@ export function LiveSOSFeed({ alerts, onAcknowledge, onViewDetails }) {
             {alerts.length === 0 && (
               <div className="py-8 text-center text-muted-foreground">
                 <Radio className="mx-auto mb-2 h-8 w-8 opacity-50" />
-                <p>No active SOS alerts</p>
-                <p className="text-sm">Monitoring for emergencies...</p>
+                <p>{emptyTitle}</p>
+                <p className="text-sm">{emptySubtitle}</p>
               </div>
             )}
           </div>

@@ -259,6 +259,89 @@ function pickIncidentImageUrls(incident) {
   );
 }
 
+function toReporterId(value) {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "string" && value.trim() === "") return null;
+  return value;
+}
+
+function pickReporterFromSource(source = {}, fallbackId = null) {
+  const id =
+    toReporterId(source?.id) ??
+    toReporterId(source?.user_id) ??
+    toReporterId(source?.userId) ??
+    toReporterId(source?._id) ??
+    toReporterId(fallbackId);
+
+  const name =
+    source?.full_name ??
+    source?.fullName ??
+    source?.name ??
+    source?.display_name ??
+    source?.displayName ??
+    "";
+
+  const phone =
+    source?.phone ??
+    source?.phone_number ??
+    source?.phoneNumber ??
+    source?.mobile ??
+    source?.mobile_number ??
+    source?.mobileNumber ??
+    "";
+
+  const email = source?.email ?? source?.email_address ?? source?.emailAddress ?? "";
+
+  return {
+    id,
+    name: String(name || ""),
+    phone: String(phone || ""),
+    email: String(email || ""),
+    raw: source,
+  };
+}
+
+function pickIncidentReporter(incident) {
+  const fallbackId = incident?.reportedByUserId ?? incident?.reported_by_user_id ?? null;
+  const nestedReporter =
+    incident?.reporter ??
+    incident?.reported_by ??
+    incident?.reportedBy ??
+    incident?.user ??
+    incident?.reporter_profile ??
+    null;
+
+  const flatSource = {
+    id: incident?.reporter_id ?? incident?.reporterId ?? fallbackId,
+    full_name:
+      incident?.reporter_name ??
+      incident?.reporter_full_name ??
+      incident?.reported_by_name ??
+      incident?.reporterName ??
+      incident?.reporterFullName,
+    phone:
+      incident?.reporter_phone ??
+      incident?.reporter_phone_number ??
+      incident?.reported_by_phone ??
+      incident?.phone_number ??
+      incident?.reporterPhone,
+    email:
+      incident?.reporter_email ??
+      incident?.reported_by_email ??
+      incident?.email ??
+      incident?.reporterEmail,
+  };
+
+  if (nestedReporter && typeof nestedReporter === "object") {
+    const nested = pickReporterFromSource(nestedReporter, fallbackId);
+    if (nested.id !== null || nested.name || nested.phone || nested.email) {
+      return nested;
+    }
+  }
+
+  return pickReporterFromSource(flatSource, fallbackId);
+}
+
 export function toIncidentViewModel(input) {
   const incident = unwrapIncidentPayload(input) || {};
   const id = incident?.id ?? incident?.incident_id ?? "";
@@ -280,6 +363,7 @@ export function toIncidentViewModel(input) {
     longitude: coords?.longitude ?? null,
     address: incident?.location?.address || incident?.address || incident?.latest_address || "",
   };
+  const reporter = pickIncidentReporter(incident);
 
   return {
     id,
@@ -297,6 +381,7 @@ export function toIncidentViewModel(input) {
     dispatchedAt: incident?.dispatchedAt || incident?.dispatched_at || null,
     resolvedAt: incident?.resolvedAt || incident?.resolved_at || null,
     reportedByUserId: incident?.reportedByUserId ?? incident?.reported_by_user_id ?? null,
+    reporter,
     assignedDepartment: effectiveAssignedDepartment,
     assignedAdminId: incident?.assignedAdminId ?? incident?.assigned_admin_id ?? null,
     resolutionNotes: incident?.resolutionNotes || incident?.resolution_notes || "",

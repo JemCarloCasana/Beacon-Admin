@@ -150,16 +150,10 @@ export default function Auth() {
               </div>
 
               <div className="space-y-2">
-                <div className="flex justify-between items-center px-1">
+                <div className="flex items-center px-1">
                   <label className="text-[10px] font-black text-[#2563EB] uppercase tracking-widest">
                     Password
                   </label>
-                  <button
-                    type="button"
-                    className="text-[9px] font-black text-[#2563EB] uppercase tracking-widest hover:underline decoration-2 underline-offset-4"
-                  >
-                    Forgot?
-                  </button>
                 </div>
                 <div className="relative group">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#2563EB] transition-colors" />

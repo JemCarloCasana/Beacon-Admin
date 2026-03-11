@@ -131,8 +131,18 @@ export const useResolveSOS = (options = {}) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ sosId, note }) => {
-      return apiPost(`/admin/sos/${sosId}/resolve`, note ? { note } : {});
+    mutationFn: async ({ sosId, note, terminalOutcome }) => {
+      const normalizedOutcome = String(terminalOutcome || "").trim().toLowerCase();
+      const normalizedNote = String(note || "").trim();
+
+      let payloadNote = normalizedNote;
+      if (normalizedOutcome === "cancelled") {
+        payloadNote = normalizedNote ? `CANCELLED: ${normalizedNote}` : "CANCELLED:";
+      } else if (normalizedOutcome === "safe") {
+        payloadNote = normalizedNote ? `SAFE: ${normalizedNote}` : "SAFE:";
+      }
+
+      return apiPost(`/admin/sos/${sosId}/resolve`, payloadNote ? { note: payloadNote } : {});
     },
     onSuccess: (data, variables) => {
       // Invalidate SOS caches
