@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mail, Lock, Shield, CheckCircle2, ChevronRight } from "lucide-react";
+import { Mail, Lock, CheckCircle2, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
+import beaconLogo from "../../img/beacon_logo.png";
 import { adminLogin } from "@/api/adminAuth";
 import {
   normalizeEmail,
@@ -96,8 +97,12 @@ export default function Auth() {
 
       <div className="z-10 w-full max-w-md px-6 flex flex-col items-center">
         <div className="mb-8 flex flex-col items-center transform transition-all duration-700 hover:scale-105">
-          <div className="h-12 w-12 bg-[#1E3A8A] rounded-xl flex items-center justify-center shadow-lg mb-4">
-            <Shield className="text-white h-7 w-7" />
+          <div className="flex h-[80px] w-[80px] items-center justify-center overflow-hidden rounded-xl bg-blue-600 shadow-lg mb-4">
+            <img
+              src={beaconLogo}
+              alt="Beacon logo"
+              className="h-full w-full scale-[1.5] object-cover object-[center_66%]"
+            />
           </div>
           <h1 className="text-3xl font-extrabold text-[#0F172A] tracking-tight">Beacon Command</h1>
           <p className="text-sm font-bold text-[#64748B] mt-1 uppercase tracking-wide">

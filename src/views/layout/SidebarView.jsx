@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import beaconLogo from "../../../img/beacon_logo.png";
 import {
   LayoutDashboard,
   AlertTriangle,
@@ -30,8 +31,12 @@ export default function SidebarView({ pathname, visibleNavItems, profile }) {
   return (
     <aside className="flex h-screen w-64 flex-col bg-[#0B1221] text-slate-300">
       <div className="flex h-16 items-center gap-3 px-6">
-        <div className="flex h-8 w-8 items-center justify-center rounded bg-blue-600">
-          <Shield className="h-5 w-5 text-white" />
+        <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded bg-blue-600">
+          <img
+            src={beaconLogo}
+            alt="Beacon logo"
+            className="h-full w-full scale-[1.5] object-cover object-[center_66%]"
+          />
         </div>
         <h1 className="text-xl font-bold tracking-wider text-white">
           BEACON <span className="text-slate-400 font-light">OS</span>
