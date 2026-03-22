@@ -2,6 +2,11 @@
 
 export const APP_NAME = 'Beacon';
 export const APP_DESCRIPTION = 'Public Safety Admin Dashboard';
+export const APP_LOCATION_LABEL = import.meta.env.VITE_APP_LOCATION_LABEL || '';
+export const APP_TIMEZONE =
+    import.meta.env.VITE_APP_TIMEZONE ||
+    Intl.DateTimeFormat().resolvedOptions().timeZone ||
+    'Asia/Manila';
 
 // API Configuration
 // Note: Use src/services/api.js for all fetch requests

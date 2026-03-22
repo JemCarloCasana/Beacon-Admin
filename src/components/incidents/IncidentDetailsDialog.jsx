@@ -316,6 +316,10 @@ export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incident
 
             <div className="rounded-lg border p-4">
               <div className="mb-3 text-sm font-medium">Update Incident</div>
+              <div className="mb-3 rounded-md bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                Reporter notifications are sent only when status changes to Dispatched, In Progress, or Resolved.
+                Editing assignment, priority, or notes alone does not notify the reporter.
+              </div>
               <div className="grid gap-3 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="incident-status">Status</Label>

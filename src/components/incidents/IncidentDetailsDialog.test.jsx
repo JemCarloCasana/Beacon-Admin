@@ -60,6 +60,12 @@ describe("IncidentDetailsDialog", () => {
     expect(image).toHaveAttribute("src", "https://cdn.example.com/incident.jpg");
     expect(screen.getByText("Incident Type")).toBeInTheDocument();
     expect(screen.getByText("Assign Department")).toBeInTheDocument();
+    expect(
+      screen.getByText(/reporter notifications are sent only when status changes to dispatched, in progress, or resolved/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/editing assignment, priority, or notes alone does not notify the reporter/i)
+    ).toBeInTheDocument();
     expect(screen.queryByText(/Assigned Admin ID/i)).not.toBeInTheDocument();
   });
 

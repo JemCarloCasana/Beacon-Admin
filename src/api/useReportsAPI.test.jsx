@@ -44,12 +44,12 @@ describe("useReportsAPI", () => {
     const { result } = renderHook(() => useGenerateReport(), { wrapper });
 
     await result.current.mutateAsync({
-      reportKey: "weekly_response_analysis",
+      reportKey: "weekly_safety_report",
       timezone: "Asia/Manila",
     });
 
     expect(apiPost).toHaveBeenCalledWith("/admin/reports/generate", {
-      report_key: "weekly_response_analysis",
+      report_key: "weekly_safety_report",
       timezone: "Asia/Manila",
     });
   });

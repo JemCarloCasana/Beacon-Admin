@@ -147,4 +147,33 @@ describe("sos-detail.model", () => {
     expect(result.timeline.map((event) => event.eventLabel)).toEqual(["Cancelled", "Acknowledged", "Created"]);
     expect(result.timeline.map((event) => event.actorLabel)).toEqual(["Admin", "Admin", "User"]);
   });
+
+  it("prefers personnel names over generic actor role labels in the timeline", () => {
+    const result = toSosDetailViewModel({
+      thread: {
+        sos_id: 63,
+        latest_status: "resolved",
+      },
+      events: [
+        {
+          id: 1,
+          status: "acknowledged",
+          created_at: "2026-03-01T08:05:00.000Z",
+          actor_type: "admin",
+          admin_name: "Officer Reyes",
+          message: "Assigned",
+        },
+        {
+          id: 2,
+          status: "resolved",
+          created_at: "2026-03-01T08:10:00.000Z",
+          actor_type: "admin",
+          actor: { full_name: "Dispatcher Cruz" },
+          message: "SAFE: verified",
+        },
+      ],
+    });
+
+    expect(result.timeline.map((event) => event.actorLabel)).toEqual(["Dispatcher Cruz", "Officer Reyes"]);
+  });
 });

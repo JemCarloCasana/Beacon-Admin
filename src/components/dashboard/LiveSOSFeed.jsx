@@ -31,11 +31,13 @@ function formatLocation(location) {
 export function LiveSOSFeed({
   alerts,
   onAcknowledge,
+  onResolve,
   onViewDetails,
   title = "Live SOS Feed",
   emptyTitle = "No active SOS alerts",
   emptySubtitle = "Monitoring for emergencies...",
-  showAcknowledge = true,
+  actionMode = "live",
+  contentHeightClassName = "h-full",
 }) {
   const attentionAlerts = alerts.filter((a) => a.requires_attention === true);
   const otherAlerts = alerts.filter((a) => a.requires_attention !== true);
@@ -58,8 +60,97 @@ export function LiveSOSFeed({
     return status ? status.toUpperCase() : "ACTIVE";
   };
 
+  const hasPrimaryAction = actionMode === "live" || actionMode === "dispatch";
+
+  const renderAlertCard = (alert, { emphasized = false } = {}) => (
+    <div
+      key={alert.id}
+      className={cn(
+        "rounded-lg border bg-card p-4 transition-colors",
+        emphasized
+          ? "border-2 border-emergency/50 bg-emergency/5"
+          : "hover:bg-accent/50",
+        alert.requires_attention ? "animate-pulse" : ""
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Badge
+            className={cn(
+              "text-xs",
+              statusStyles[getVisualState(alert)] || statusStyles.active
+            )}
+          >
+            {getBadgeLabel(alert)}
+          </Badge>
+          <span className="text-xs text-muted-foreground">
+            {formatDistanceToNow(new Date(alert.timestamp), { addSuffix: true })}
+          </span>
+        </div>
+      </div>
+
+      <div className="mt-3 space-y-2">
+        <div className="flex items-center gap-2 text-sm">
+          <User className="h-4 w-4 text-muted-foreground" />
+          <span className="font-medium">{alert.userName}</span>
+        </div>
+        {alert.assigned_unit && (
+          <div className="text-xs">
+            <Badge variant="outline">{alert.assigned_unit}</Badge>
+          </div>
+        )}
+        {alert.userPhone && (
+          <div className="flex items-center gap-2 text-sm">
+            <Phone className="h-4 w-4 text-muted-foreground" />
+            <span>{alert.userPhone}</span>
+          </div>
+        )}
+        <div className="flex items-center gap-2 text-sm">
+          <MapPin className="h-4 w-4 text-muted-foreground" />
+          <span>{formatLocation(alert.location)}</span>
+        </div>
+        {alert.message && (
+          <p className="rounded bg-background/50 p-2 text-sm italic">
+            "{alert.message}"
+          </p>
+        )}
+      </div>
+
+      <div className="mt-4 flex gap-2">
+        {actionMode === "live" && (
+          <Button
+            size="sm"
+            className="flex-1"
+            onClick={() => onAcknowledge?.(alert.id)}
+            disabled={!alert.requires_attention}
+          >
+            <CheckCircle className="mr-1 h-4 w-4" />
+            Acknowledge
+          </Button>
+        )}
+        {actionMode === "dispatch" && (
+          <Button
+            size="sm"
+            className="flex-1"
+            onClick={() => onResolve?.(alert)}
+          >
+            Mark as Resolved
+          </Button>
+        )}
+        <Button
+          size="sm"
+          variant="outline"
+          className={hasPrimaryAction ? "" : "w-full"}
+          onClick={() => onViewDetails?.(alert.id)}
+        >
+          Details
+        </Button>
+      </div>
+    </div>
+  );
+
   return (
-    <Card className="border-emergency/20">
+    <Card className="flex min-h-0 flex-col border-emergency/20 shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between">
         <div className="flex items-center gap-2">
           <Radio className="h-5 w-5 text-emergency" />
@@ -75,108 +166,12 @@ export function LiveSOSFeed({
           <span className="text-xs text-muted-foreground">Connected</span>
         </div>
       </CardHeader>
-      <CardContent className="p-0">
-        <ScrollArea className="h-[400px]">
-          <div className="space-y-2 p-4 pt-0">
-            {attentionAlerts.map((alert) => (
-              <div
-                key={alert.id}
-                className={cn(
-                  "rounded-lg border-2 border-emergency/50 bg-emergency/5 p-4",
-                  alert.requires_attention ? "animate-pulse" : ""
-                )}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <Badge className={statusStyles.needs_attention}>{getBadgeLabel(alert)}</Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(alert.timestamp), { addSuffix: true })}
-                    </span>
-                  </div>
-                </div>
-                <div className="mt-3 space-y-2">
-                  <div className="flex items-center gap-2 text-sm">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">{alert.userName}</span>
-                  </div>
-                  {alert.assigned_unit && (
-                    <div className="text-xs">
-                      <Badge variant="outline">{alert.assigned_unit}</Badge>
-                    </div>
-                  )}
-                  {alert.userPhone && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span>{alert.userPhone}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2 text-sm">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span>{formatLocation(alert.location)}</span>
-                  </div>
-                  {alert.message && (
-                    <p className="mt-2 rounded bg-background/50 p-2 text-sm italic">
-                      "{alert.message}"
-                    </p>
-                  )}
-                </div>
-                <div className="mt-4 flex gap-2">
-                  {showAcknowledge && (
-                    <Button
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => onAcknowledge?.(alert.id)}
-                      disabled={!alert.requires_attention}
-                    >
-                      <CheckCircle className="mr-1 h-4 w-4" />
-                      Acknowledge
-                    </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className={showAcknowledge ? "" : "w-full"}
-                    onClick={() => onViewDetails?.(alert.id)}
-                  >
-                    Details
-                  </Button>
-                </div>
-              </div>
-            ))}
+      <CardContent className="min-h-0 flex-1 p-0 pb-2">
+        <ScrollArea className={contentHeightClassName} data-testid="live-sos-feed-scroll-area">
+          <div className="space-y-2 p-4 pb-8 pt-0">
+            {attentionAlerts.map((alert) => renderAlertCard(alert, { emphasized: true }))}
 
-            {otherAlerts.map((alert) => (
-              <div
-                key={alert.id}
-                className="rounded-lg border bg-card p-4 transition-colors hover:bg-accent/50"
-                onClick={() => onViewDetails?.(alert.id)}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2">
-                    <Badge className={cn("text-xs", statusStyles[getVisualState(alert)] || statusStyles.active)}>
-                      {getBadgeLabel(alert)}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(alert.timestamp), { addSuffix: true })}
-                    </span>
-                  </div>
-                </div>
-                <div className="mt-2 flex items-center gap-2 text-sm">
-                  <User className="h-3 w-3 text-muted-foreground" />
-                  <span>{alert.userName}</span>
-                  {alert.assigned_unit && (
-                    <>
-                      <span className="text-muted-foreground">-</span>
-                      <Badge variant="outline" className="text-[10px]">
-                        {alert.assigned_unit}
-                      </Badge>
-                    </>
-                  )}
-                  <span className="text-muted-foreground">-</span>
-                  <MapPin className="h-3 w-3 text-muted-foreground" />
-                  <span className="truncate text-muted-foreground">{formatLocation(alert.location)}</span>
-                </div>
-              </div>
-            ))}
+            {otherAlerts.map((alert) => renderAlertCard(alert))}
 
             {alerts.length === 0 && (
               <div className="py-8 text-center text-muted-foreground">

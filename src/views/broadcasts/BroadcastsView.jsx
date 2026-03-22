@@ -32,10 +32,9 @@ import {
 import { AlertCircle, Megaphone, RefreshCw, Send } from "lucide-react";
 
 const severityStyles = {
-  info: "bg-blue-100 text-blue-800",
-  medium: "bg-amber-100 text-amber-800",
-  high: "bg-orange-100 text-orange-800",
-  critical: "bg-red-100 text-red-800",
+  announcement: "bg-blue-100 text-blue-800",
+  warning: "bg-amber-100 text-amber-800",
+  danger: "bg-red-100 text-red-800",
 };
 
 function formatDateTime(value) {
@@ -88,7 +87,7 @@ function BroadcastTable({ items, isDraft, sending, actions }) {
             </TableCell>
             <TableCell>
               <Badge className={severityStyles[item.severity] || "bg-slate-100 text-slate-700"}>
-                {item.severity || "info"}
+                {item.severity || "announcement"}
               </Badge>
             </TableCell>
             <TableCell className="text-sm text-muted-foreground">{toAudienceLabel(item)}</TableCell>
@@ -179,10 +178,9 @@ export default function BroadcastsView({
                       <SelectValue placeholder="Select severity" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="info">Info</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
-                      <SelectItem value="critical">Critical</SelectItem>
+                      <SelectItem value="announcement">Announcement</SelectItem>
+                      <SelectItem value="warning">Warning</SelectItem>
+                      <SelectItem value="danger">Danger</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

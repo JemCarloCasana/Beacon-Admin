@@ -6,7 +6,7 @@ import { useBroadcasts, useCreateBroadcast, useSendBroadcast } from "@/api/useBr
 const DEFAULT_FORM = {
   title: "",
   body: "",
-  severity: "info",
+  severity: "announcement",
   audience_type: "all",
   audience_role: "",
 };
@@ -62,7 +62,7 @@ export function useBroadcastsController() {
   const onCreateDraft = async () => {
     const title = String(form.title || "").trim();
     const body = String(form.body || "").trim();
-    const severity = String(form.severity || "info");
+    const severity = String(form.severity || "announcement");
     const audienceType = String(form.audience_type || "all");
 
     if (!title) {

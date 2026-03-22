@@ -11,7 +11,7 @@ describe("BroadcastsView", () => {
     form: {
       title: "",
       body: "",
-      severity: "info",
+      severity: "announcement",
       audience_type: "all",
       audience_role: "",
     },
@@ -42,7 +42,7 @@ describe("BroadcastsView", () => {
             id: 1,
             title: "Role-targeted",
             body: "Body",
-            severity: "info",
+            severity: "warning",
             audience_type: "role",
             audience_roles: ["citizen", "student"],
             created_at: "2026-03-11T00:00:00.000Z",
@@ -63,7 +63,7 @@ describe("BroadcastsView", () => {
             id: 2,
             title: "Legacy role ids",
             body: "Body",
-            severity: "info",
+            severity: "announcement",
             audience_type: "role",
             audience_role_ids: [1, 2],
             created_at: "2026-03-11T00:00:00.000Z",
@@ -74,5 +74,25 @@ describe("BroadcastsView", () => {
 
     expect(screen.getByText("Selected roles")).toBeInTheDocument();
     expect(screen.queryByText(/Role IDs:/i)).not.toBeInTheDocument();
+  });
+
+  it("renders new broadcast severity labels", () => {
+    render(
+      <BroadcastsView
+        {...baseProps}
+        drafts={[
+          {
+            id: 3,
+            title: "Emergency broadcast",
+            body: "Body",
+            severity: "danger",
+            audience_type: "all",
+            created_at: "2026-03-11T00:00:00.000Z",
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByText("danger")).toBeInTheDocument();
   });
 });

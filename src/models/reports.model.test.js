@@ -17,6 +17,8 @@ describe("reports.model", () => {
     expect(result.charts.incidentsByPriority).toEqual([]);
     expect(result.charts.incidentsTrend).toEqual([]);
     expect(result.charts.responseTimeTrend).toEqual([]);
+    expect(result.charts.incidentCategoriesFrequency).toEqual([]);
+    expect(result.charts.sosCategoriesFrequency).toEqual([]);
   });
 
   it("coerces kpis and maps cards/charts from backend payload", () => {
@@ -24,8 +26,12 @@ describe("reports.model", () => {
       generated_at: "2026-03-01T08:00:00.000Z",
       cards: [
         {
-          report_key: "daily_incident_summary",
+          report_key: "daily_safety_report",
           last_generated_at: "2026-03-01T07:00:00.000Z",
+        },
+        {
+          report_key: "monthly_safety_report",
+          last_generated_at: "2026-03-01T06:30:00.000Z",
         },
       ],
       kpis: {
@@ -47,15 +53,42 @@ describe("reports.model", () => {
             avg_resolution_seconds: "90",
           },
         ],
+        incident_categories_frequency: [
+          { label: "Fire", value: "3" },
+          { label: "Medical Emergency", value: 6 },
+          { label: "Theft", value: 2 },
+          { label: "Traffic Accident", value: 5 },
+          { label: "Harassment", value: 4 },
+          { label: "Suspicious Activity", value: 1 },
+        ],
+        sos_categories_frequency: [
+          { label: "Medical", value: "7" },
+          { label: "Fire", value: 4 },
+        ],
       },
     });
 
-    expect(result.cards[0].reportKey).toBe("daily_incident_summary");
+    expect(result.cards[0].reportKey).toBe("daily_safety_report");
     expect(result.cards[0].lastGeneratedAt).toBe("2026-03-01T07:00:00.000Z");
+    expect(result.cards[1].reportKey).toBe("weekly_safety_report");
+    expect(result.cards[1].title).toBe("Weekly Safety Report");
+    expect(result.cards[2].reportKey).toBe("monthly_safety_report");
+    expect(result.cards[2].lastGeneratedAt).toBe("2026-03-01T06:30:00.000Z");
     expect(result.kpis.totalIncidents).toBe(10);
     expect(result.kpis.avgResponseSeconds).toBe(61);
     expect(result.charts.incidentsByStatus[0]).toEqual({ label: "pending", value: 4 });
     expect(result.charts.responseTimeTrend[0].avg_resolution_seconds).toBe(90);
+    expect(result.charts.incidentCategoriesFrequency).toEqual([
+      { label: "Medical Emergency", value: 6 },
+      { label: "Traffic Accident", value: 5 },
+      { label: "Harassment", value: 4 },
+      { label: "Fire", value: 3 },
+      { label: "Theft", value: 2 },
+    ]);
+    expect(result.charts.sosCategoriesFrequency).toEqual([
+      { label: "Medical", value: 7 },
+      { label: "Fire", value: 4 },
+    ]);
   });
 
   it("formats seconds to compact human-readable text", () => {

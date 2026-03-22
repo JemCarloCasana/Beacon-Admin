@@ -57,9 +57,12 @@ describe("useBroadcastsController", () => {
   it("sends audience_roles citizen when role audience is citizen", async () => {
     const { result } = renderHook(() => useBroadcastsController());
 
+    expect(result.current.form.severity).toBe("announcement");
+
     act(() => {
       result.current.actions.onFormChange("title", "Campus Advisory");
       result.current.actions.onFormChange("body", "Body");
+      result.current.actions.onFormChange("severity", "danger");
       result.current.actions.onFormChange("audience_type", "role");
       result.current.actions.onFormChange("audience_role", "citizen");
     });
@@ -70,6 +73,7 @@ describe("useBroadcastsController", () => {
 
     expect(createMutateAsync).toHaveBeenCalledWith(
       expect.objectContaining({
+        severity: "danger",
         audience_type: "role",
         audience_roles: ["citizen"],
       })
@@ -87,6 +91,7 @@ describe("useBroadcastsController", () => {
     act(() => {
       result.current.actions.onFormChange("title", "Campus Advisory");
       result.current.actions.onFormChange("body", "Body");
+      result.current.actions.onFormChange("severity", "warning");
       result.current.actions.onFormChange("audience_type", "role");
       result.current.actions.onFormChange("audience_role", "student");
     });
@@ -97,6 +102,7 @@ describe("useBroadcastsController", () => {
 
     expect(createMutateAsync).toHaveBeenCalledWith(
       expect.objectContaining({
+        severity: "warning",
         audience_type: "role",
         audience_roles: ["student"],
       })

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { LiveSOSDetailsDialog } from "@/components/dashboard/LiveSOSDetailsDialog";
 
 vi.mock("@/components/map/MapCanvas", () => ({
@@ -6,6 +6,41 @@ vi.mock("@/components/map/MapCanvas", () => ({
 }));
 
 describe("LiveSOSDetailsDialog", () => {
+  it("shows Mark Resolved for active or acknowledged SOS and calls handler", () => {
+    const onMarkResolved = vi.fn();
+
+    render(
+      <LiveSOSDetailsDialog
+        open
+        onOpenChange={() => {}}
+        onMarkResolved={onMarkResolved}
+        detailQuery={{
+          data: {
+            thread: {
+              sos_id: 99,
+              latest_status: "active",
+              full_name: "Juan Dela Cruz",
+              latest_event_at: "2026-03-01T10:00:00.000Z",
+              acknowledged_at: "2026-03-01T10:05:00.000Z",
+            },
+            events: [],
+          },
+          isLoading: false,
+          isError: false,
+          error: null,
+        }}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Mark Resolved/i }));
+    expect(onMarkResolved).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "99",
+        userName: "Juan Dela Cruz",
+      })
+    );
+  });
+
   it("shows assigned unit and acknowledged timestamp when present", () => {
     render(
       <LiveSOSDetailsDialog
@@ -32,6 +67,14 @@ describe("LiveSOSDetailsDialog", () => {
 
     expect(screen.getByText("Police Personnel")).toBeInTheDocument();
     expect(screen.getByText(/Acknowledged:/i)).toBeInTheDocument();
+    expect(screen.getByText("Caller Profile")).toBeInTheDocument();
+    expect(screen.getByText("Incident Specs")).toBeInTheDocument();
+    expect(screen.getByText("Live Location")).toBeInTheDocument();
+    expect(screen.getByText("Activity Timeline")).toBeInTheDocument();
+    expect(
+      screen.getByText(/acknowledged sos updates notify accepted beacon friends/i)
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Mark Resolved/i })).toBeInTheDocument();
   });
 
   it("shows Cancelled SOS label for resolved cancelled outcomes", () => {
@@ -58,6 +101,9 @@ describe("LiveSOSDetailsDialog", () => {
     );
 
     expect(screen.getByText("Cancelled SOS")).toBeInTheDocument();
+    expect(screen.getByText("Activity Timeline")).toBeInTheDocument();
+    expect(screen.getByText(/resolved and cancelled sos outcomes notify accepted beacon friends/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Mark Resolved/i })).not.toBeInTheDocument();
   });
 
   it("renders normalized timeline event labels", () => {
@@ -86,9 +132,11 @@ describe("LiveSOSDetailsDialog", () => {
       />
     );
 
-    expect(screen.getByText("Timeline Logs")).toBeInTheDocument();
+    expect(screen.getByText("Activity Timeline")).toBeInTheDocument();
+    expect(screen.getByText("Beacon Update Rules")).toBeInTheDocument();
     expect(screen.getByText("Cancelled")).toBeInTheDocument();
     expect(screen.getByText("Acknowledged")).toBeInTheDocument();
     expect(screen.getByText("Created")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Mark Resolved/i })).not.toBeInTheDocument();
   });
 });

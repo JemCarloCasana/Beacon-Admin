@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Bell, Search, MapPin, Clock, LogOut } from 'lucide-react';
+import { Bell, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
 import {
     DropdownMenu,
@@ -31,6 +30,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export function Header({ onMenuClick }) {
     const [isNotifOpen, setIsNotifOpen] = useState(false);
+    const [showAllNotifications, setShowAllNotifications] = useState(false);
     const [invitePopupNotification, setInvitePopupNotification] = useState(null);
     const [dismissedInviteIds, setDismissedInviteIds] = useState([]);
     const [inviteActionLoading, setInviteActionLoading] = useState(false);
@@ -45,11 +45,20 @@ export function Header({ onMenuClick }) {
     const rejectAdminRequestMutation = useRejectAdminRequest();
 
     const notifications = notificationsQuery.data || [];
-    const unreadCount = useMemo(
-        () => notifications.filter((notification) => !notification?.is_read).length,
+    const unreadNotifications = useMemo(
+        () => notifications.filter((notification) => !notification?.is_read),
         [notifications]
     );
+    const unreadCount = useMemo(
+        () => unreadNotifications.length,
+        [unreadNotifications]
+    );
     const hasUnread = unreadCount > 0;
+    const visibleNotifications = useMemo(() => {
+        if (showAllNotifications) return notifications;
+        return notifications.slice(0, 5);
+    }, [notifications, showAllNotifications]);
+    const canShowAllNotifications = notifications.length > 5;
 
     useEffect(() => {
         if (!import.meta.env.DEV) return;
@@ -160,7 +169,11 @@ export function Header({ onMenuClick }) {
 
     const handleNotificationOpenChange = (open) => {
         setIsNotifOpen(open);
-        if (open) notificationsQuery.refetch();
+        if (open) {
+            notificationsQuery.refetch();
+            return;
+        }
+        setShowAllNotifications(false);
     };
 
     const handleMarkAsRead = async (notification) => {
@@ -199,6 +212,30 @@ export function Header({ onMenuClick }) {
         }
 
         await handleMarkAsRead(notification);
+    };
+
+    const handleMarkAllAsRead = async () => {
+        if (unreadNotifications.length === 0 || markReadMutation.isPending) return;
+
+        try {
+            await Promise.all(
+                unreadNotifications
+                    .filter((notification) => notification?.id)
+                    .map((notification) => markReadMutation.mutateAsync(notification.id))
+            );
+            setShowAllNotifications(true);
+            toast({
+                title: 'Notifications updated',
+                description: 'All unread notifications were marked as read.',
+            });
+            await queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        } catch (error) {
+            toast({
+                title: 'Failed to update notifications',
+                description: error?.message || 'Please try again.',
+                variant: 'destructive',
+            });
+        }
     };
 
     const handleInviteDecision = async (decision) => {
@@ -313,46 +350,8 @@ export function Header({ onMenuClick }) {
                 )}
             </Dialog>
 
-            <header className="flex h-16 items-center justify-between border-b bg-white px-6">
-                {/* Left: System Status & Info */}
-                <div className="flex items-center gap-8">
-                {/* System Status */}
-                <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-                    <div className="flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-emerald-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                    </div>
-                    SYSTEM ONLINE
-                </div>
-
-                <div className="h-4 w-[1px] bg-slate-200" />
-
-                {/* Location */}
-                <div className="flex items-center gap-2 text-xs text-slate-500">
-                    <MapPin className="h-3.5 w-3.5" />
-                    Manila, NCR
-                </div>
-
-                <div className="h-4 w-[1px] bg-slate-200" />
-
-                {/* Response Time */}
-                <div className="flex items-center gap-2 text-xs text-slate-500">
-                    <Clock className="h-3.5 w-3.5" />
-                    Avg Response: <span className="font-bold text-slate-900">4m 12s</span>
-                </div>
-            </div>
-
-                {/* Right: Search & Notifications */}
+            <header className="flex h-16 items-center justify-end border-b bg-white px-6">
                 <div className="flex items-center gap-4">
-                {/* Search */}
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                    <Input
-                        placeholder="Search logs, units..."
-                        className="w-72 pl-9 bg-slate-100 border-none h-9 text-sm focus-visible:ring-1 focus-visible:ring-blue-500"
-                    />
-                </div>
-
                     {/* Notifications */}
                     <div className="relative">
                         <DropdownMenu open={isNotifOpen} onOpenChange={handleNotificationOpenChange}>
@@ -388,8 +387,45 @@ export function Header({ onMenuClick }) {
                                         No notifications yet.
                                     </div>
                                 ) : (
-                                    <div className="max-h-96 overflow-y-auto">
-                                        {notifications.map((notification) => (
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between px-2 pt-2 text-xs">
+                                            <span className="text-muted-foreground">
+                                                {showAllNotifications
+                                                    ? `Showing all notifications (${notifications.length})`
+                                                    : `Showing 5 newest notifications${notifications.length > 0 ? ` (${Math.min(notifications.length, 5)} of ${notifications.length})` : ''}`}
+                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                {hasUnread && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleMarkAllAsRead}
+                                                        disabled={markReadMutation.isPending}
+                                                        className="font-medium text-blue-600 transition hover:text-blue-700 disabled:cursor-not-allowed disabled:text-muted-foreground"
+                                                    >
+                                                        {markReadMutation.isPending ? 'Marking...' : 'Mark all as read'}
+                                                    </button>
+                                                )}
+                                                {showAllNotifications ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowAllNotifications(false)}
+                                                        className="font-medium text-slate-700 transition hover:text-slate-900"
+                                                    >
+                                                        Show less
+                                                    </button>
+                                                ) : canShowAllNotifications ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowAllNotifications(true)}
+                                                        className="font-medium text-slate-700 transition hover:text-slate-900"
+                                                    >
+                                                        Show all
+                                                    </button>
+                                                ) : null}
+                                            </div>
+                                        </div>
+                                        <div className="max-h-96 overflow-y-auto">
+                                        {visibleNotifications.map((notification) => (
                                             <DropdownMenuItem
                                                 key={notification.id}
                                                 onClick={() => handleNotificationClick(notification)}
@@ -411,6 +447,7 @@ export function Header({ onMenuClick }) {
                                                 </p>
                                             </DropdownMenuItem>
                                         ))}
+                                        </div>
                                     </div>
                                 )}
                             </DropdownMenuContent>

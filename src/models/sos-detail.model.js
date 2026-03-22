@@ -55,7 +55,33 @@ function hasCancelledPrefix(value) {
   return /^\s*cancelled\s*:/i.test(String(value || ""));
 }
 
-function toActorLabel(actorType) {
+function pickActorName(event) {
+  const candidates = [
+    event?.full_name,
+    event?.actor_name,
+    event?.admin_name,
+    event?.personnel_name,
+    event?.user_name,
+    event?.actor?.full_name,
+    event?.admin?.full_name,
+    event?.personnel?.full_name,
+    event?.user?.full_name,
+    event?.name,
+  ];
+
+  for (const candidate of candidates) {
+    const normalized = String(candidate || "").trim();
+    if (normalized) return normalized;
+  }
+
+  return null;
+}
+
+function toActorLabel(event) {
+  const actorName = pickActorName(event);
+  if (actorName) return actorName;
+
+  const actorType = String(event?.actor_type || "").trim().toLowerCase();
   if (actorType === "admin") return "Admin";
   if (actorType === "system") return "System";
   return "User";
@@ -120,7 +146,7 @@ export function toSosDetailViewModel(data) {
     return {
       ...event,
       eventLabel: toEventLabel(event, isOldestEvent),
-      actorLabel: toActorLabel(String(event?.actor_type || "").trim().toLowerCase()),
+      actorLabel: toActorLabel(event),
     };
   });
 

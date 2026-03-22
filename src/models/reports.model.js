@@ -1,26 +1,28 @@
 export const REPORT_CARD_CONFIG = [
   {
-    reportKey: "daily_incident_summary",
+    reportKey: "daily_safety_report",
     range: "24h",
-    title: "Daily Incident Summary",
-    description: "Overview of all incidents reported in the last 24 hours",
+    title: "Daily Safety Report",
+    description: "Combined incident and SOS report for the last 24 hours",
     icon: "FileText",
   },
   {
-    reportKey: "weekly_response_analysis",
+    reportKey: "weekly_safety_report",
     range: "7d",
-    title: "Weekly Response Analysis",
-    description: "Response times and resolution rates for the past week",
+    title: "Weekly Safety Report",
+    description: "Combined incident and SOS report for the past 7 days",
     icon: "BarChart3",
   },
   {
     reportKey: "monthly_safety_report",
     range: "30d",
     title: "Monthly Safety Report",
-    description: "Comprehensive monthly report with trends and insights",
+    description: "Comprehensive combined incident and SOS report for the past 30 days",
     icon: "Calendar",
   },
 ];
+
+const CATEGORY_FREQUENCY_LIMIT = 5;
 
 function toFiniteNumber(value, fallback = 0) {
   const num = Number(value);
@@ -46,6 +48,12 @@ function normalizeDistributionSeries(series) {
     label: String(row?.label || "Unknown"),
     value: toFiniteNumber(row?.value, 0),
   }));
+}
+
+function normalizeTopDistributionSeries(series, limit = CATEGORY_FREQUENCY_LIMIT) {
+  return normalizeDistributionSeries(series)
+    .sort((left, right) => right.value - left.value)
+    .slice(0, limit);
 }
 
 function normalizeIncidentTrend(series) {
@@ -110,6 +118,8 @@ export function toReportsOverviewModel(raw) {
       incidentsByPriority: normalizeDistributionSeries(payload?.charts?.incidents_by_priority),
       incidentsTrend: normalizeIncidentTrend(payload?.charts?.incidents_trend),
       responseTimeTrend: normalizeResponseTrend(payload?.charts?.response_time_trend),
+      incidentCategoriesFrequency: normalizeTopDistributionSeries(payload?.charts?.incident_categories_frequency),
+      sosCategoriesFrequency: normalizeTopDistributionSeries(payload?.charts?.sos_categories_frequency),
     },
   };
 }

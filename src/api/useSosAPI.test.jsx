@@ -88,6 +88,18 @@ describe("useSosAPI", () => {
     });
   });
 
+  it("resolve prefixes note with SAFE when terminal outcome is safe", async () => {
+    apiPost.mockResolvedValue({ ok: true });
+    const wrapper = createWrapper();
+    const { result } = renderHook(() => useResolveSOS(), { wrapper });
+
+    await result.current.mutateAsync({ sosId: 123, terminalOutcome: "safe", note: "user confirmed safe" });
+
+    expect(apiPost).toHaveBeenCalledWith("/admin/sos/123/resolve", {
+      note: "SAFE: user confirmed safe",
+    });
+  });
+
   it("acknowledge mutation throws when assigned_unit is missing", async () => {
     const wrapper = createWrapper();
     const { result } = renderHook(() => useAcknowledgeSOS(), { wrapper });

@@ -1,11 +1,13 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import LiveSOS from "@/pages/LiveSOS";
-import { useAcknowledgeSOS, useSOSDetail, useSOSLiveQueue } from "@/api/useSosAPI";
+import { useAcknowledgeSOS, useResolveSOS, useSOSDetail, useSOSLiveQueue } from "@/api/useSosAPI";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 vi.mock("@/api/useSosAPI", () => ({
   useSOSLiveQueue: vi.fn(),
   useSOSDetail: vi.fn(),
   useAcknowledgeSOS: vi.fn(),
+  useResolveSOS: vi.fn(),
   SOS_ASSIGNED_UNITS: [
     "Emergency Medical Unit",
     "Fire Station Unit",
@@ -24,10 +26,28 @@ vi.mock("@/components/layout", () => ({
 }));
 
 vi.mock("@/components/dashboard/LiveSOSDetailsDialog", () => ({
-  LiveSOSDetailsDialog: () => null,
+  LiveSOSDetailsDialog: ({ open, onMarkResolved }) =>
+    open ? (
+      <div>
+        <button type="button" onClick={() => onMarkResolved?.({ id: "1", userName: "Juan" })}>
+          Mark Resolved
+        </button>
+      </div>
+    ) : null,
 }));
 
 describe("LiveSOS page", () => {
+  function renderPage(initialEntries = ["/sos"]) {
+    return render(
+      <MemoryRouter initialEntries={initialEntries}>
+        <Routes>
+          <Route path="/sos" element={<LiveSOS />} />
+          <Route path="/sos/:sosId" element={<LiveSOS />} />
+        </Routes>
+      </MemoryRouter>
+    );
+  }
+
   beforeEach(() => {
     vi.clearAllMocks();
     useSOSLiveQueue.mockImplementation(({ status }) => {
@@ -85,6 +105,15 @@ describe("LiveSOS page", () => {
             full_name: "Juan",
             latest_address: "Dagupan",
           },
+          {
+            sos_id: 2,
+            latest_status: "active",
+            acknowledged_at: "2026-03-01T10:05:00.000Z",
+            assigned_unit: "Emergency Medical Unit",
+            latest_event_at: "2026-03-01T10:06:00.000Z",
+            full_name: "Liza",
+            latest_address: "Binmaley",
+          },
         ],
         isLoading: false,
         isError: false,
@@ -102,13 +131,18 @@ describe("LiveSOS page", () => {
       mutateAsync: vi.fn().mockResolvedValue({ ok: true }),
       isPending: false,
     });
+    useResolveSOS.mockReturnValue({
+      mutateAsync: vi.fn().mockResolvedValue({ ok: true }),
+      isPending: false,
+    });
   });
 
-  it("renders SOS Screen with live/cancelled/resolved tabs", () => {
-    render(<LiveSOS />);
+  it("renders SOS Screen with live/dispatched/cancelled/resolved tabs", () => {
+    renderPage();
 
     expect(screen.getByRole("heading", { name: "SOS Screen" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Live SOS \(1\)/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Dispatch \(1\)/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Cancelled SOS \(1\)/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Resolved SOS \(1\)/i })).toBeInTheDocument();
   });
@@ -120,9 +154,12 @@ describe("LiveSOS page", () => {
       isPending: false,
     });
 
-    render(<LiveSOS />);
+    renderPage();
 
     fireEvent.click(screen.getByRole("button", { name: /Acknowledge/i }));
+    expect(
+      screen.getByText(/the reporter will be notified and may see the assigned unit/i)
+    ).toBeInTheDocument();
 
     const confirmButton = screen.getByRole("button", { name: /Confirm Acknowledge/i });
     expect(confirmButton).toBeDisabled();
@@ -172,6 +209,14 @@ describe("LiveSOS page", () => {
             full_name: "Pedro",
             latest_address: "Bonuan",
           },
+          {
+            sos_id: 3,
+            latest_status: "active",
+            assigned_unit: "Emergency Medical Unit",
+            latest_event_at: "2026-03-01T10:01:00.000Z",
+            full_name: "Liza",
+            latest_address: "Binmaley",
+          },
         ],
         isLoading: false,
         isError: false,
@@ -184,11 +229,14 @@ describe("LiveSOS page", () => {
       isPending: false,
     });
 
-    render(<LiveSOS />);
+    renderPage();
 
     fireEvent.click(screen.getByRole("button", { name: /Acknowledge/i }));
 
     expect(screen.getByText(/Auto-selected from emergency type/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/admin success here remains authoritative even if push delivery is not visible/i)
+    ).toBeInTheDocument();
     const confirmButton = screen.getByRole("button", { name: /Confirm Acknowledge/i });
     expect(confirmButton).not.toBeDisabled();
 
@@ -199,5 +247,94 @@ describe("LiveSOS page", () => {
         assigned_unit: "Fire Station Unit",
       })
     );
+  });
+
+  it("opens a confirmation modal before resolving and submits safe outcome", () => {
+    const mutateAsync = vi.fn().mockResolvedValue({ ok: true });
+    useResolveSOS.mockReturnValue({
+      mutateAsync,
+      isPending: false,
+    });
+
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: /Details/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^Mark Resolved$/i }));
+
+    expect(
+      screen.getByText(/Are you sure you want to mark this SOS as resolved\?/i)
+    ).toBeInTheDocument();
+
+    fireEvent.change(screen.getByPlaceholderText(/Add context for why this SOS is resolved/i), {
+      target: { value: "User confirmed safe" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Confirm Resolve/i }));
+
+    expect(mutateAsync).toHaveBeenCalledWith({
+      sosId: 1,
+      terminalOutcome: "safe",
+      note: "User confirmed safe",
+    });
+  });
+
+  it("clicking summary cards activates the matching tab", () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: /Dispatch\s+1\s+Assigned SOS threads/i }));
+    expect(screen.getByRole("tab", { name: /Dispatch \(1\)/i })).toHaveAttribute("data-state", "active");
+
+    fireEvent.click(screen.getByRole("button", { name: /Cancelled SOS\s+1\s+Cancelled outcomes/i }));
+    expect(screen.getByRole("tab", { name: /Cancelled SOS \(1\)/i })).toHaveAttribute("data-state", "active");
+
+    fireEvent.click(screen.getByRole("button", { name: /Resolved SOS\s+1\s+Resolved outcomes/i }));
+    expect(screen.getByRole("tab", { name: /Resolved SOS \(1\)/i })).toHaveAttribute("data-state", "active");
+
+    fireEvent.click(screen.getByRole("button", { name: /Live SOS\s+1\s+Open SOS threads/i }));
+    expect(screen.getByRole("tab", { name: /Live SOS \(1\)/i })).toHaveAttribute("data-state", "active");
+  });
+
+  it("reads the active tab from the URL query", () => {
+    renderPage(["/sos?tab=cancelled"]);
+
+    expect(screen.getByRole("tab", { name: /Cancelled SOS \(1\)/i })).toHaveAttribute("data-state", "active");
+  });
+
+  it("reads the dispatched tab from the URL query", () => {
+    renderPage(["/sos?tab=dispatched"]);
+
+    expect(screen.getByRole("tab", { name: /Dispatch \(1\)/i })).toHaveAttribute("data-state", "active");
+  });
+
+  it("falls back to live tab for invalid tab query", () => {
+    renderPage(["/sos?tab=unknown"]);
+
+    expect(screen.getByRole("tab", { name: /Live SOS \(1\)/i })).toHaveAttribute("data-state", "active");
+  });
+
+  it("passes a 5-card-sized viewport height to the live feed", () => {
+    renderPage();
+
+    expect(screen.getByTestId("live-sos-feed-scroll-area")).toHaveClass("h-[40rem]");
+    expect(screen.getByTestId("live-sos-feed-scroll-area")).toHaveClass("min-h-[34rem]");
+  });
+
+  it("moves assigned open sos threads into dispatch", () => {
+    renderPage();
+
+    expect(screen.getByRole("tab", { name: /Live SOS \(1\)/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Dispatch \(1\)/i })).toBeInTheDocument();
+    expect(screen.getByText("Liza")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Mark as Resolved/i })).toBeInTheDocument();
+  });
+
+  it("opens the resolve confirmation from the dispatch list", () => {
+    renderPage(["/sos?tab=dispatched"]);
+
+    fireEvent.click(screen.getByRole("button", { name: /Mark as Resolved/i }));
+
+    expect(
+      screen.getByText(/Are you sure you want to mark this SOS as resolved\?/i)
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Reporter:\s*Liza/i)).toBeInTheDocument();
   });
 });

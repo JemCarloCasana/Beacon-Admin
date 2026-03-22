@@ -74,6 +74,8 @@ describe("Header notifications", () => {
     vi.clearAllMocks();
 
     useAuth.mockReturnValue({
+      me: { id: 1, full_name: "Admin" },
+      loading: false,
       logout: vi.fn().mockResolvedValue(undefined),
       refreshMe: vi.fn().mockResolvedValue(undefined),
     });
@@ -100,7 +102,7 @@ describe("Header notifications", () => {
           message: "Please review",
           metadata: { admin_request_id: 55 },
           reference_id: 55,
-          is_read: true,
+          is_read: false,
           created_at: "2026-03-07T00:00:00.000Z",
         },
       ],
@@ -111,7 +113,7 @@ describe("Header notifications", () => {
     });
 
     renderWithQueryClient(<Header />);
-    fireEvent.click(screen.getByText("Admin Access Request"));
+    fireEvent.click(screen.getAllByText("Admin Access Request").at(-1));
 
     expect(screen.getByText("Accept")).toBeInTheDocument();
     expect(mockMarkRead).not.toHaveBeenCalled();
@@ -327,7 +329,174 @@ describe("Header notifications", () => {
 
     const view = renderWithQueryClient(<Header />);
 
-    expect(screen.getByText("Notification 12")).toBeInTheDocument();
+    expect(screen.getByText("Notification 1")).toBeInTheDocument();
+    expect(screen.getByText("Notification 5")).toBeInTheDocument();
+    expect(screen.queryByText("Notification 6")).not.toBeInTheDocument();
+    expect(screen.queryByText("Notification 12")).not.toBeInTheDocument();
+    expect(screen.getByText("Show all")).toBeInTheDocument();
     expect(view.container.querySelector(".max-h-96.overflow-y-auto")).not.toBeNull();
+  });
+
+  it("expands from 5 newest notifications to the full list", () => {
+    const notifications = Array.from({ length: 8 }, (_, index) => ({
+      id: index + 1,
+      type: "incident",
+      title: `Notification ${index + 1}`,
+      message: `Message ${index + 1}`,
+      metadata: { incident_id: index + 100 },
+      is_read: index >= 5,
+      created_at: "2026-03-07T00:00:00.000Z",
+    }));
+
+    useNotifications.mockReturnValue({
+      data: notifications,
+      isLoading: false,
+      isError: false,
+      isFetching: false,
+      refetch: vi.fn(),
+    });
+
+    renderWithQueryClient(<Header />);
+
+    expect(screen.getByText("Notification 5")).toBeInTheDocument();
+    expect(screen.queryByText("Notification 6")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("Show all"));
+
+    expect(screen.getByText("Notification 8")).toBeInTheDocument();
+    expect(screen.getByText("Show less")).toBeInTheDocument();
+  });
+
+  it("marks all unread notifications as read without touching read items", async () => {
+    useNotifications.mockReturnValue({
+      data: [
+        {
+          id: 1,
+          type: "incident",
+          title: "Unread 1",
+          message: "Message 1",
+          metadata: { incident_id: 1 },
+          is_read: false,
+          created_at: "2026-03-07T00:00:00.000Z",
+        },
+        {
+          id: 2,
+          type: "incident",
+          title: "Read 2",
+          message: "Message 2",
+          metadata: { incident_id: 2 },
+          is_read: true,
+          created_at: "2026-03-07T00:00:00.000Z",
+        },
+        {
+          id: 3,
+          type: "incident",
+          title: "Unread 3",
+          message: "Message 3",
+          metadata: { incident_id: 3 },
+          is_read: false,
+          created_at: "2026-03-07T00:00:00.000Z",
+        },
+      ],
+      isLoading: false,
+      isError: false,
+      isFetching: false,
+      refetch: vi.fn(),
+    });
+
+    renderWithQueryClient(<Header />);
+    fireEvent.click(screen.getByText("Mark all as read"));
+
+    await waitFor(() => {
+      expect(mockMarkRead).toHaveBeenCalledWith(1);
+      expect(mockMarkRead).toHaveBeenCalledWith(3);
+    });
+    expect(mockMarkRead).not.toHaveBeenCalledWith(2);
+  });
+
+  it("keeps notifications visible after mark all as read", async () => {
+    const notifications = [
+      {
+        id: 1,
+        type: "incident",
+        title: "Unread 1",
+        message: "Message 1",
+        metadata: { incident_id: 1 },
+        is_read: false,
+        created_at: "2026-03-07T00:00:00.000Z",
+      },
+      {
+        id: 2,
+        type: "incident",
+        title: "Read 2",
+        message: "Message 2",
+        metadata: { incident_id: 2 },
+        is_read: true,
+        created_at: "2026-03-07T00:00:00.000Z",
+      },
+    ];
+
+    useNotifications.mockImplementation(() => ({
+      data: notifications,
+      isLoading: false,
+      isError: false,
+      isFetching: false,
+      refetch: vi.fn(),
+    }));
+
+    const view = renderWithQueryClient(<Header />);
+    fireEvent.click(screen.getByText("Mark all as read"));
+
+    await waitFor(() => {
+      expect(mockMarkRead).toHaveBeenCalledWith(1);
+    });
+
+    notifications[0] = { ...notifications[0], is_read: true };
+
+    view.rerender(
+      <QueryClientProvider
+        client={new QueryClient({
+          defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+        })}
+      >
+        <Header />
+      </QueryClientProvider>
+    );
+
+    expect(screen.getByText("Unread 1")).toBeInTheDocument();
+    expect(screen.getByText("Read 2")).toBeInTheDocument();
+    expect(screen.queryByText("Show all")).not.toBeInTheDocument();
+    expect(screen.getByText("Show less")).toBeInTheDocument();
+  });
+
+  it("show less returns to the 5 newest notifications", () => {
+    const notifications = Array.from({ length: 7 }, (_, index) => ({
+      id: index + 1,
+      type: "incident",
+      title: `Notification ${index + 1}`,
+      message: `Message ${index + 1}`,
+      metadata: { incident_id: index + 1 },
+      is_read: true,
+      created_at: "2026-03-07T00:00:00.000Z",
+    }));
+
+    useNotifications.mockReturnValue({
+      data: notifications,
+      isLoading: false,
+      isError: false,
+      isFetching: false,
+      refetch: vi.fn(),
+    });
+
+    renderWithQueryClient(<Header />);
+
+    fireEvent.click(screen.getByText("Show all"));
+    expect(screen.getByText("Notification 7")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("Show less"));
+
+    expect(screen.getByText("Notification 5")).toBeInTheDocument();
+    expect(screen.queryByText("Notification 6")).not.toBeInTheDocument();
+    expect(screen.queryByText("Notification 7")).not.toBeInTheDocument();
   });
 });
