@@ -6,7 +6,8 @@ import { toUserListModel } from "@/models/user.model";
 import { useToast } from "@/hooks/use-toast";
 import { sendAdminRequest } from "@/api/adminRequests";
 import { apiPatch } from "@/services/api";
-import { updateUserStatus } from "@/api/useUsers";
+import { createUser, updateUserStatus } from "@/api/useUsers";
+import { normalizeEmail, normalizeName, validateSignup } from "@/auth/validation";
 
 async function updateUserById(userId, { full_name, email }) {
   const candidateEndpoints = [
@@ -56,12 +57,21 @@ function getStatusTargetId(user) {
  * ViewController for Personnel Management page.
  */
 export function useUsersController() {
+  const initialCreateForm = {
+    full_name: "",
+    email: "",
+    password: "",
+    role: "personnel",
+  };
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sendingAdminRequestId, setSendingAdminRequestId] = useState(null);
   const [statusUpdatingUserId, setStatusUpdatingUserId] = useState(null);
+  const [creatingUser, setCreatingUser] = useState(false);
   const [editingUserId, setEditingUserId] = useState(null);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [createForm, setCreateForm] = useState(initialCreateForm);
   const [editForm, setEditForm] = useState({
     id: null,
     full_name: "",
@@ -218,6 +228,88 @@ export function useUsersController() {
     setIsEditDialogOpen(Boolean(open));
   };
 
+  const onOpenCreateUser = () => {
+    setIsCreateDialogOpen(true);
+  };
+
+  const onCreateDialogOpenChange = (open) => {
+    if (creatingUser) return;
+    setIsCreateDialogOpen(Boolean(open));
+    if (!open) {
+      setCreateForm(initialCreateForm);
+    }
+  };
+
+  const onCreateFormChange = (field, value) => {
+    if (!["full_name", "email", "password", "role"].includes(field)) return;
+    setCreateForm((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const onCancelCreateUser = () => {
+    if (creatingUser) return;
+    setIsCreateDialogOpen(false);
+    setCreateForm(initialCreateForm);
+  };
+
+  const onCreateUser = async () => {
+    const normalizedName = normalizeName(createForm.full_name);
+    const normalizedEmail = normalizeEmail(createForm.email);
+    const normalizedPassword = String(createForm.password ?? "");
+    const normalizedRole = String(createForm.role || "").trim().toLowerCase();
+    const validationErrors = validateSignup({
+      full_name: normalizedName,
+      email: normalizedEmail,
+      password: normalizedPassword,
+    });
+
+    if (!["personnel", "admin"].includes(normalizedRole)) {
+      toast({
+        title: "Invalid role",
+        description: "Please select either personnel or admin.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const firstError = validationErrors.full_name || validationErrors.email || validationErrors.password;
+    if (firstError) {
+      toast({
+        title: "Invalid user details",
+        description: firstError,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setCreatingUser(true);
+      await createUser({
+        full_name: normalizedName,
+        email: normalizedEmail,
+        password: normalizedPassword,
+        role: normalizedRole,
+      });
+      toast({
+        title: "User created",
+        description: `${normalizedName} was added successfully.`,
+      });
+      await usersQuery.refetch();
+      setCreateForm(initialCreateForm);
+      setIsCreateDialogOpen(false);
+    } catch (error) {
+      toast({
+        title: "Failed to create user",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setCreatingUser(false);
+    }
+  };
+
   const onEditFormChange = (field, value) => {
     if (field !== "full_name" && field !== "email") return;
     setEditForm((prev) => ({
@@ -292,14 +384,22 @@ export function useUsersController() {
     usersError: usersQuery.isError ? usersQuery.error : null,
     sendingAdminRequestId,
     statusUpdatingUserId,
+    creatingUser,
     editingUserId,
+    isCreateDialogOpen,
     isEditDialogOpen,
+    createForm,
     editForm,
     actions: {
       setSearchQuery,
       setStatusFilter,
       refresh: usersQuery.refetch,
       onSendAdminRequest,
+      onOpenCreateUser,
+      onCreateDialogOpenChange,
+      onCreateFormChange,
+      onCancelCreateUser,
+      onCreateUser,
       onEditUser,
       onEditDialogOpenChange,
       onEditFormChange,

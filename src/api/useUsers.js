@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { apiGet, apiPatch } from "@/services/api";
+import { apiGet, apiPatch, apiPost } from "@/services/api";
 
 export const USER_STATUSES = ["active", "deactivated", "all"];
 
@@ -91,6 +91,15 @@ export async function updateUserStatus(userId, status) {
   }
 
   return apiPatch(`/admin/users/${userId}`, { status: normalizedStatus });
+}
+
+export async function createUser({ full_name, email, password, role }) {
+  return apiPost("/admin/users", {
+    full_name,
+    email,
+    password,
+    role,
+  });
 }
 
 /**

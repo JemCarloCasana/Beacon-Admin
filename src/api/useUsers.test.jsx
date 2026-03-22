@@ -1,12 +1,13 @@
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
-import { useUsers, updateUserStatus } from "@/api/useUsers";
-import { apiGet, apiPatch } from "@/services/api";
+import { createUser, useUsers, updateUserStatus } from "@/api/useUsers";
+import { apiGet, apiPatch, apiPost } from "@/services/api";
 
 vi.mock("@/services/api", () => ({
   apiGet: vi.fn(),
   apiPatch: vi.fn(),
+  apiPost: vi.fn(),
 }));
 
 function createWrapper() {
@@ -51,5 +52,21 @@ describe("useUsers", () => {
   it("throws for invalid status", async () => {
     await expect(updateUserStatus(9, "archived")).rejects.toMatchObject({ status: 400 });
     expect(apiPatch).not.toHaveBeenCalled();
+  });
+
+  it("creates user with expected payload", async () => {
+    apiPost.mockResolvedValueOnce({ id: 10 });
+    await createUser({
+      full_name: "New User",
+      email: "new@example.com",
+      password: "Passcode12!",
+      role: "admin",
+    });
+    expect(apiPost).toHaveBeenCalledWith("/admin/users", {
+      full_name: "New User",
+      email: "new@example.com",
+      password: "Passcode12!",
+      role: "admin",
+    });
   });
 });

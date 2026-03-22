@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { useUsersController } from "@/controllers/useUsersController";
 import { useUsers } from "@/api";
-import { updateUserStatus } from "@/api/useUsers";
+import { createUser, updateUserStatus } from "@/api/useUsers";
 import { useAdminAuth } from "@/auth/AdminAuthProvider";
 import { useToast } from "@/hooks/use-toast";
 
@@ -12,6 +12,7 @@ vi.mock("@/api", () => ({
 }));
 
 vi.mock("@/api/useUsers", () => ({
+  createUser: vi.fn(),
   updateUserStatus: vi.fn(),
 }));
 
@@ -48,6 +49,7 @@ describe("useUsersController", () => {
       error: null,
       refetch: vi.fn().mockResolvedValue({}),
     });
+    createUser.mockResolvedValue({ id: 99 });
     updateUserStatus.mockResolvedValue({ ok: true });
     confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
   });
@@ -204,6 +206,105 @@ describe("useUsersController", () => {
       expect.objectContaining({
         title: "Failed to deactivate user",
         description: "Please try again.",
+      })
+    );
+  });
+
+  it("creates a user, refetches, resets form, and closes dialog", async () => {
+    const refetch = vi.fn().mockResolvedValue({});
+    useUsers.mockReturnValue({
+      data: [{ id: 11, full_name: "Personnel A", email: "a@example.com", role: "personnel", status: "active" }],
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch,
+    });
+
+    const { result } = renderHook(() => useUsersController());
+
+    act(() => {
+      result.current.actions.onOpenCreateUser();
+      result.current.actions.onCreateFormChange("full_name", "  New User  ");
+      result.current.actions.onCreateFormChange("email", "  NEW@Example.com ");
+      result.current.actions.onCreateFormChange("password", "Passcode12!");
+      result.current.actions.onCreateFormChange("role", "admin");
+    });
+
+    await act(async () => {
+      await result.current.actions.onCreateUser();
+    });
+
+    expect(createUser).toHaveBeenCalledWith({
+      full_name: "New User",
+      email: "new@example.com",
+      password: "Passcode12!",
+      role: "admin",
+    });
+    await waitFor(() => expect(refetch).toHaveBeenCalled());
+    expect(result.current.isCreateDialogOpen).toBe(false);
+    expect(result.current.createForm).toEqual({
+      full_name: "",
+      email: "",
+      password: "",
+      role: "personnel",
+    });
+    expect(toast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "User created",
+      })
+    );
+  });
+
+  it("blocks create submit when form is invalid", async () => {
+    const { result } = renderHook(() => useUsersController());
+
+    act(() => {
+      result.current.actions.onOpenCreateUser();
+      result.current.actions.onCreateFormChange("full_name", "A");
+      result.current.actions.onCreateFormChange("email", "bad-email");
+      result.current.actions.onCreateFormChange("password", "short");
+    });
+
+    await act(async () => {
+      await result.current.actions.onCreateUser();
+    });
+
+    expect(createUser).not.toHaveBeenCalled();
+    expect(toast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "Invalid user details",
+      })
+    );
+    expect(result.current.isCreateDialogOpen).toBe(true);
+  });
+
+  it("keeps the create dialog open when create user fails", async () => {
+    createUser.mockRejectedValueOnce(new Error("Email already exists"));
+    const { result } = renderHook(() => useUsersController());
+
+    act(() => {
+      result.current.actions.onOpenCreateUser();
+      result.current.actions.onCreateFormChange("full_name", "New User");
+      result.current.actions.onCreateFormChange("email", "new@example.com");
+      result.current.actions.onCreateFormChange("password", "Passcode12!");
+      result.current.actions.onCreateFormChange("role", "personnel");
+    });
+
+    await act(async () => {
+      await result.current.actions.onCreateUser();
+    });
+
+    expect(result.current.isCreateDialogOpen).toBe(true);
+    expect(result.current.createForm).toEqual({
+      full_name: "New User",
+      email: "new@example.com",
+      password: "Passcode12!",
+      role: "personnel",
+    });
+    expect(toast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "Failed to create user",
+        description: "Email already exists",
       })
     );
   });

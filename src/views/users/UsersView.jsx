@@ -35,7 +35,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, AlertCircle, ChevronDown } from "lucide-react";
+import { Search, AlertCircle, ChevronDown, Plus } from "lucide-react";
 
 const UsersSkeleton = () => (
   <div className="space-y-3">
@@ -61,8 +61,11 @@ export default function UsersView({
   sendingAdminRequestId,
   statusFilter,
   statusUpdatingUserId,
+  creatingUser,
   editingUserId,
+  isCreateDialogOpen,
   isEditDialogOpen,
+  createForm,
   editForm,
   actions,
 }) {
@@ -76,6 +79,67 @@ export default function UsersView({
         </Card>
       ) : (
         <>
+          <Dialog open={isCreateDialogOpen} onOpenChange={actions.onCreateDialogOpenChange}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create User</DialogTitle>
+                <DialogDescription>
+                  Add a new user account and assign a role.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Full name</p>
+                  <Input
+                    value={createForm?.full_name || ""}
+                    onChange={(e) => actions.onCreateFormChange?.("full_name", e.target.value)}
+                    placeholder="Enter full name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Email</p>
+                  <Input
+                    type="email"
+                    value={createForm?.email || ""}
+                    onChange={(e) => actions.onCreateFormChange?.("email", e.target.value)}
+                    placeholder="Enter email"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Password</p>
+                  <Input
+                    type="password"
+                    value={createForm?.password || ""}
+                    onChange={(e) => actions.onCreateFormChange?.("password", e.target.value)}
+                    placeholder="Enter password"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Role</p>
+                  <Select value={createForm?.role || "personnel"} onValueChange={(value) => actions.onCreateFormChange?.("role", value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="personnel">Personnel</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => actions.onCancelCreateUser?.()} disabled={creatingUser}>
+                  Cancel
+                </Button>
+                <Button onClick={() => actions.onCreateUser?.()} disabled={creatingUser}>
+                  {creatingUser ? "Creating..." : "Create User"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
           <Dialog open={isEditDialogOpen} onOpenChange={actions.onEditDialogOpenChange}>
             <DialogContent>
               <DialogHeader>
@@ -146,6 +210,10 @@ export default function UsersView({
                   </SelectContent>
                 </Select>
               </div>
+              <Button className="w-full md:w-auto" onClick={() => actions.onOpenCreateUser?.()}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add User
+              </Button>
             </CardContent>
           </Card>
 

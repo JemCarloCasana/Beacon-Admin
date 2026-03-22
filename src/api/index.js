@@ -1,5 +1,5 @@
 // Export all API hooks
-export { useUsers } from './useUsers';
+export { useUsers, createUser } from './useUsers';
 export {
   useIncidentsAPI,
   useIncidentsByStatus,
