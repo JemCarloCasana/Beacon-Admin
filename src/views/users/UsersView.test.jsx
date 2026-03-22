@@ -36,6 +36,7 @@ vi.mock("@/components/ui/dropdown-menu", () => ({
 describe("UsersView", () => {
   const baseProps = {
     canManageUsers: true,
+    canCreateUsers: true,
     searchQuery: "",
     statusFilter: "all",
     users: [
@@ -95,6 +96,11 @@ describe("UsersView", () => {
   it("renders add user button for managers", () => {
     render(<UsersView {...baseProps} />);
     expect(screen.getByRole("button", { name: /add user/i })).toBeInTheDocument();
+  });
+
+  it("hides add user button without create permission", () => {
+    render(<UsersView {...baseProps} canCreateUsers={false} />);
+    expect(screen.queryByRole("button", { name: /add user/i })).not.toBeInTheDocument();
   });
 
   it("renders create user dialog fields when open", () => {

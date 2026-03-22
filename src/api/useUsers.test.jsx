@@ -62,7 +62,7 @@ describe("useUsers", () => {
       password: "Passcode12!",
       role: "admin",
     });
-    expect(apiPost).toHaveBeenCalledWith("/admin/users", {
+    expect(apiPost).toHaveBeenCalledWith("/admin/admins", {
       full_name: "New User",
       email: "new@example.com",
       password: "Passcode12!",

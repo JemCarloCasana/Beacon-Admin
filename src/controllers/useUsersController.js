@@ -46,6 +46,16 @@ function getStatusMutationErrorDescription(error) {
   return "Please try again.";
 }
 
+function getCreateUserErrorDescription(error) {
+  if (Number(error?.status) === 409) {
+    return error?.data?.message || error?.message || "An account with this email already exists.";
+  }
+  if (Number(error?.status) === 422) {
+    return error?.data?.message || error?.message || "Please review the entered details and try again.";
+  }
+  return error?.message || "Please try again.";
+}
+
 function getStatusTargetId(user) {
   const candidate = user?.statusTargetId ?? user?.id;
   if (candidate === null || candidate === undefined) return null;
@@ -80,6 +90,7 @@ export function useUsersController() {
   const { me, loading, hasPermission } = useAdminAuth();
   const { toast } = useToast();
   const canManageUsers = hasPermission("manage_users");
+  const canCreateUsers = hasPermission("manage_admins");
 
   const usersQuery = useUsers({
     status: statusFilter,
@@ -229,6 +240,14 @@ export function useUsersController() {
   };
 
   const onOpenCreateUser = () => {
+    if (!canCreateUsers) {
+      toast({
+        title: "You do not have permission",
+        description: "Only admins with manage admin access can create accounts.",
+        variant: "destructive",
+      });
+      return;
+    }
     setIsCreateDialogOpen(true);
   };
 
@@ -255,6 +274,15 @@ export function useUsersController() {
   };
 
   const onCreateUser = async () => {
+    if (!canCreateUsers) {
+      toast({
+        title: "You do not have permission",
+        description: "Only admins with manage admin access can create accounts.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const normalizedName = normalizeName(createForm.full_name);
     const normalizedEmail = normalizeEmail(createForm.email);
     const normalizedPassword = String(createForm.password ?? "");
@@ -302,7 +330,7 @@ export function useUsersController() {
     } catch (error) {
       toast({
         title: "Failed to create user",
-        description: error?.message || "Please try again.",
+        description: getCreateUserErrorDescription(error),
         variant: "destructive",
       });
     } finally {
@@ -377,6 +405,7 @@ export function useUsersController() {
     me: toAdminModel(me),
     loading,
     canManageUsers,
+    canCreateUsers,
     searchQuery,
     statusFilter,
     users: filteredUsers,

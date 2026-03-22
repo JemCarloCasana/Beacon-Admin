@@ -54,6 +54,7 @@ const UsersSkeleton = () => (
 
 export default function UsersView({
   canManageUsers,
+  canCreateUsers,
   searchQuery,
   users,
   usersLoading,
@@ -210,10 +211,12 @@ export default function UsersView({
                   </SelectContent>
                 </Select>
               </div>
-              <Button className="w-full md:w-auto" onClick={() => actions.onOpenCreateUser?.()}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add User
-              </Button>
+              {canCreateUsers && (
+                <Button className="w-full md:w-auto" onClick={() => actions.onOpenCreateUser?.()}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add User
+                </Button>
+              )}
             </CardContent>
           </Card>
 

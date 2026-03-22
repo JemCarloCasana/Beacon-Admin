@@ -94,7 +94,7 @@ export async function updateUserStatus(userId, status) {
 }
 
 export async function createUser({ full_name, email, password, role }) {
-  return apiPost("/admin/users", {
+  return apiPost("/admin/admins", {
     full_name,
     email,
     password,

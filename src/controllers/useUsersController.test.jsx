@@ -308,4 +308,84 @@ describe("useUsersController", () => {
       })
     );
   });
+
+  it("shows duplicate email message for 409 create failures", async () => {
+    createUser.mockRejectedValueOnce({
+      status: 409,
+      message: "Admin email already exists",
+    });
+    const { result } = renderHook(() => useUsersController());
+
+    act(() => {
+      result.current.actions.onOpenCreateUser();
+      result.current.actions.onCreateFormChange("full_name", "New User");
+      result.current.actions.onCreateFormChange("email", "new@example.com");
+      result.current.actions.onCreateFormChange("password", "Passcode12!");
+      result.current.actions.onCreateFormChange("role", "admin");
+    });
+
+    await act(async () => {
+      await result.current.actions.onCreateUser();
+    });
+
+    expect(toast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "Failed to create user",
+        description: "Admin email already exists",
+      })
+    );
+    expect(result.current.isCreateDialogOpen).toBe(true);
+  });
+
+  it("shows validation message for 422 create failures", async () => {
+    createUser.mockRejectedValueOnce({
+      status: 422,
+      message: "Role is required",
+    });
+    const { result } = renderHook(() => useUsersController());
+
+    act(() => {
+      result.current.actions.onOpenCreateUser();
+      result.current.actions.onCreateFormChange("full_name", "New User");
+      result.current.actions.onCreateFormChange("email", "new@example.com");
+      result.current.actions.onCreateFormChange("password", "Passcode12!");
+      result.current.actions.onCreateFormChange("role", "admin");
+    });
+
+    await act(async () => {
+      await result.current.actions.onCreateUser();
+    });
+
+    expect(toast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "Failed to create user",
+        description: "Role is required",
+      })
+    );
+    expect(result.current.isCreateDialogOpen).toBe(true);
+  });
+
+  it("hides create access when manage_admins permission is missing", () => {
+    useAdminAuth.mockReturnValueOnce({
+      me: { id: 77, full_name: "Root Admin", email: "root@example.com", role: "staff" },
+      loading: false,
+      hasPermission: vi.fn((permission) => permission === "manage_users"),
+    });
+
+    const { result } = renderHook(() => useUsersController());
+
+    expect(result.current.canManageUsers).toBe(true);
+    expect(result.current.canCreateUsers).toBe(false);
+
+    act(() => {
+      result.current.actions.onOpenCreateUser();
+    });
+
+    expect(result.current.isCreateDialogOpen).toBe(false);
+    expect(toast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "You do not have permission",
+      })
+    );
+  });
 });
