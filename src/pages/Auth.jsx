@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mail, Lock, CheckCircle2, ChevronRight } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, CheckCircle2, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -25,6 +25,7 @@ export default function Auth() {
   const [loginError, setLoginError] = useState("");
   const [loginTouched, setLoginTouched] = useState({});
   const [loginErrors, setLoginErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
 
   const loginValidationErrors = useMemo(
     () => validateLogin({ email: loginEmail, password: loginPassword }),
@@ -163,15 +164,23 @@ export default function Auth() {
                 <div className="relative group">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#2563EB] transition-colors" />
                   <Input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     placeholder="********"
-                    className="pl-10 h-11 bg-slate-50/50 border-slate-200 focus-visible:ring-[#2563EB] rounded-lg text-sm font-mono transition-all"
+                    className="pl-10 pr-11 h-11 bg-slate-50/50 border-slate-200 focus-visible:ring-[#2563EB] rounded-lg text-sm font-mono transition-all"
                     value={loginPassword}
                     onChange={(e) => handleLoginFieldChange("password", e.target.value)}
                     onBlur={() => handleLoginFieldBlur("password")}
                     required
                     aria-invalid={Boolean(loginErrors.password)}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-[#2563EB] focus:outline-none focus:text-[#2563EB]"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
                 {loginErrors.password && (
                   <p className="text-[10px] text-red-600 px-1" role="alert">

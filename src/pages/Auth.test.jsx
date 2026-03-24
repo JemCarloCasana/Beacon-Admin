@@ -50,6 +50,23 @@ describe("Auth page validation", () => {
     expect(adminLogin).not.toHaveBeenCalled();
   });
 
+  it("toggles password visibility from the eye control", () => {
+    renderAuth();
+
+    const password = screen.getByPlaceholderText("********");
+    expect(password).toHaveAttribute("type", "password");
+
+    const toggle = screen.getByRole("button", { name: "Show password" });
+    fireEvent.click(toggle);
+
+    expect(password).toHaveAttribute("type", "text");
+    expect(screen.getByRole("button", { name: "Hide password" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Hide password" }));
+    expect(password).toHaveAttribute("type", "password");
+    expect(screen.getByRole("button", { name: "Show password" })).toBeInTheDocument();
+  });
+
   it("clears inline error when login email becomes valid", async () => {
     renderAuth();
 
