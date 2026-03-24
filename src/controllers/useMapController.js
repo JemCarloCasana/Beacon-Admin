@@ -6,6 +6,8 @@ import {
   toSosMarker,
 } from "@/models/map.model";
 
+const ACTIVE_INCIDENT_STATUSES = new Set(["pending", "dispatched", "in_progress"]);
+
 function byLatest(a, b) {
   const aTime = new Date(a?.updatedAt || 0).getTime();
   const bTime = new Date(b?.updatedAt || 0).getTime();
@@ -27,7 +29,10 @@ export function useMapController() {
 
   const incidentMarkers = useMemo(() => {
     const raw = Array.isArray(incidentsQuery.data) ? incidentsQuery.data : [];
-    return raw.map(toIncidentMarker).filter(Boolean);
+    return raw
+      .filter((item) => ACTIVE_INCIDENT_STATUSES.has(String(item?.status || "").toLowerCase()))
+      .map(toIncidentMarker)
+      .filter(Boolean);
   }, [incidentsQuery.data]);
 
   const visibleMarkers = useMemo(() => {
@@ -41,6 +46,20 @@ export function useMapController() {
     () => visibleMarkers.find((item) => item.id === selectedMarkerId) || null,
     [visibleMarkers, selectedMarkerId]
   );
+  const legendItems = useMemo(() => {
+    const markerTypes = new Set(visibleMarkers.map((item) => item.type));
+    const items = [];
+
+    if (showSos && markerTypes.has("sos")) {
+      items.push({ type: "sos" });
+    }
+
+    if (showIncidents && markerTypes.has("incident")) {
+      items.push({ type: "incident" });
+    }
+
+    return items;
+  }, [showIncidents, showSos, visibleMarkers]);
 
   const isLoading = sosQuery.isLoading || incidentsQuery.isLoading;
   const isRefetching = sosQuery.isRefetching || incidentsQuery.isRefetching;
@@ -67,6 +86,7 @@ export function useMapController() {
   return {
     markers: visibleMarkers,
     selectedMarker,
+    legendItems,
     filters: {
       showSos,
       showIncidents,

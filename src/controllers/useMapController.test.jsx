@@ -36,6 +36,7 @@ function mockDataHooks() {
         title: "Flood",
         lat: 14.61,
         lng: 121.0,
+        status: "pending",
         updated_at: "2026-02-27T10:01:00.000Z",
       },
     ],
@@ -73,16 +74,19 @@ describe("useMapController", () => {
 
     expect(result.current.filters.showSos).toBe(true);
     expect(result.current.filters.showIncidents).toBe(true);
+    expect(result.current.legendItems).toEqual([{ type: "sos" }, { type: "incident" }]);
 
     act(() => {
       result.current.actions.onToggleSos();
     });
     expect(result.current.filters.showSos).toBe(false);
+    expect(result.current.legendItems).toEqual([{ type: "incident" }]);
 
     act(() => {
       result.current.actions.onToggleIncidents();
     });
     expect(result.current.filters.showIncidents).toBe(false);
+    expect(result.current.legendItems).toEqual([]);
   });
 
   it("refreshes both map data queries", () => {
@@ -110,5 +114,30 @@ describe("useMapController", () => {
 
     expect(sosRefetch).toHaveBeenCalledTimes(1);
     expect(incidentsRefetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("excludes resolved incidents from markers, counts, and legend items", () => {
+    useMapIncidents.mockReturnValue({
+      data: [
+        {
+          id: 22,
+          title: "Resolved Flood",
+          lat: 14.61,
+          lng: 121.0,
+          status: "resolved",
+          updated_at: "2026-02-27T10:01:00.000Z",
+        },
+      ],
+      isLoading: false,
+      isRefetching: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    const { result } = renderHook(() => useMapController());
+
+    expect(result.current.markers.map((item) => item.type)).toEqual(["sos"]);
+    expect(result.current.stats.incidentCount).toBe(0);
+    expect(result.current.legendItems).toEqual([{ type: "sos" }]);
   });
 });

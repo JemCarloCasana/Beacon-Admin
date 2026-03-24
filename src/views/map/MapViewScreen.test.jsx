@@ -17,6 +17,7 @@ function createProps(overrides = {}) {
   return {
     markers: [],
     selectedMarker: null,
+    legendItems: [{ type: "sos" }, { type: "incident" }],
     filters: {
       showSos: true,
       showIncidents: true,
@@ -63,5 +64,22 @@ describe("MapViewScreen", () => {
     expect(screen.getByTestId("map-legend-swatch-incident")).toHaveStyle({
       backgroundColor: MAP_MARKER_TYPE_STYLES.incident.color,
     });
+  });
+
+  it("renders only visible marker types in the legend", () => {
+    render(<MapViewScreen {...createProps({ legendItems: [{ type: "sos" }] })} />);
+
+    const legendHeading = screen.getByRole("heading", { name: "Map Legend" });
+    const legendCard = legendHeading.closest(".rounded-lg");
+
+    expect(within(legendCard).getByText("SOS")).toBeInTheDocument();
+    expect(within(legendCard).queryByText("Incidents")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("map-legend-swatch-incident")).not.toBeInTheDocument();
+  });
+
+  it("shows an empty-state message when no marker types are visible", () => {
+    render(<MapViewScreen {...createProps({ legendItems: [] })} />);
+
+    expect(screen.getByText("No visible marker types.")).toBeInTheDocument();
   });
 });

@@ -7,11 +7,12 @@ import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, Navigation, Radio, RefreshCw } from "lucide-react";
 import MapCanvas from "@/components/map/MapCanvas";
-import { MAP_MARKER_LEGEND_ITEMS } from "@/lib/mapMarkerStyles";
+import { MAP_MARKER_TYPE_STYLES } from "@/lib/mapMarkerStyles";
 
 export default function MapViewScreen({
   markers,
   selectedMarker,
+  legendItems = [],
   filters,
   stats,
   isLoading,
@@ -93,17 +94,26 @@ export default function MapViewScreen({
                 <CardTitle className="text-base">Map Legend</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
-                {MAP_MARKER_LEGEND_ITEMS.map((item) => (
-                  <div key={item.type} className="flex items-center gap-3">
-                    <span
-                      data-testid={`map-legend-swatch-${item.type}`}
-                      className="h-3 w-3 rounded-full border border-white shadow-sm"
-                      style={{ backgroundColor: item.color }}
-                      aria-hidden="true"
-                    />
-                    <span>{item.label}</span>
-                  </div>
-                ))}
+                {legendItems.length === 0 ? (
+                  <p className="text-muted-foreground">No visible marker types.</p>
+                ) : (
+                  legendItems.map((item) => {
+                    const markerStyle = MAP_MARKER_TYPE_STYLES[item.type];
+                    if (!markerStyle) return null;
+
+                    return (
+                      <div key={item.type} className="flex items-center gap-3">
+                        <span
+                          data-testid={`map-legend-swatch-${item.type}`}
+                          className="h-3 w-3 rounded-full border border-white shadow-sm"
+                          style={{ backgroundColor: markerStyle.color }}
+                          aria-hidden="true"
+                        />
+                        <span>{markerStyle.label}</span>
+                      </div>
+                    );
+                  })
+                )}
               </CardContent>
             </Card>
 
