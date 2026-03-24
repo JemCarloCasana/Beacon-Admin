@@ -329,7 +329,7 @@ export function Header({ onMenuClick }) {
                                 {invitePopupNotification.title || 'Admin Invite Received'}
                             </DialogTitle>
                             <DialogDescription>
-                                {invitePopupNotification.message || 'You received an admin invitation request.'}
+                                {invitePopupNotification.message || 'An admin access request is awaiting your review. Accept or reject it below.'}
                             </DialogDescription>
                         </DialogHeader>
                         <div className="rounded-md border bg-slate-50 p-3 text-xs text-slate-600">

@@ -99,7 +99,6 @@ describe("Header notifications", () => {
           id: 1,
           type: "admin_request",
           title: "Admin Access Request",
-          message: "Please review",
           metadata: { admin_request_id: 55 },
           reference_id: 55,
           is_read: false,
@@ -116,9 +115,40 @@ describe("Header notifications", () => {
     fireEvent.click(screen.getAllByText("Admin Access Request").at(-1));
 
     expect(screen.getByText("Accept")).toBeInTheDocument();
+    expect(
+      screen.getByText("An admin access request is awaiting your review. Accept or reject it below.")
+    ).toBeInTheDocument();
     expect(screen.getByText("Request type: Admin access request")).toBeInTheDocument();
     expect(screen.queryByText("Type: admin_request")).not.toBeInTheDocument();
     expect(mockMarkRead).not.toHaveBeenCalled();
+  });
+
+  it("renders backend-provided admin_request message when available", () => {
+    useNotifications.mockReturnValue({
+      data: [
+        {
+          id: 10,
+          type: "admin_request",
+          title: "Admin Access Request",
+          message: "Please review this elevated access request.",
+          metadata: { admin_request_id: 58 },
+          reference_id: 58,
+          is_read: false,
+          created_at: "2026-03-07T00:00:00.000Z",
+        },
+      ],
+      isLoading: false,
+      isError: false,
+      isFetching: false,
+      refetch: vi.fn(),
+    });
+
+    renderWithQueryClient(<Header />);
+
+    expect(screen.getAllByText("Please review this elevated access request.").length).toBeGreaterThan(0);
+    expect(
+      screen.queryByText("An admin access request is awaiting your review. Accept or reject it below.")
+    ).not.toBeInTheDocument();
   });
 
   it("keeps accepted admin_request modal closed after notifications refresh", async () => {
