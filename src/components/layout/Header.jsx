@@ -32,7 +32,7 @@ export function Header({ onMenuClick }) {
     const [isNotifOpen, setIsNotifOpen] = useState(false);
     const [showAllNotifications, setShowAllNotifications] = useState(false);
     const [invitePopupNotification, setInvitePopupNotification] = useState(null);
-    const [dismissedInviteIds, setDismissedInviteIds] = useState([]);
+    const [dismissedInviteRequestIds, setDismissedInviteRequestIds] = useState([]);
     const [inviteActionLoading, setInviteActionLoading] = useState(false);
     const navigate = useNavigate();
     const queryClient = useQueryClient();
@@ -79,10 +79,11 @@ export function Header({ onMenuClick }) {
         return Number.isFinite(requestId) ? requestId : null;
     };
 
-    const dismissInviteNotification = (notificationId) => {
-        if (!notificationId) return;
-        setDismissedInviteIds((prev) =>
-            prev.includes(notificationId) ? prev : [...prev, notificationId]
+    const dismissInviteNotification = (notification) => {
+        const requestId = getActionableAdminRequestId(notification);
+        if (requestId === null) return;
+        setDismissedInviteRequestIds((prev) =>
+            prev.includes(requestId) ? prev : [...prev, requestId]
         );
     };
 
@@ -167,12 +168,12 @@ export function Header({ onMenuClick }) {
             (notification) =>
                 getActionableAdminRequestId(notification) !== null &&
                 !notification?.is_read &&
-                !dismissedInviteIds.includes(notification?.id)
+                !dismissedInviteRequestIds.includes(getActionableAdminRequestId(notification))
         );
         if (unreadInvite) {
             setInvitePopupNotification(unreadInvite);
         }
-    }, [notifications, invitePopupNotification, dismissedInviteIds]);
+    }, [notifications, invitePopupNotification, dismissedInviteRequestIds]);
 
     const handleNotificationOpenChange = (open) => {
         setIsNotifOpen(open);
@@ -281,7 +282,7 @@ export function Header({ onMenuClick }) {
                 });
             }
 
-            dismissInviteNotification(current.id);
+            dismissInviteNotification(current);
             await handleMarkAsRead(current);
             setInvitePopupNotification(null);
             await queryClient.invalidateQueries({ queryKey: ['notifications'] });
@@ -316,8 +317,8 @@ export function Header({ onMenuClick }) {
             <Dialog
                 open={!!invitePopupNotification}
                 onOpenChange={(open) => {
-                    if (!open && invitePopupNotification?.id) {
-                        dismissInviteNotification(invitePopupNotification.id);
+                    if (!open && invitePopupNotification) {
+                        dismissInviteNotification(invitePopupNotification);
                     }
                     if (!open) setInvitePopupNotification(null);
                 }}
@@ -332,9 +333,6 @@ export function Header({ onMenuClick }) {
                                 {invitePopupNotification.message || 'An admin access request is awaiting your review. Accept or reject it below.'}
                             </DialogDescription>
                         </DialogHeader>
-                        <div className="rounded-md border bg-slate-50 p-3 text-xs text-slate-600">
-                            Request type: Admin access request
-                        </div>
                         <DialogFooter>
                             <Button
                                 variant="outline"

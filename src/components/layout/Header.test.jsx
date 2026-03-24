@@ -118,7 +118,7 @@ describe("Header notifications", () => {
     expect(
       screen.getByText("An admin access request is awaiting your review. Accept or reject it below.")
     ).toBeInTheDocument();
-    expect(screen.getByText("Request type: Admin access request")).toBeInTheDocument();
+    expect(screen.queryByText("Request type: Admin access request")).not.toBeInTheDocument();
     expect(screen.queryByText("Type: admin_request")).not.toBeInTheDocument();
     expect(mockMarkRead).not.toHaveBeenCalled();
   });
@@ -237,6 +237,12 @@ describe("Header notifications", () => {
     });
 
     expect(screen.queryByText("Reject")).not.toBeInTheDocument();
+
+    notifications[0] = {
+      ...notifications[0],
+      id: 99,
+      is_read: false,
+    };
 
     view.rerender(
       <QueryClientProvider
