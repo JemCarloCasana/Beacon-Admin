@@ -79,6 +79,13 @@ export function Header({ onMenuClick }) {
         return Number.isFinite(requestId) ? requestId : null;
     };
 
+    const dismissInviteNotification = (notificationId) => {
+        if (!notificationId) return;
+        setDismissedInviteIds((prev) =>
+            prev.includes(notificationId) ? prev : [...prev, notificationId]
+        );
+    };
+
     const getRouteableId = (value) => {
         const id = Number(value);
         return Number.isFinite(id) ? id : null;
@@ -274,6 +281,7 @@ export function Header({ onMenuClick }) {
                 });
             }
 
+            dismissInviteNotification(current.id);
             await handleMarkAsRead(current);
             setInvitePopupNotification(null);
             await queryClient.invalidateQueries({ queryKey: ['notifications'] });
@@ -309,11 +317,7 @@ export function Header({ onMenuClick }) {
                 open={!!invitePopupNotification}
                 onOpenChange={(open) => {
                     if (!open && invitePopupNotification?.id) {
-                        setDismissedInviteIds((prev) =>
-                            prev.includes(invitePopupNotification.id)
-                                ? prev
-                                : [...prev, invitePopupNotification.id]
-                        );
+                        dismissInviteNotification(invitePopupNotification.id);
                     }
                     if (!open) setInvitePopupNotification(null);
                 }}
@@ -329,7 +333,7 @@ export function Header({ onMenuClick }) {
                             </DialogDescription>
                         </DialogHeader>
                         <div className="rounded-md border bg-slate-50 p-3 text-xs text-slate-600">
-                            Type: {invitePopupNotification.type || 'admin_request'}
+                            Request type: Admin access request
                         </div>
                         <DialogFooter>
                             <Button

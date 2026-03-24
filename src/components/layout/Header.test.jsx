@@ -54,7 +54,7 @@ vi.mock("@/components/ui/dropdown-menu", () => ({
 }));
 
 vi.mock("@/components/ui/dialog", () => ({
-  Dialog: ({ children }) => <div>{children}</div>,
+  Dialog: ({ children, open }) => (open ? <div>{children}</div> : null),
   DialogContent: ({ children }) => <div>{children}</div>,
   DialogHeader: ({ children }) => <div>{children}</div>,
   DialogTitle: ({ children }) => <div>{children}</div>,
@@ -116,7 +116,109 @@ describe("Header notifications", () => {
     fireEvent.click(screen.getAllByText("Admin Access Request").at(-1));
 
     expect(screen.getByText("Accept")).toBeInTheDocument();
+    expect(screen.getByText("Request type: Admin access request")).toBeInTheDocument();
+    expect(screen.queryByText("Type: admin_request")).not.toBeInTheDocument();
     expect(mockMarkRead).not.toHaveBeenCalled();
+  });
+
+  it("keeps accepted admin_request modal closed after notifications refresh", async () => {
+    const notifications = [
+      {
+        id: 8,
+        type: "admin_request",
+        title: "Admin Access Request",
+        message: "Please review",
+        metadata: { admin_request_id: 56 },
+        reference_id: 56,
+        is_read: false,
+        created_at: "2026-03-07T00:00:00.000Z",
+      },
+    ];
+
+    useNotifications.mockImplementation(() => ({
+      data: notifications,
+      isLoading: false,
+      isError: false,
+      isFetching: false,
+      refetch: vi.fn(),
+    }));
+
+    const view = renderWithQueryClient(<Header />);
+
+    expect(screen.getByText("Accept")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("Accept"));
+
+    await waitFor(() => {
+      expect(mockAccept).toHaveBeenCalledWith({
+        requestId: 56,
+        role: "admin",
+        permissions: ["manage_admins", "manage_users"],
+      });
+      expect(mockMarkRead).toHaveBeenCalledWith(8);
+    });
+
+    expect(screen.queryByText("Accept")).not.toBeInTheDocument();
+
+    view.rerender(
+      <QueryClientProvider
+        client={new QueryClient({
+          defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+        })}
+      >
+        <Header />
+      </QueryClientProvider>
+    );
+
+    expect(screen.queryByText("Accept")).not.toBeInTheDocument();
+  });
+
+  it("keeps rejected admin_request modal closed after notifications refresh", async () => {
+    const notifications = [
+      {
+        id: 9,
+        type: "admin_request",
+        title: "Admin Access Request",
+        message: "Please review",
+        metadata: { admin_request_id: 57 },
+        reference_id: 57,
+        is_read: false,
+        created_at: "2026-03-07T00:00:00.000Z",
+      },
+    ];
+
+    useNotifications.mockImplementation(() => ({
+      data: notifications,
+      isLoading: false,
+      isError: false,
+      isFetching: false,
+      refetch: vi.fn(),
+    }));
+
+    const view = renderWithQueryClient(<Header />);
+
+    expect(screen.getByText("Reject")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("Reject"));
+
+    await waitFor(() => {
+      expect(mockReject).toHaveBeenCalledWith({ requestId: 57 });
+      expect(mockMarkRead).toHaveBeenCalledWith(9);
+    });
+
+    expect(screen.queryByText("Reject")).not.toBeInTheDocument();
+
+    view.rerender(
+      <QueryClientProvider
+        client={new QueryClient({
+          defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+        })}
+      >
+        <Header />
+      </QueryClientProvider>
+    );
+
+    expect(screen.queryByText("Reject")).not.toBeInTheDocument();
   });
 
   it("treats non-actionable admin_request notification as general and marks read", async () => {
