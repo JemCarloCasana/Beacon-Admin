@@ -108,7 +108,7 @@ describe("incident.model", () => {
       image_url: "/incidents/5/images/2",
     });
 
-    expect(incident.imageUrl).toBe("http://localhost:3000/admin/incidents/5/images/2");
+    expect(incident.imageUrl).toBe(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:3000"}/admin/incidents/5/images/2`);
   });
 
   it("unwraps detail payload wrappers and uses fallback title", () => {
