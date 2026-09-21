@@ -116,7 +116,10 @@ export default function LiveSOS() {
 
     useEffect(() => {
         if (!Array.isArray(liveQueueQuery.data)) return;
-        setStreamThreads((previous) => applySnapshot(previous, liveQueueQuery.data));
+        setStreamThreads((previous) => {
+            const next = applySnapshot(previous, liveQueueQuery.data);
+            return JSON.stringify(previous) === JSON.stringify(next) ? previous : next;
+        });
         setOptimisticById((previous) => {
             const next = { ...previous };
             for (const thread of liveQueueQuery.data) {
@@ -126,7 +129,7 @@ export default function LiveSOS() {
                 if (!hasServerAttentionFlag && !hasAcknowledgedAt && status === 'active') continue;
                 delete next[toSosId(thread)];
             }
-            return next;
+            return JSON.stringify(previous) === JSON.stringify(next) ? previous : next;
         });
     }, [liveQueueQuery.data]);
 

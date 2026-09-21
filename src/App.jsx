@@ -1,7 +1,6 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Routes, Route, Navigate } from "react-router-dom";
 
 import Auth from "./pages/Auth";
@@ -18,11 +17,10 @@ import NotFound from "./pages/NotFound";
 
 import ProtectedRoute from "@/auth/ProtectedRoute";
 
-const queryClient = new QueryClient();
 
 const App = () => {
   return (
-    <QueryClientProvider client={queryClient}>
+    <>
       <TooltipProvider>
         <Toaster />
         <SonnerToaster />
@@ -132,7 +130,7 @@ const App = () => {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </TooltipProvider>
-    </QueryClientProvider>
+    </>
   );
 };
 

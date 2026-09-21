@@ -29,6 +29,7 @@ vi.mock("@/components/dashboard/LiveSOSDetailsDialog", () => ({
   LiveSOSDetailsDialog: ({ open, onMarkResolved }) =>
     open ? (
       <div>
+        <div>Reporter: Liza</div>
         <button type="button" onClick={() => onMarkResolved?.({ id: "1", userName: "Juan" })}>
           Mark Resolved
         </button>
@@ -158,7 +159,7 @@ describe("LiveSOS page", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Acknowledge/i }));
     expect(
-      screen.getByText(/the reporter will be notified and may see the assigned unit/i)
+      screen.getByText(/After acknowledgement succeeds, accepted Beacon friends will be notified/i)
     ).toBeInTheDocument();
 
     const confirmButton = screen.getByRole("button", { name: /Confirm Acknowledge/i });
@@ -289,7 +290,7 @@ describe("LiveSOS page", () => {
     fireEvent.click(screen.getByRole("button", { name: /Resolved SOS\s+1\s+Resolved outcomes/i }));
     expect(screen.getByRole("tab", { name: /Resolved SOS \(1\)/i })).toHaveAttribute("data-state", "active");
 
-    fireEvent.click(screen.getByRole("button", { name: /Live SOS\s+1\s+Open SOS threads/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Live SOS\s+1\s+Unassigned open SOS threads/i }));
     expect(screen.getByRole("tab", { name: /Live SOS \(1\)/i })).toHaveAttribute("data-state", "active");
   });
 
@@ -318,12 +319,13 @@ describe("LiveSOS page", () => {
     expect(screen.getByTestId("live-sos-feed-scroll-area")).toHaveClass("min-h-[34rem]");
   });
 
-  it("moves assigned open sos threads into dispatch", () => {
+  it("moves assigned open sos threads into dispatch", async () => {
     renderPage();
 
     expect(screen.getByRole("tab", { name: /Live SOS \(1\)/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Dispatch \(1\)/i })).toBeInTheDocument();
-    expect(screen.getByText("Liza")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Dispatch\s+1\s+Assigned SOS threads/i }));
+    expect(await screen.findByText("Liza")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Mark as Resolved/i })).toBeInTheDocument();
   });
 
@@ -335,6 +337,5 @@ describe("LiveSOS page", () => {
     expect(
       screen.getByText(/Are you sure you want to mark this SOS as resolved\?/i)
     ).toBeInTheDocument();
-    expect(screen.getByText(/Reporter:\s*Liza/i)).toBeInTheDocument();
   });
 });

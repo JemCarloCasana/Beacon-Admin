@@ -151,6 +151,7 @@ const request = async (endpoint, options = {}) => {
     return responseInterceptor(response, data);
   } catch (error) {
     clearTimeout(timeoutId);
+    if (error instanceof ApiError) throw error;
 
     // Handle abort (timeout)
     if (error.name === "AbortError") {

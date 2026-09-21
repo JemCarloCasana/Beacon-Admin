@@ -11,7 +11,11 @@ export function clearSession() {
 
 export async function fetchAdminMe() {
   const token = getToken();
-  if (!token) throw new Error("NO_TOKEN");
+  if (!token) {
+    const error = new Error("NO_TOKEN");
+    error.status = 401;
+    throw error;
+  }
 
   const requestOptions = {
     headers: {
@@ -31,10 +35,17 @@ export async function fetchAdminMe() {
   }
 
   if (res.status === 401) {
-    clearSession();
-    throw new Error("UNAUTHORIZED");
+    const error = new Error(data?.message || "UNAUTHORIZED");
+    error.status = 401;
+    error.data = data;
+    throw error;
   }
-  if (!res.ok) throw new Error(data.message || "Failed to fetch /admin/me");
+  if (!res.ok) {
+    const error = new Error(data?.message || "Failed to fetch /admin/me");
+    error.status = res.status;
+    error.data = data;
+    throw error;
+  }
 
   return data;
 }

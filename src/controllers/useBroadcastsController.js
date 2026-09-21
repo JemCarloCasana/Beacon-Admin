@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useAdminAuth } from "@/auth/AdminAuthProvider";
 import { useToast } from "@/hooks/use-toast";
-import { useBroadcasts, useCreateBroadcast, useSendBroadcast } from "@/api/useBroadcasts";
+import { useBroadcasts, useCreateBroadcast, useSendBroadcast, useUpdateBroadcast, useDeleteBroadcast } from "@/api/useBroadcasts";
 
 const DEFAULT_FORM = {
   title: "",
@@ -27,6 +27,11 @@ export function useBroadcastsController() {
   const [form, setForm] = useState(DEFAULT_FORM);
   const [pendingSendBroadcast, setPendingSendBroadcast] = useState(null);
   const [lastSendResult, setLastSendResult] = useState(null);
+  const [editingBroadcast, setEditingBroadcast] = useState(null);
+  const [editForm, setEditForm] = useState({ title: "", body: "", severity: "announcement" });
+  const [pendingDeleteBroadcast, setPendingDeleteBroadcast] = useState(null);
+  const [mutationError, setMutationError] = useState("");
+  const mutationLock = useRef(false);
 
   const canManageBroadcasts = hasPermission("manage_broadcasts");
 
@@ -35,6 +40,10 @@ export function useBroadcastsController() {
   });
   const createBroadcastMutation = useCreateBroadcast();
   const sendBroadcastMutation = useSendBroadcast();
+  const updateBroadcastMutation = useUpdateBroadcast();
+  const deleteBroadcastMutation = useDeleteBroadcast();
+  const canDeleteBroadcasts = canManageBroadcasts && String(me?.role).toLowerCase() === "admin";
+  const busy = createBroadcastMutation.isPending || sendBroadcastMutation.isPending || updateBroadcastMutation.isPending || deleteBroadcastMutation.isPending;
 
   const broadcasts = useMemo(
     () => toSortedBroadcasts(broadcastsQuery.data),
@@ -60,6 +69,7 @@ export function useBroadcastsController() {
   };
 
   const onCreateDraft = async () => {
+    if (!canManageBroadcasts || busy || mutationLock.current) return;
     const title = String(form.title || "").trim();
     const body = String(form.body || "").trim();
     const severity = String(form.severity || "announcement");
@@ -83,6 +93,10 @@ export function useBroadcastsController() {
       return;
     }
 
+    if (title.length > 200 || body.length > 5000 || !["announcement", "warning", "danger"].includes(severity)) {
+      toast({ title: "Invalid broadcast", description: "Use a title up to 200 characters, a message up to 5,000 characters, and a valid severity.", variant: "destructive" });
+      return;
+    }
     const payload = {
       title,
       body,
@@ -104,6 +118,7 @@ export function useBroadcastsController() {
       payload.audience_roles = [audienceRole];
     }
 
+    mutationLock.current = true;
     try {
       await createBroadcastMutation.mutateAsync(payload);
       toast({
@@ -117,11 +132,13 @@ export function useBroadcastsController() {
         description: error?.message || "Please try again.",
         variant: "destructive",
       });
+    } finally {
+      mutationLock.current = false;
     }
   };
 
   const onOpenSendDialog = (broadcast) => {
-    if (!broadcast?.id) return;
+    if (!broadcast?.id || broadcast.sent_at || !canManageBroadcasts || busy || mutationLock.current) return;
     setPendingSendBroadcast(broadcast);
   };
 
@@ -131,7 +148,8 @@ export function useBroadcastsController() {
   };
 
   const onConfirmSend = async () => {
-    if (!pendingSendBroadcast?.id) return;
+    if (!pendingSendBroadcast?.id || !canManageBroadcasts || busy || mutationLock.current) return;
+    mutationLock.current = true;
 
     try {
       const result = await sendBroadcastMutation.mutateAsync({
@@ -140,7 +158,9 @@ export function useBroadcastsController() {
       setLastSendResult(result);
       toast({
         title: "Broadcast sent",
-        description: `Broadcast #${pendingSendBroadcast.id} has been sent.`,
+        description: result?.push?.error || result?.push?.unknownCount > 0
+          ? "Broadcast saved as sent, but some push notifications could not be confirmed. Do not resend."
+          : `Broadcast #${pendingSendBroadcast.id} has been sent.`,
       });
       setPendingSendBroadcast(null);
     } catch (error) {
@@ -150,15 +170,76 @@ export function useBroadcastsController() {
         description: error?.message || "Please try again.",
         variant: "destructive",
       });
-      if (status === 409) {
+      if (status === 409 || status === 404) {
         broadcastsQuery.refetch();
         setPendingSendBroadcast(null);
       }
+    } finally {
+      mutationLock.current = false;
     }
+  };
+
+  const onOpenEditDialog = (broadcast) => {
+    if (!canManageBroadcasts || broadcast?.sent_at || !broadcast?.id || busy || mutationLock.current) return;
+    setEditingBroadcast(broadcast);
+    setEditForm({ title: broadcast.title, body: broadcast.body, severity: broadcast.severity });
+    setMutationError("");
+  };
+  const onCloseEditDialog = () => { if (!mutationLock.current) { setEditingBroadcast(null); setMutationError(""); } };
+  const onEditFormChange = (field, value) => {
+    if (["title", "body", "severity"].includes(field)) setEditForm((previous) => ({ ...previous, [field]: value }));
+  };
+  const onOpenDeleteDialog = (broadcast) => {
+    if (!canDeleteBroadcasts || broadcast?.sent_at || !broadcast?.id || busy || mutationLock.current) return;
+    setPendingDeleteBroadcast(broadcast);
+    setMutationError("");
+  };
+  const onCloseDeleteDialog = () => { if (!mutationLock.current) { setPendingDeleteBroadcast(null); setMutationError(""); } };
+  const handleDraftError = (error) => {
+    const message = error?.message || "Please try again.";
+    setMutationError(message);
+    toast({ title: "Draft could not be changed", description: message, variant: "destructive" });
+    if ([404, 409].includes(Number(error?.status))) {
+      broadcastsQuery.refetch();
+      setEditingBroadcast(null);
+      setPendingDeleteBroadcast(null);
+    }
+  };
+  const onSaveDraft = async () => {
+    if (!canManageBroadcasts || !editingBroadcast || busy || mutationLock.current) return;
+    const payload = { title: String(editForm.title).trim(), body: String(editForm.body).trim(), severity: editForm.severity };
+    if (!payload.title || payload.title.length > 200 || !payload.body || payload.body.length > 5000 || !["announcement", "warning", "danger"].includes(payload.severity)) {
+      setMutationError("Enter a title (1–200 characters), message (1–5,000 characters), and valid severity.");
+      return;
+    }
+    mutationLock.current = true;
+    setMutationError("");
+    try {
+      await updateBroadcastMutation.mutateAsync({ broadcastId: editingBroadcast.id, payload });
+      setEditingBroadcast(null);
+      toast({ title: "Draft updated" });
+    } catch (error) { handleDraftError(error); }
+    finally { mutationLock.current = false; }
+  };
+  const onConfirmDelete = async () => {
+    if (!canDeleteBroadcasts || !pendingDeleteBroadcast || busy || mutationLock.current) return;
+    mutationLock.current = true;
+    setMutationError("");
+    try {
+      await deleteBroadcastMutation.mutateAsync({ broadcastId: pendingDeleteBroadcast.id });
+      setPendingDeleteBroadcast(null);
+      toast({ title: "Draft deleted" });
+    } catch (error) { handleDraftError(error); }
+    finally { mutationLock.current = false; }
   };
 
   return {
     canManageBroadcasts,
+    canDeleteBroadcasts,
+    editingBroadcast, editForm, pendingDeleteBroadcast, mutationError,
+    updating: updateBroadcastMutation.isPending,
+    deleting: deleteBroadcastMutation.isPending,
+    busy,
     form,
     drafts,
     sent,
@@ -169,6 +250,8 @@ export function useBroadcastsController() {
     creating: createBroadcastMutation.isPending,
     sending: sendBroadcastMutation.isPending,
     actions: {
+      onOpenEditDialog, onCloseEditDialog, onEditFormChange, onSaveDraft,
+      onOpenDeleteDialog, onCloseDeleteDialog, onConfirmDelete,
       onFormChange,
       onCreateDraft,
       onOpenSendDialog,

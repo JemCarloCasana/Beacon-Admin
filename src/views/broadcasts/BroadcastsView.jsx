@@ -56,7 +56,7 @@ function toAudienceLabel(item) {
   return `Roles: ${labels.join(", ")}`;
 }
 
-function BroadcastTable({ items, isDraft, sending, actions }) {
+function BroadcastTable({ items, isDraft, sending, canDeleteBroadcasts, actions }) {
   if (items.length === 0) {
     return (
       <div className="py-8 text-center text-sm text-muted-foreground">
@@ -96,6 +96,9 @@ function BroadcastTable({ items, isDraft, sending, actions }) {
             </TableCell>
             <TableCell className="text-right">
               {isDraft ? (
+                <div className="flex flex-wrap justify-end gap-2">
+                <Button size="sm" variant="outline" disabled={sending} onClick={() => actions.onOpenEditDialog(item)}>Edit</Button>
+                {canDeleteBroadcasts && <Button size="sm" variant="destructive" disabled={sending} onClick={() => actions.onOpenDeleteDialog(item)}>Delete</Button>}
                 <Button
                   size="sm"
                   onClick={() => actions.onOpenSendDialog(item)}
@@ -104,8 +107,9 @@ function BroadcastTable({ items, isDraft, sending, actions }) {
                   <Send className="mr-2 h-4 w-4" />
                   Send
                 </Button>
+                </div>
               ) : (
-                <span className="text-xs text-muted-foreground">Delivered</span>
+                <span className="text-xs text-muted-foreground">Sent</span>
               )}
             </TableCell>
           </TableRow>
@@ -130,6 +134,8 @@ function BroadcastsSkeleton() {
 
 export default function BroadcastsView({
   canManageBroadcasts,
+  canDeleteBroadcasts = false,
+  editingBroadcast, editForm, pendingDeleteBroadcast, mutationError, updating, deleting, busy,
   form,
   drafts,
   sent,
@@ -164,6 +170,8 @@ export default function BroadcastsView({
                   <p className="text-sm font-medium">Title</p>
                   <Input
                     value={form.title}
+                    aria-label="Title"
+                    maxLength={200}
                     placeholder="Campus Advisory"
                     onChange={(e) => actions.onFormChange("title", e.target.value)}
                   />
@@ -190,6 +198,8 @@ export default function BroadcastsView({
                 <p className="text-sm font-medium">Body</p>
                 <Textarea
                   value={form.body}
+                  aria-label="Body"
+                  maxLength={5000}
                   rows={4}
                   placeholder="Classes are suspended due to weather conditions."
                   onChange={(e) => actions.onFormChange("body", e.target.value)}
@@ -235,7 +245,7 @@ export default function BroadcastsView({
               </div>
 
               <div className="flex justify-end">
-                <Button onClick={actions.onCreateDraft} disabled={creating}>
+                <Button onClick={actions.onCreateDraft} disabled={busy || creating}>
                   {creating ? "Creating..." : "Create Draft"}
                 </Button>
               </div>
@@ -253,7 +263,7 @@ export default function BroadcastsView({
                   <p className="font-medium">{lastSendResult.broadcast_id}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Delivered (DB)</p>
+                  <p className="text-muted-foreground">Recipients</p>
                   <p className="font-medium">{lastSendResult.delivered_count}</p>
                 </div>
                 <div>
@@ -268,6 +278,13 @@ export default function BroadcastsView({
                 </div>
               </CardContent>
             </Card>
+          )}
+
+          {lastSendResult?.ok && (lastSendResult.push?.error || lastSendResult.push?.unknownCount > 0) && (
+            <Alert><AlertCircle className="h-4 w-4" /><AlertDescription>
+              Broadcast saved as sent. Some push notifications could not be confirmed. Do not resend.
+              {lastSendResult.push?.unknownCount > 0 && ` Unconfirmed notifications: ${lastSendResult.push.unknownCount}.`}
+            </AlertDescription></Alert>
           )}
 
           {error && (
@@ -294,7 +311,8 @@ export default function BroadcastsView({
                 <BroadcastTable
                   items={drafts}
                   isDraft
-                  sending={sending}
+                  sending={busy || sending}
+                  canDeleteBroadcasts={canDeleteBroadcasts}
                   actions={actions}
                 />
               )}
@@ -312,13 +330,37 @@ export default function BroadcastsView({
                 <BroadcastTable
                   items={sent}
                   isDraft={false}
-                  sending={sending}
+                  sending={busy || sending}
+                  canDeleteBroadcasts={canDeleteBroadcasts}
                   actions={actions}
                 />
               )}
             </CardContent>
           </Card>
 
+          <Dialog open={!!editingBroadcast} onOpenChange={(open) => { if (!open) actions.onCloseEditDialog(); }}>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Edit Broadcast Draft</DialogTitle><DialogDescription>Update the message. Its audience stays unchanged.</DialogDescription></DialogHeader>
+              <label htmlFor="edit-broadcast-title">Title</label>
+              <Input id="edit-broadcast-title" value={editForm?.title || ""} maxLength={200} disabled={updating} onChange={(event) => actions.onEditFormChange("title", event.target.value)} />
+              <label htmlFor="edit-broadcast-body">Body</label>
+              <Textarea id="edit-broadcast-body" value={editForm?.body || ""} maxLength={5000} disabled={updating} onChange={(event) => actions.onEditFormChange("body", event.target.value)} />
+              <label htmlFor="edit-broadcast-severity">Severity</label>
+              <Select value={editForm?.severity || "announcement"} disabled={updating} onValueChange={(value) => actions.onEditFormChange("severity", value)}>
+                <SelectTrigger id="edit-broadcast-severity"><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="announcement">Announcement</SelectItem><SelectItem value="warning">Warning</SelectItem><SelectItem value="danger">Danger</SelectItem></SelectContent>
+              </Select>
+              {mutationError && <p role="alert" className="text-sm text-destructive">{mutationError}</p>}
+              <DialogFooter><Button variant="outline" disabled={updating} onClick={actions.onCloseEditDialog}>Cancel</Button><Button disabled={updating} onClick={actions.onSaveDraft}>{updating ? "Saving..." : "Save Changes"}</Button></DialogFooter>
+            </DialogContent>
+          </Dialog>
+          <Dialog open={!!pendingDeleteBroadcast} onOpenChange={(open) => { if (!open) actions.onCloseDeleteDialog(); }}>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Delete Broadcast Draft</DialogTitle><DialogDescription>Delete “{pendingDeleteBroadcast?.title}”? This cannot be undone.</DialogDescription></DialogHeader>
+              {mutationError && <p role="alert" className="text-sm text-destructive">{mutationError}</p>}
+              <DialogFooter><Button variant="outline" disabled={deleting} onClick={actions.onCloseDeleteDialog}>Cancel</Button><Button variant="destructive" disabled={deleting} onClick={actions.onConfirmDelete}>{deleting ? "Deleting..." : "Confirm Delete"}</Button></DialogFooter>
+            </DialogContent>
+          </Dialog>
           <Dialog
             open={!!pendingSendBroadcast}
             onOpenChange={(open) => {

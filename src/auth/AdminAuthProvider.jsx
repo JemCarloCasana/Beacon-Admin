@@ -1,101 +1,68 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { fetchAdminMe, clearSession, getToken } from "@/api/adminMe";
 
 const AdminAuthContext = createContext(null);
 
 export function AdminAuthProvider({ children }) {
   const navigate = useNavigate();
-
+  const queryClient = useQueryClient();
   const [me, setMe] = useState(null);
   const [loading, setLoading] = useState(true);
+  const generation = useRef(0);
 
-  // Fetch /admin/me once for the whole app
-  useEffect(() => {
-    let mounted = true;
-
-    // No token means logged out state; do not bounce through redirects.
-    if (!getToken()) {
-      setMe(null);
-      setLoading(false);
-      return () => {
-        mounted = false;
-      };
-    }
-
-    (async () => {
-      try {
-        const data = await fetchAdminMe(); // must send Bearer token internally
-        if (!mounted) return;
-        setMe(data);
-      } catch (e) {
-        // token missing/expired -> clear and return to auth
-        if (!mounted) return;
-        clearSession();
-        setMe(null);
-        navigate("/login", { replace: true });
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    })();
-
-    return () => {
-      mounted = false;
-    };
-  }, [navigate]);
-
-  const role = useMemo(() => String(me?.role || "").toLowerCase(), [me]);
-  const permissions = useMemo(() => {
-    const basePermissions = Array.isArray(me?.permissions) ? me.permissions : [];
-
-    if (role !== "admin") return basePermissions;
-
-    return Array.from(
-      new Set([
-        ...basePermissions,
-        "manage_admins",
-        "manage_users",
-      ])
-    );
-  }, [me, role]);
+  const logout = useCallback(() => {
+    generation.current += 1;
+    clearSession();
+    setMe(null);
+    setLoading(false);
+    void queryClient.cancelQueries();
+    queryClient.clear();
+    navigate("/login", { replace: true });
+  }, [navigate, queryClient]);
 
   const refreshMe = useCallback(async () => {
+    const requestGeneration = ++generation.current;
+    const token = getToken();
+    setLoading(true);
     try {
       const data = await fetchAdminMe();
+      if (requestGeneration !== generation.current || token !== getToken()) return null;
       setMe(data);
       return data;
-    } catch (e) {
-      clearSession();
-      setMe(null);
-      navigate("/login", { replace: true });
-      throw e;
+    } catch (error) {
+      if (requestGeneration !== generation.current || token !== getToken()) return null;
+      logout();
+      throw error;
+    } finally {
+      if (requestGeneration === generation.current) setLoading(false);
     }
-  }, [navigate]);
+  }, [logout]);
 
-  const value = useMemo(
-    () => ({
-      me,
-      setMe,
-      loading,
-      permissions,
-      role,
-      refreshMe,
-      // helpers
-      hasPermission: (p) => (role === "admin" ? true : permissions.includes(p)),
-      logout: () => {
-        clearSession();
-        setMe(null);
-        navigate("/login", { replace: true });
-      },
-    }),
-    [me, loading, permissions, role, navigate, refreshMe]
-  );
+  useEffect(() => {
+    window.addEventListener("auth:logout", logout);
+    return () => window.removeEventListener("auth:logout", logout);
+  }, [logout]);
+
+  useEffect(() => {
+    if (getToken()) void refreshMe().catch(() => {});
+    else { setMe(null); setLoading(false); }
+    return () => { generation.current += 1; };
+  }, [refreshMe]);
+
+  const role = String(me?.role || "").toLowerCase();
+  const permissions = useMemo(() => Array.isArray(me?.permissions) ? me.permissions : [], [me]);
+  const value = useMemo(() => ({
+    me, setMe, loading, permissions, role, refreshMe, logout,
+    hasPermission: (permission) => permissions.includes(permission),
+  }), [me, loading, permissions, role, refreshMe, logout]);
 
   return <AdminAuthContext.Provider value={value}>{children}</AdminAuthContext.Provider>;
 }
 
 export function useAdminAuth() {
-  const ctx = useContext(AdminAuthContext);
-  if (!ctx) throw new Error("useAdminAuth must be used inside <AdminAuthProvider>");
-  return ctx;
+  const context = useContext(AdminAuthContext);
+  if (!context) throw new Error("useAdminAuth must be used inside <AdminAuthProvider>");
+  return context;
 }

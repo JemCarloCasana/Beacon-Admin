@@ -2,11 +2,13 @@ import { act, renderHook } from "@testing-library/react";
 import { useBroadcastsController } from "@/controllers/useBroadcastsController";
 import { useAdminAuth } from "@/auth/AdminAuthProvider";
 import { useToast } from "@/hooks/use-toast";
-import { useBroadcasts, useCreateBroadcast, useSendBroadcast } from "@/api/useBroadcasts";
+import { useBroadcasts, useCreateBroadcast, useSendBroadcast, useUpdateBroadcast, useDeleteBroadcast } from "@/api/useBroadcasts";
 
 const toast = vi.fn();
 const createMutateAsync = vi.fn();
 const sendMutateAsync = vi.fn();
+const updateMutateAsync = vi.fn();
+const deleteMutateAsync = vi.fn();
 const refetch = vi.fn();
 
 vi.mock("@/auth/AdminAuthProvider", () => ({
@@ -21,6 +23,8 @@ vi.mock("@/api/useBroadcasts", () => ({
   useBroadcasts: vi.fn(),
   useCreateBroadcast: vi.fn(),
   useSendBroadcast: vi.fn(),
+  useUpdateBroadcast: vi.fn(),
+  useDeleteBroadcast: vi.fn(),
 }));
 
 describe("useBroadcastsController", () => {
@@ -51,7 +55,11 @@ describe("useBroadcastsController", () => {
 
     createMutateAsync.mockResolvedValue({ id: 99 });
     sendMutateAsync.mockResolvedValue({ ok: true });
+    updateMutateAsync.mockResolvedValue({ id: 7 });
+    deleteMutateAsync.mockResolvedValue({ ok: true });
     refetch.mockResolvedValue({});
+    useUpdateBroadcast.mockReturnValue({ mutateAsync: updateMutateAsync, isPending: false });
+    useDeleteBroadcast.mockReturnValue({ mutateAsync: deleteMutateAsync, isPending: false });
   });
 
   it("sends audience_roles citizen when role audience is citizen", async () => {
@@ -162,5 +170,108 @@ describe("useBroadcastsController", () => {
         audience_type: "all",
       })
     );
+  });
+
+  it("updates draft with title/body/severity only and preserves audience", async () => {
+    const draft = {
+      id: 7,
+      title: "Old",
+      body: "Old body",
+      severity: "announcement",
+      audience_type: "role",
+      audience_roles: ["student"],
+      sent_at: null,
+    };
+    useBroadcasts.mockReturnValue({
+      data: [draft],
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch,
+    });
+    useAdminAuth.mockReturnValue({
+      me: { id: 1, role: "admin" },
+      loading: false,
+      hasPermission: vi.fn(() => true),
+    });
+    const { result } = renderHook(() => useBroadcastsController());
+
+    act(() => {
+      result.current.actions.onOpenEditDialog(draft);
+    });
+    expect(result.current.editingBroadcast).toMatchObject({ id: 7 });
+
+    act(() => {
+      result.current.actions.onEditFormChange("title", "New title");
+    });
+
+    await act(async () => {
+      await result.current.actions.onSaveDraft();
+    });
+
+    expect(updateMutateAsync).toHaveBeenCalledWith({
+      broadcastId: 7,
+      payload: expect.objectContaining({ title: "New title", severity: "announcement" }),
+    });
+    const payload = updateMutateAsync.mock.calls[0][0].payload;
+    expect(payload).not.toHaveProperty("audience_type");
+    expect(payload).not.toHaveProperty("audience_roles");
+    expect(result.current.editingBroadcast).toBeNull();
+  });
+
+  it("recovers from 404 on save by refetching and closing the dialog", async () => {
+    const draft = { id: 8, title: "T", body: "B", severity: "warning", sent_at: null };
+    useBroadcasts.mockReturnValue({
+      data: [draft],
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch,
+    });
+    updateMutateAsync.mockRejectedValueOnce({ status: 404, message: "Gone" });
+    const { result } = renderHook(() => useBroadcastsController());
+
+    act(() => {
+      result.current.actions.onOpenEditDialog(draft);
+    });
+
+    await act(async () => {
+      await result.current.actions.onSaveDraft();
+    });
+
+    expect(refetch).toHaveBeenCalled();
+    expect(result.current.editingBroadcast).toBeNull();
+    expect(result.current.mutationError).toMatch(/Gone/);
+  });
+
+  it("blocks edit on sent records and delete for non-admin roles", () => {
+    const sent = { id: 9, title: "S", body: "B", severity: "danger", sent_at: "2026-01-01T00:00:00Z" };
+    const draft = { id: 10, title: "D", body: "B", severity: "danger", sent_at: null };
+    useBroadcasts.mockReturnValue({
+      data: [sent, draft],
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch,
+    });
+    useAdminAuth.mockReturnValue({
+      me: { id: 2, role: "personnel" },
+      loading: false,
+      hasPermission: vi.fn(() => true),
+    });
+    const { result } = renderHook(() => useBroadcastsController());
+
+    expect(result.current.canDeleteBroadcasts).toBe(false);
+
+    act(() => {
+      result.current.actions.onOpenEditDialog(sent);
+    });
+    expect(result.current.editingBroadcast).toBeNull();
+
+    act(() => {
+      result.current.actions.onOpenDeleteDialog(draft);
+    });
+    expect(result.current.pendingDeleteBroadcast).toBeNull();
+    expect(deleteMutateAsync).not.toHaveBeenCalled();
   });
 });

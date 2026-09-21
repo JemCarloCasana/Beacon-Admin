@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, CheckCircle2, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
+import { useAdminAuth } from "@/auth/AdminAuthProvider";
 import { Card, CardContent } from "@/components/ui/card";
 import beaconLogo from "../../img/beacon_logo.png";
 import { adminLogin } from "@/api/adminAuth";
@@ -18,6 +18,7 @@ function hasErrors(errors) {
 
 export default function Auth() {
   const navigate = useNavigate();
+  const { refreshMe } = useAdminAuth();
 
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
@@ -36,9 +37,10 @@ export default function Auth() {
     return loginLoading || hasErrors(loginValidationErrors);
   }, [loginLoading, loginValidationErrors]);
 
-  const saveSessionAndGo = ({ token }) => {
+  const saveSessionAndGo = async ({ token }) => {
     localStorage.setItem("admin_token", token);
-    navigate("/dashboard");
+    const account = await refreshMe();
+    if (account) navigate("/dashboard");
   };
 
   const handleLoginFieldChange = (field, value) => {
@@ -77,7 +79,7 @@ export default function Auth() {
         email: normalizeEmail(loginEmail),
         password: loginPassword,
       });
-      saveSessionAndGo({ token });
+      await saveSessionAndGo({ token });
     } catch (err) {
       setLoginError(err?.message || "Login failed");
     } finally {
@@ -187,16 +189,6 @@ export default function Auth() {
                     {loginErrors.password}
                   </p>
                 )}
-              </div>
-
-              <div className="flex items-center space-x-2 px-1">
-                <Checkbox
-                  id="remember"
-                  className="border-slate-300 data-[state=checked]:bg-[#2563EB] data-[state=checked]:border-[#2563EB]"
-                />
-                <label htmlFor="remember" className="text-[11px] font-semibold text-slate-500 cursor-pointer">
-                  Keep me logged in for 30 days
-                </label>
               </div>
 
               <Button

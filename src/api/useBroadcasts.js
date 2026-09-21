@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiGet, apiPost } from "@/services/api";
+import { apiGet, apiPost, apiPatch, apiDelete } from "@/services/api";
 
 function normalizeBroadcastsPayload(payload) {
   if (Array.isArray(payload)) return payload;
@@ -45,7 +45,7 @@ export function useSendBroadcast(options = {}) {
 
   return useMutation({
     mutationFn: async ({ broadcastId }) => {
-      return apiPost(`/admin/broadcasts/${broadcastId}/send`, {});
+      return apiPost(`/admin/broadcasts/${Number(broadcastId)}/send`, {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["broadcasts"] });
@@ -54,3 +54,19 @@ export function useSendBroadcast(options = {}) {
   });
 }
 
+
+export function useUpdateBroadcast() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ broadcastId, payload }) => apiPatch(`/admin/broadcasts/${Number(broadcastId)}`, payload),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["broadcasts"] }),
+  });
+}
+
+export function useDeleteBroadcast() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ broadcastId }) => apiDelete(`/admin/broadcasts/${Number(broadcastId)}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["broadcasts"] }),
+  });
+}

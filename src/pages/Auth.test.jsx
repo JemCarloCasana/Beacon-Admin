@@ -4,6 +4,8 @@ import Auth from "@/pages/Auth";
 import { adminLogin } from "@/api/adminAuth";
 
 const mockNavigate = vi.fn();
+const refreshMe = vi.fn();
+vi.mock("@/auth/AdminAuthProvider", () => ({ useAdminAuth: () => ({ refreshMe }) }));
 
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom");
@@ -29,6 +31,7 @@ describe("Auth page validation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    refreshMe.mockResolvedValue({ id: 1 });
   });
 
   it("shows contact administrator message", () => {
@@ -100,6 +103,7 @@ describe("Auth page validation", () => {
       });
     });
     expect(localStorage.getItem("admin_token")).toBe("token123");
-    expect(mockNavigate).toHaveBeenCalledWith("/dashboard");
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/dashboard"));
+    expect(refreshMe).toHaveBeenCalled();
   });
 });

@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import Incidents from "@/pages/Incidents";
 import { useIncidentDetail, useIncidentsAPI, useUpdateIncident } from "@/api/useIncidentsAPI";
 import { useAdminAuth } from "@/auth/AdminAuthProvider";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 vi.mock("@/api/useIncidentsAPI", () => ({
   useIncidentsAPI: vi.fn(),
@@ -22,6 +23,15 @@ vi.mock("@/components/map/MapCanvas", () => ({
 }));
 
 describe("Incidents page", () => {
+  const renderIncidents = () => render(
+    <MemoryRouter initialEntries={["/incidents"]}>
+      <Routes>
+        <Route path="/incidents" element={<Incidents />} />
+        <Route path="/incidents/:incidentId" element={<Incidents />} />
+      </Routes>
+    </MemoryRouter>
+  );
+
   beforeEach(() => {
     vi.clearAllMocks();
     useAdminAuth.mockReturnValue({
@@ -65,8 +75,7 @@ describe("Incidents page", () => {
       isError: false,
       error: null,
     });
-
-    render(<Incidents />);
+    renderIncidents();
 
     expect(screen.getByText("Fire Incident")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /new incident/i })).not.toBeInTheDocument();
@@ -88,12 +97,12 @@ describe("Incidents page", () => {
       error: null,
     });
 
-    render(<Incidents />);
+    renderIncidents();
 
     expect(screen.getAllByText("Unknown").length).toBeGreaterThanOrEqual(2);
   });
 
-  it("opens details modal and shows map fallback for missing coordinates", () => {
+  it("opens details modal and shows map fallback for missing coordinates", async () => {
     useIncidentsAPI.mockReturnValue({
       data: [
         {
@@ -110,12 +119,25 @@ describe("Incidents page", () => {
       isError: false,
       error: null,
     });
+    useIncidentDetail.mockReturnValue({
+      data: {
+        id: 3,
+        title: "Theft Report",
+        description: "Wallet stolen",
+        priority: "medium",
+        status: "dispatched",
+        location: { address: "Barangay Hall" },
+      },
+      isLoading: false,
+      isError: false,
+      error: null,
+    });
 
-    render(<Incidents />);
+    renderIncidents();
     fireEvent.click(screen.getByRole("button", { name: "View" }));
 
-    expect(screen.getByText("Incident #3 details and reported location.")).toBeInTheDocument();
-    expect(screen.getByText("No valid coordinates to display on map.")).toBeInTheDocument();
+    expect(await screen.findByText("Incident #3 details and reported location.")).toBeInTheDocument();
+    expect(await screen.findByText("No valid coordinates to display on map.")).toBeInTheDocument();
   });
 
   it("shows loading, error, and empty states", () => {
@@ -125,7 +147,7 @@ describe("Incidents page", () => {
       isError: false,
       error: null,
     });
-    const { rerender } = render(<Incidents />);
+    const { rerender } = renderIncidents();
     expect(screen.getByText("Loading incidents...")).toBeInTheDocument();
 
     useIncidentsAPI.mockReturnValueOnce({
@@ -134,7 +156,14 @@ describe("Incidents page", () => {
       isError: true,
       error: { message: "boom" },
     });
-    rerender(<Incidents />);
+    rerender(
+      <MemoryRouter initialEntries={["/incidents"]}>
+        <Routes>
+          <Route path="/incidents" element={<Incidents />} />
+          <Route path="/incidents/:incidentId" element={<Incidents />} />
+        </Routes>
+      </MemoryRouter>
+    );
     expect(screen.getByText("boom")).toBeInTheDocument();
 
     useIncidentsAPI.mockReturnValueOnce({
@@ -143,7 +172,14 @@ describe("Incidents page", () => {
       isError: false,
       error: null,
     });
-    rerender(<Incidents />);
+    rerender(
+      <MemoryRouter initialEntries={["/incidents"]}>
+        <Routes>
+          <Route path="/incidents" element={<Incidents />} />
+          <Route path="/incidents/:incidentId" element={<Incidents />} />
+        </Routes>
+      </MemoryRouter>
+    );
     expect(screen.getByText("No incidents found.")).toBeInTheDocument();
   });
 });
