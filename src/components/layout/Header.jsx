@@ -75,8 +75,7 @@ export function Header({ onMenuClick }) {
     const getActionableAdminRequestId = (notification) => {
         if (notification?.type !== 'admin_request') return null;
         const candidate = notification?.reference_id ?? notification?.metadata?.admin_request_id;
-        const requestId = Number(candidate);
-        return Number.isFinite(requestId) ? requestId : null;
+        return candidate == null || candidate === '' ? null : String(candidate);
     };
 
     const dismissInviteNotification = (notification) => {
@@ -88,8 +87,7 @@ export function Header({ onMenuClick }) {
     };
 
     const getRouteableId = (value) => {
-        const id = Number(value);
-        return Number.isFinite(id) ? id : null;
+        return value == null || value === '' ? null : String(value);
     };
 
     const getSosTargetId = (notification) => {

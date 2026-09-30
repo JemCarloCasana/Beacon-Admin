@@ -45,7 +45,7 @@ export function useSendBroadcast(options = {}) {
 
   return useMutation({
     mutationFn: async ({ broadcastId }) => {
-      return apiPost(`/admin/broadcasts/${Number(broadcastId)}/send`, {});
+      return apiPost(`/admin/broadcasts/${encodeURIComponent(broadcastId)}/send`, {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["broadcasts"] });
@@ -58,7 +58,7 @@ export function useSendBroadcast(options = {}) {
 export function useUpdateBroadcast() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ broadcastId, payload }) => apiPatch(`/admin/broadcasts/${Number(broadcastId)}`, payload),
+    mutationFn: ({ broadcastId, payload }) => apiPatch(`/admin/broadcasts/${encodeURIComponent(broadcastId)}`, payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["broadcasts"] }),
   });
 }
@@ -66,7 +66,7 @@ export function useUpdateBroadcast() {
 export function useDeleteBroadcast() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ broadcastId }) => apiDelete(`/admin/broadcasts/${Number(broadcastId)}`),
+    mutationFn: ({ broadcastId }) => apiDelete(`/admin/broadcasts/${encodeURIComponent(broadcastId)}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["broadcasts"] }),
   });
 }

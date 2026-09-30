@@ -96,9 +96,7 @@ export default function Incidents() {
 
     useEffect(() => {
         if (!routeIncidentId) return;
-        const parsedId = Number(routeIncidentId);
-        if (!Number.isFinite(parsedId)) return;
-        setSelectedIncidentId(parsedId);
+        setSelectedIncidentId(routeIncidentId);
         setSelectedIncidentPreview(null);
         setIsDetailOpen(true);
     }, [routeIncidentId]);

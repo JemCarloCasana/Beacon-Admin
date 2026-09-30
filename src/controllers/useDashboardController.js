@@ -156,8 +156,7 @@ export function useDashboardController() {
       onSelectIncident: (incident) => setSelectedIncidentId(incident?.id || null),
       onCloseSos: () => setDismissedSosId(activeSOS?.id || null),
       onAcknowledgeSos: async (id) => {
-        const sosId = Number(id);
-        if (!Number.isFinite(sosId)) return;
+        if (!id) return;
         navigate("/sos");
       },
       onDispatchSos: () => {

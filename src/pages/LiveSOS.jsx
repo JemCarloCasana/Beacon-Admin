@@ -99,7 +99,7 @@ export default function LiveSOS() {
     const acknowledgeMutation = useAcknowledgeSOS();
     const resolveMutation = useResolveSOS();
     const detailQuery = useSOSDetail(selectedSosId, {
-        enabled: isDetailOpen && Number.isFinite(selectedSosId),
+        enabled: isDetailOpen && Boolean(selectedSosId),
     });
 
     useEffect(() => {
@@ -108,9 +108,8 @@ export default function LiveSOS() {
     }, [searchParams]);
 
     useEffect(() => {
-        const parsedId = Number(routeSosId);
-        if (!Number.isFinite(parsedId)) return;
-        setSelectedSosId(parsedId);
+        if (!routeSosId) return;
+        setSelectedSosId(routeSosId);
         setIsDetailOpen(true);
     }, [routeSosId]);
 
@@ -185,22 +184,22 @@ export default function LiveSOS() {
     }, [liveAlerts, dispatchedAlerts, cancelledAlerts, resolvedAlerts]);
 
     const handleAcknowledge = (id) => {
-        const parsedId = Number(id);
-        if (!Number.isFinite(parsedId)) return;
-        const alert = alertById.get(String(parsedId));
+        const sosId = String(id ?? '');
+        if (!sosId) return;
+        const alert = alertById.get(sosId);
         const emergencyType = String(alert?.emergencyType || "").trim().toLowerCase();
         const autoUnit = ASSIGNED_UNIT_BY_EMERGENCY_TYPE[emergencyType] || "";
-        setAckTargetId(parsedId);
+        setAckTargetId(sosId);
         setAckAssignedUnit(autoUnit);
     };
 
     const handleOpenDetails = (id) => {
-        const parsedId = Number(id);
-        if (!Number.isFinite(parsedId)) return;
-        setSelectedSosId(parsedId);
+        const sosId = String(id ?? '');
+        if (!sosId) return;
+        setSelectedSosId(sosId);
         setIsDetailOpen(true);
         navigate({
-            pathname: `/sos/${parsedId}`,
+            pathname: `/sos/${encodeURIComponent(sosId)}`,
             search: location.search,
         });
     };
@@ -209,7 +208,7 @@ export default function LiveSOS() {
         const normalizedTab = getValidTab(nextTab);
         const params = new URLSearchParams(location.search);
         params.set('tab', normalizedTab);
-        const pathname = Number.isFinite(Number(routeSosId)) ? `/sos/${routeSosId}` : '/sos';
+        const pathname = routeSosId ? `/sos/${encodeURIComponent(routeSosId)}` : '/sos';
         navigate({
             pathname,
             search: `?${params.toString()}`,
@@ -218,30 +217,30 @@ export default function LiveSOS() {
     };
 
     const handleOpenResolveDialog = (detail) => {
-        const parsedId = Number(detail?.id ?? selectedSosId);
-        if (!Number.isFinite(parsedId)) return;
+        const sosId = String(detail?.id ?? selectedSosId ?? '');
+        if (!sosId) return;
         setResolveTarget({
-            id: parsedId,
-            userName: detail?.userName || alertById.get(String(parsedId))?.userName || 'Unknown user',
+            id: sosId,
+            userName: detail?.userName || alertById.get(sosId)?.userName || 'Unknown user',
         });
         setResolveNote("");
     };
 
     const handleConfirmAcknowledge = async () => {
-        const parsedId = Number(ackTargetId);
+        const sosId = String(ackTargetId ?? '');
         const assignedUnit = String(ackAssignedUnit || "").trim();
-        if (!Number.isFinite(parsedId) || !assignedUnit) return;
+        if (!sosId || !assignedUnit) return;
         const nowIso = new Date().toISOString();
 
         try {
             await acknowledgeMutation.mutateAsync({
-                sosId: parsedId,
+                sosId,
                 assigned_unit: assignedUnit,
                 note: `Acknowledged and assigned to ${assignedUnit}`,
             });
             setOptimisticById((previous) => ({
                 ...previous,
-                [String(parsedId)]: {
+                [sosId]: {
                     requires_attention: false,
                     acknowledged_at: nowIso,
                     assigned_unit: assignedUnit,
@@ -256,12 +255,12 @@ export default function LiveSOS() {
     };
 
     const handleConfirmResolve = async () => {
-        const parsedId = Number(resolveTarget?.id);
-        if (!Number.isFinite(parsedId)) return;
+        const sosId = String(resolveTarget?.id ?? '');
+        if (!sosId) return;
 
         try {
             await resolveMutation.mutateAsync({
-                sosId: parsedId,
+                sosId,
                 terminalOutcome: "safe",
                 note: resolveNote,
             });
@@ -485,7 +484,7 @@ export default function LiveSOS() {
             </div>
 
             <Dialog
-                open={ackTargetId !== null && Number.isFinite(Number(ackTargetId))}
+                open={Boolean(ackTargetId)}
                 onOpenChange={(open) => {
                     if (!open) {
                         setAckTargetId(null);
@@ -549,7 +548,7 @@ export default function LiveSOS() {
                 </DialogContent>
             </Dialog>
             <Dialog
-                open={resolveTarget !== null && Number.isFinite(Number(resolveTarget?.id))}
+                open={Boolean(resolveTarget?.id)}
                 onOpenChange={(open) => {
                     if (!open && !resolveMutation.isPending) {
                         setResolveTarget(null);

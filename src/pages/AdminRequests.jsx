@@ -56,11 +56,11 @@ export default function AdminRequests() {
   const rejectMutation = useRejectAdminRequest();
 
   const requests = requestsQuery.data || [];
-  const currentAdminId = Number(me?.id);
+  const currentAdminId = String(me?.id ?? "");
   const inboxRequests = useMemo(() => {
-    if (!Number.isInteger(currentAdminId) || currentAdminId <= 0) return [];
+    if (!currentAdminId) return [];
     return requests.filter((item) => {
-      const targetPersonnelId = Number(item?.personnel_id ?? item?.personnelId);
+      const targetPersonnelId = String(item?.personnel_id ?? item?.personnelId ?? "");
       return targetPersonnelId === currentAdminId;
     });
   }, [requests, currentAdminId]);
