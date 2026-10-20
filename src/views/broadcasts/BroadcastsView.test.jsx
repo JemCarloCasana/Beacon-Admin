@@ -108,7 +108,7 @@ describe("BroadcastsView", () => {
       />
     );
 
-    expect(screen.getByText("danger")).toBeInTheDocument();
+    expect(screen.getByText("Danger")).toBeInTheDocument();
   });
 
   it("shows edit for drafts but no edit/delete controls for sent records", () => {
