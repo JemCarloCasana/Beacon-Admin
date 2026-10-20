@@ -1,5 +1,5 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
-import { MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM, getMapStyleConfig } from "@/lib/mapStyle";
+import { MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM, getMapStyleConfig, resolveThemeColor } from "@/lib/mapStyle";
 import { MARKER_TYPES, markerLabel } from "@/lib/mapMarkerStyles";
 import { apiGet } from "@/services/api";
 import { Button } from "@/components/ui/button";
@@ -119,7 +119,7 @@ export const MapCanvas = forwardRef(function MapCanvas(
               id: "dagupan-city-outline",
               type: "line",
               source: "dagupan-city",
-              paint: { "line-color": "hsl(var(--primary))", "line-width": 2 },
+              paint: { "line-color": resolveThemeColor("--primary", "#2563eb"), "line-width": 2 },
             });
           }
         });
@@ -191,6 +191,26 @@ export const MapCanvas = forwardRef(function MapCanvas(
   useEffect(() => {
     mapRef.current?.resize();
   }, [heightClassName]);
+
+  // The theme can change while the map is open, and the outline colour is a
+  // literal because MapLibre cannot resolve a CSS variable itself.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || typeof MutationObserver === "undefined") return undefined;
+
+    const applyOutlineColour = () => {
+      if (!map.getLayer("dagupan-city-outline")) return;
+      map.setPaintProperty(
+        "dagupan-city-outline",
+        "line-color",
+        resolveThemeColor("--primary", "#2563eb")
+      );
+    };
+
+    const observer = new MutationObserver(applyOutlineColour);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, [mapReady]);
 
   useEffect(() => {
     setOutsideFocus(false);

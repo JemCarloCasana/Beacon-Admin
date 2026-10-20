@@ -174,6 +174,18 @@ describe("Dagupan map restrictions", () => {
     expect(screen.getByRole("application", { name: /map of incidents and sos threads/i })).toBeInTheDocument();
   });
 
+  it("never hands MapLibre a CSS variable for a paint property", async () => {
+    render(<MapCanvas markers={[inside]} />);
+    const map = await loadedMap();
+
+    const outline = map.getLayer("dagupan-city-outline");
+    // MapLibre parses paint values in a worker with no access to the
+    // document's custom properties, so "hsl(var(--primary))" is rejected
+    // with `color expected` and the layer never renders.
+    expect(outline.paint["line-color"]).not.toContain("var(");
+    expect(outline.paint["line-color"]).toMatch(/^(#|hsl\(|rgb\()/);
+  });
+
   it("reports the markers the service area drops instead of showing a blank map", async () => {
     render(<MapCanvas markers={[inside, outside]} />);
     await loadedMap();
