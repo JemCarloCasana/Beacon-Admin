@@ -12,9 +12,18 @@ export const ADMIN_PERMISSION_CATALOG = [
   "manage_reports",
 ];
 
-// The least privilege that still lets a new admin work. The accept dialog
-// pre-selects this, and the operator can widen it - but never by accident.
-export const DEFAULT_PROMOTED_ADMIN_PERMISSIONS = ["view_incidents"];
+// The least privilege that still lets a promoted admin work the emergency
+// path. The backend's own OPS_SUITE_PERMISSIONS is what a directly-created
+// admin gets, but it includes manage_reports and manage_broadcasts, which are
+// supervisory rather than operational. This set opens the SOS screen, the
+// incidents list and the map - and nothing more. The accept dialog starts
+// here and the operator can narrow or widen it.
+export const DEFAULT_PROMOTED_ADMIN_PERMISSIONS = [
+  "manage_sos",
+  "view_incidents",
+  "manage_incidents",
+  "view_broadcasts",
+];
 
 function normalizeAdminRequestsPayload(payload) {
   if (Array.isArray(payload)) return payload;

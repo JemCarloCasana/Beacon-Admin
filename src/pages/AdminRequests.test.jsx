@@ -28,7 +28,7 @@ vi.mock("@/api/useAdminRequests", () => ({
   useAdminRequests: vi.fn(),
   useAcceptAdminRequest: vi.fn(),
   useRejectAdminRequest: vi.fn(),
-  DEFAULT_PROMOTED_ADMIN_PERMISSIONS: ["view_incidents"],
+  DEFAULT_PROMOTED_ADMIN_PERMISSIONS: ["manage_sos", "view_incidents", "manage_incidents", "view_broadcasts"],
 }));
 vi.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: vi.fn() }) }));
 

@@ -37,7 +37,7 @@ vi.mock("@/api/useAdminRequests", () => ({
     "manage_sos",
     "manage_reports",
   ],
-  DEFAULT_PROMOTED_ADMIN_PERMISSIONS: ["view_incidents"],
+  DEFAULT_PROMOTED_ADMIN_PERMISSIONS: ["manage_sos", "view_incidents", "manage_incidents", "view_broadcasts"],
   useAcceptAdminRequest: vi.fn(),
   useRejectAdminRequest: vi.fn(),
 }));
@@ -163,9 +163,11 @@ describe("Header notifications", () => {
       expect(screen.getByText("Permissions to grant")).toBeInTheDocument();
     });
 
-    // The read-only default is pre-selected, and the wider grants are not.
+    // The operational default is pre-selected; the supervisory and
+    // admin-management grants are not.
     expect(screen.getByLabelText("view_incidents")).toBeChecked();
-    expect(screen.getByLabelText("manage_sos")).not.toBeChecked();
+    expect(screen.getByLabelText("manage_sos")).toBeChecked();
+    expect(screen.getByLabelText("manage_reports")).not.toBeChecked();
     expect(screen.getByLabelText("manage_admins")).not.toBeChecked();
   });
 
@@ -194,14 +196,20 @@ describe("Header notifications", () => {
       expect(screen.getByText("Permissions to grant")).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByLabelText("manage_sos"));
+    fireEvent.click(screen.getByLabelText("manage_reports"));
     fireEvent.click(screen.getByText("Accept"));
 
     await waitFor(() => {
       expect(mockAccept).toHaveBeenCalledWith({
         requestId: "61",
         role: "admin",
-        permissions: ["view_incidents", "manage_sos"],
+        permissions: [
+          "manage_sos",
+          "view_incidents",
+          "manage_incidents",
+          "view_broadcasts",
+          "manage_reports",
+        ],
       });
     });
   });
@@ -297,7 +305,7 @@ describe("Header notifications", () => {
       expect(mockAccept).toHaveBeenCalledWith({
         requestId: "56",
         role: "admin",
-        permissions: ["view_incidents"],
+        permissions: ["manage_sos", "view_incidents", "manage_incidents", "view_broadcasts"],
       });
       expect(mockMarkRead).toHaveBeenCalledWith(8);
     });
