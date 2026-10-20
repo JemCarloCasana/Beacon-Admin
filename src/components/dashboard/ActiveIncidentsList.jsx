@@ -1,6 +1,8 @@
 import { MapPin } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -9,13 +11,32 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { STATUS_CONFIG } from "@/config/constants";
 
 const STATUS_OPTIONS = [
   { value: "all", label: "All Statuses" },
-  { value: "pending", label: "Pending" },
-  { value: "dispatched", label: "Dispatched" },
-  { value: "in_progress", label: "In Progress" },
+  ...Object.entries(STATUS_CONFIG).map(([value, config]) => ({
+    value,
+    label: config?.label || value,
+  })),
 ];
+
+const priorityStyles = {
+  critical: "bg-destructive text-destructive-foreground",
+  high: "bg-warning text-warning-foreground",
+  medium: "bg-caution text-caution-foreground",
+  low: "bg-muted text-muted-foreground",
+  unknown: "bg-muted text-muted-foreground",
+};
+
+const statusStyles = {
+  pending: "bg-muted text-muted-foreground",
+  dispatched: "bg-info text-info-foreground",
+  in_progress: "bg-warning text-warning-foreground",
+  resolved: "bg-success text-success-foreground",
+  closed: "bg-muted text-muted-foreground",
+  unknown: "bg-muted text-muted-foreground",
+};
 
 export function ActiveIncidentsList({
   incidents,
@@ -30,18 +51,21 @@ export function ActiveIncidentsList({
   onSelect,
 }) {
   return (
-    <div className="flex h-full flex-col bg-white">
-      <div className="space-y-3 border-b border-slate-100 p-5">
+    <div className="flex h-full flex-col bg-card">
+      <div className="space-y-3 border-b border-border p-5">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-slate-900">
+          <h2 className="text-base font-semibold text-foreground">
             Active Incidents
-            <span className="ml-2 text-xs font-medium text-slate-500">({incidents.length})</span>
+            <span className="ml-2 text-xs font-medium text-muted-foreground">({incidents.length})</span>
           </h2>
         </div>
 
         <div className="flex items-center gap-2">
+          <Label htmlFor="incident-status-filter" className="sr-only">
+            Filter incidents by status
+          </Label>
           <Select value={statusFilter} onValueChange={onStatusFilterChange}>
-            <SelectTrigger className="h-8 w-[150px] text-xs">
+            <SelectTrigger id="incident-status-filter" className="h-8 w-[150px] text-xs">
               <SelectValue placeholder="Filter status" />
             </SelectTrigger>
             <SelectContent>
@@ -58,20 +82,21 @@ export function ActiveIncidentsList({
             size="sm"
             className="h-8 text-xs"
             onClick={onTogglePrioritySort}
+            aria-pressed={sortByPriority}
           >
-            {sortByPriority ? "Priority Sorted" : "Sort by Priority"}
+            Priority
           </Button>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto">
         {loading && (
-          <div className="p-4 text-xs text-slate-500">Loading incidents...</div>
+          <div className="p-4 text-xs text-muted-foreground">Loading incidents...</div>
         )}
 
         {!loading && error && (
           <div className="space-y-3 p-4">
-            <p className="text-xs text-red-600">
+            <p className="text-xs text-destructive">
               {error?.message || "Failed to load incidents."}
             </p>
             <Button variant="outline" size="sm" onClick={onRetry}>
@@ -81,7 +106,7 @@ export function ActiveIncidentsList({
         )}
 
         {!loading && !error && incidents.length === 0 && (
-          <div className="p-4 text-xs text-slate-500">No active incidents found.</div>
+          <div className="p-4 text-xs text-muted-foreground">No active incidents found.</div>
         )}
 
         {!loading &&
@@ -89,32 +114,35 @@ export function ActiveIncidentsList({
           incidents.map((incident) => {
             const isActive = selectedId === incident.id;
             return (
-              <div
+              <button
+                type="button"
                 key={incident.id}
+                aria-label={`Select incident ${incident.id}: ${incident.title}`}
+                aria-current={isActive ? "true" : undefined}
                 className={cn(
-                  "relative cursor-pointer border-b border-slate-50 p-4 transition-colors",
-                  isActive ? "bg-blue-50/40" : "hover:bg-slate-50"
+                  "relative block w-full cursor-pointer border-b border-border p-4 text-left transition-colors",
+                  isActive ? "bg-accent/50" : "hover:bg-muted/50"
                 )}
                 onClick={() => onSelect(incident)}
               >
-                {isActive && <div className="absolute left-0 top-0 h-full w-[3px] bg-blue-600" />}
+                {isActive && <div className="absolute left-0 top-0 h-full w-[3px] bg-primary" />}
 
                 <div className="mb-1 flex items-start justify-between gap-2">
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       Incident #{incident.id}
                     </p>
-                    <h3 className={cn("text-sm font-semibold", isActive ? "text-blue-700" : "text-slate-900")}>
+                    <h3 className={cn("text-sm font-semibold", isActive ? "text-primary" : "text-foreground")}>
                       {incident.title}
                     </h3>
                   </div>
-                  <span className="text-[10px] text-slate-500">{incident.timeAgo || "-"}</span>
+                  <span className="text-xs text-muted-foreground">{incident.timeAgo || "-"}</span>
                 </div>
 
-                <p className="mb-2 text-xs font-medium text-slate-600">{incident.categoryLabel || "-"}</p>
+                <p className="mb-2 text-xs font-medium text-muted-foreground">{incident.categoryLabel || "-"}</p>
 
                 <div className="flex items-end justify-between gap-2">
-                  <div className="flex items-center gap-1 text-[11px] text-slate-500">
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <MapPin className="h-3 w-3" />
                     <span className="truncate">{incident.address || "Address unavailable"}</span>
                   </div>
@@ -122,37 +150,36 @@ export function ActiveIncidentsList({
                   <div className="flex gap-1.5">
                     <Badge
                       className={cn(
-                        "rounded px-2 py-0.5 text-[9px] font-bold uppercase border-none",
-                        incident.priority === "critical"
-                          ? "bg-red-50 text-red-600"
-                          : incident.priority === "high"
-                            ? "bg-orange-50 text-orange-600"
-                            : incident.priority === "medium"
-                              ? "bg-yellow-50 text-yellow-700"
-                              : "bg-slate-100 text-slate-600"
+                        "rounded px-2 py-0.5 text-xs font-bold uppercase border-none",
+                        priorityStyles[incident.priority] || priorityStyles.unknown
                       )}
                     >
                       {incident.priority || "unknown"}
                     </Badge>
                     <Badge
                       className={cn(
-                        "rounded px-2 py-0.5 text-[9px] font-bold uppercase border-none",
-                        incident.status === "pending"
-                          ? "bg-amber-50 text-amber-700"
-                          : incident.status === "dispatched"
-                            ? "bg-blue-50 text-blue-700"
-                            : incident.status === "in_progress"
-                              ? "bg-emerald-50 text-emerald-700"
-                              : "bg-slate-100 text-slate-600"
+                        "rounded px-2 py-0.5 text-xs font-bold uppercase border-none",
+                        statusStyles[incident.status] || statusStyles.unknown
                       )}
                     >
                       {incident.statusLabel || incident.status || "unknown"}
                     </Badge>
                   </div>
                 </div>
-              </div>
+              </button>
             );
           })}
+
+        {!loading && !error && (
+          <div className="p-4">
+            <Link
+              to="/incidents"
+              className="text-xs font-semibold text-primary underline-offset-2 hover:underline"
+            >
+              View all incidents
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );
