@@ -75,7 +75,7 @@ function toAudienceLabel(item) {
   return `Roles: ${labels.join(", ")}`;
 }
 
-function BroadcastTable({ items, isDraft, sending, canDeleteBroadcasts, actions }) {
+function BroadcastTable({ items, isDraft, sending, canManageBroadcasts, canDeleteBroadcasts, actions }) {
   if (items.length === 0) {
     return (
       <div className="py-8 text-center text-sm text-muted-foreground">
@@ -125,18 +125,22 @@ function BroadcastTable({ items, isDraft, sending, canDeleteBroadcasts, actions 
             </TableCell>
             <TableCell className="text-right">
               {isDraft ? (
-                <div className="flex flex-wrap justify-end gap-2">
-                <Button size="sm" variant="outline" disabled={sending} onClick={() => actions.onOpenEditDialog(item)}>Edit</Button>
-                {canDeleteBroadcasts && <Button size="sm" variant="destructive" disabled={sending} onClick={() => actions.onOpenDeleteDialog(item)}>Delete</Button>}
-                <Button
-                  size="sm"
-                  onClick={() => actions.onOpenSendDialog(item)}
-                  disabled={sending}
-                >
-                  <Send className="mr-2 h-4 w-4" />
-                  Send
-                </Button>
-                </div>
+                canManageBroadcasts ? (
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <Button size="sm" variant="outline" disabled={sending} onClick={() => actions.onOpenEditDialog(item)}>Edit</Button>
+                    {canDeleteBroadcasts && <Button size="sm" variant="destructive" disabled={sending} onClick={() => actions.onOpenDeleteDialog(item)}>Delete</Button>}
+                    <Button
+                      size="sm"
+                      onClick={() => actions.onOpenSendDialog(item)}
+                      disabled={sending}
+                    >
+                      <Send className="mr-2 h-4 w-4" />
+                      Send
+                    </Button>
+                  </div>
+                ) : (
+                  <span className="text-sm text-muted-foreground">Read-only</span>
+                )
               ) : (
                 <span className="text-sm text-muted-foreground">Sent</span>
               )}
@@ -163,6 +167,7 @@ function BroadcastsSkeleton() {
 
 export default function BroadcastsView({
   canManageBroadcasts,
+  canViewBroadcasts = canManageBroadcasts,
   canDeleteBroadcasts = false,
   editingBroadcast, editForm, pendingDeleteBroadcast, mutationError, updating, deleting, busy,
   form,
@@ -180,14 +185,15 @@ export default function BroadcastsView({
 
   return (
     <DashboardLayout>
-      {!canManageBroadcasts ? (
+      {!canViewBroadcasts ? (
         <Card>
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            You do not have permission to manage broadcasts.
+            You do not have permission to view broadcasts.
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-6 p-4 md:p-6">
+          {canManageBroadcasts ? (
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2">
@@ -297,6 +303,14 @@ export default function BroadcastsView({
             </CardContent>
             )}
           </Card>
+          ) : (
+            <Card>
+              <CardContent className="py-8 text-center text-sm text-muted-foreground">
+                You have read-only access to broadcasts. Composing, editing and sending
+                require the manage_broadcasts permission.
+              </CardContent>
+            </Card>
+          )}
 
           {lastSendResult?.ok && (
             <Card>
@@ -359,7 +373,8 @@ export default function BroadcastsView({
                   items={drafts}
                   isDraft
                   sending={busy || sending}
-                  canDeleteBroadcasts={canDeleteBroadcasts}
+                  canManageBroadcasts={canManageBroadcasts}
+                canDeleteBroadcasts={canDeleteBroadcasts}
                   actions={actions}
                 />
               )}
@@ -378,7 +393,8 @@ export default function BroadcastsView({
                   items={sent}
                   isDraft={false}
                   sending={busy || sending}
-                  canDeleteBroadcasts={canDeleteBroadcasts}
+                  canManageBroadcasts={canManageBroadcasts}
+                canDeleteBroadcasts={canDeleteBroadcasts}
                   actions={actions}
                 />
               )}

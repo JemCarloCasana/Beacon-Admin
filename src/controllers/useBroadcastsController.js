@@ -34,9 +34,12 @@ export function useBroadcastsController() {
   const mutationLock = useRef(false);
 
   const canManageBroadcasts = hasPermission("manage_broadcasts");
+  // A viewer can read the broadcast history; only a manager can compose,
+  // edit, delete or send.
+  const canViewBroadcasts = hasPermission("view_broadcasts");
 
   const broadcastsQuery = useBroadcasts({
-    enabled: !loading && !!me && canManageBroadcasts,
+    enabled: !loading && !!me && canViewBroadcasts,
   });
   const createBroadcastMutation = useCreateBroadcast();
   const sendBroadcastMutation = useSendBroadcast();
@@ -235,6 +238,7 @@ export function useBroadcastsController() {
 
   return {
     canManageBroadcasts,
+    canViewBroadcasts,
     canDeleteBroadcasts,
     editingBroadcast, editForm, pendingDeleteBroadcast, mutationError,
     updating: updateBroadcastMutation.isPending,

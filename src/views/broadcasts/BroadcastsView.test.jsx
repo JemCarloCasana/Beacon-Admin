@@ -48,6 +48,46 @@ describe("BroadcastsView", () => {
     },
   };
 
+  it("hides the compose form from an operator who can only view broadcasts", () => {
+    render(
+      <BroadcastsView
+        {...baseProps}
+        canManageBroadcasts={false}
+        canViewBroadcasts
+        drafts={[{ id: 1, title: "Draft one", severity: "announcement" }]}
+      />
+    );
+
+    expect(screen.queryByRole("button", { name: /new broadcast/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/read-only access to broadcasts/i)).toBeInTheDocument();
+  });
+
+  it("hides the send action from an operator who cannot manage broadcasts", () => {
+    render(
+      <BroadcastsView
+        {...baseProps}
+        canManageBroadcasts={false}
+        canViewBroadcasts
+        drafts={[{ id: 1, title: "Draft one", severity: "announcement" }]}
+      />
+    );
+
+    expect(screen.queryByRole("button", { name: /^Send$/ })).not.toBeInTheDocument();
+  });
+
+  it("shows the draft history to an operator who can only view broadcasts", () => {
+    render(
+      <BroadcastsView
+        {...baseProps}
+        canManageBroadcasts={false}
+        canViewBroadcasts
+        drafts={[{ id: 1, title: "Draft one", severity: "announcement" }]}
+      />
+    );
+
+    expect(screen.getByText(/draft broadcasts \(1\)/i)).toBeInTheDocument();
+  });
+
   it("shows audience roles from audience_roles values", () => {
     render(
       <BroadcastsView
