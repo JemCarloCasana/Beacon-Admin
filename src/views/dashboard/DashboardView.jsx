@@ -118,10 +118,10 @@ export default function DashboardView({
           loading={isSosLoading}
           error={sosError}
           onRetry={actions.onRetrySos}
-          onAcknowledge={actions.onAcknowledgeSos}
           onDispatch={actions.onDispatchSos}
+          onAssignUnit={actions.onAssignUnit}
+          onOpenDetails={actions.onOpenSosDetails}
           onClose={actions.onCloseSos}
-          onGoToSosWorkspace={actions.onGoToSosWorkspace}
         />
 
         <div className="flex min-h-0 flex-1 overflow-hidden">

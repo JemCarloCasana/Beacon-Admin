@@ -21,11 +21,13 @@ export const RESPONSE_UNITS = [
   "Traffic Enforcement Unit",
 ];
 
+export const UNKNOWN_EMERGENCY_LABEL = "Emergency type not reported";
+
 export const EMERGENCY_TYPES = {
   medical:  { label: "Medical Emergency", unit: "Emergency Medical Unit", priority: "critical", icon: "Heart" },
   fire:     { label: "Fire",              unit: "Fire Station Unit",       priority: "critical", icon: "Flame" },
   violence: { label: "Violence",          unit: "Police Personnel",        priority: "high",     icon: "Shield" },
-  unknown:  { label: "Emergency type not reported", unit: null,             priority: "high",     icon: "HelpCircle" },
+  unknown:  { label: UNKNOWN_EMERGENCY_LABEL, unit: null,                  priority: "high",     icon: "HelpCircle" },
 };
 
 /**

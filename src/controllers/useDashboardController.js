@@ -208,6 +208,10 @@ export function useDashboardController() {
       onRetryKpis: () => reportsQuery.refetch(),
       onGoToIncidentWorkspace: () => navigate("/incidents"),
       onGoToSosWorkspace: () => navigate("/sos"),
+      onOpenSosDetails: (sosId) => {
+        if (!sosId) return;
+        navigate(`/sos/${encodeURIComponent(sosId)}`);
+      },
       onOpenMap: () => navigate("/map"),
       onContactReporter: () => {
         if (!selectedIncident) return;
