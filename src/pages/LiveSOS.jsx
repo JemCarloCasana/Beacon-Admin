@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout';
 import { LiveSOSDetailsDialog, LiveSOSFeed } from '@/components/dashboard';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAcknowledgeSOS, useResolveSOS, SOS_ASSIGNED_UNITS, useSOSDetail, useSOSLiveQueue } from '@/api/useSosAPI';
 import { toSosFeedAlert } from '@/models/sos-live.model';
@@ -28,7 +28,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Radio, Wifi, WifiOff } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 const ASSIGNED_UNIT_BY_EMERGENCY_TYPE = {
     medical: "Emergency Medical Unit",
@@ -112,9 +111,10 @@ export default function LiveSOS() {
     }, [searchParams]);
 
     useEffect(() => {
-        if (!routeSosId) return;
-        setSelectedSosId(routeSosId);
-        setIsDetailOpen(true);
+        // The route is the single source of truth for which thread is open, so
+        // the browser's back button closes the detail dialog.
+        setSelectedSosId(routeSosId ?? null);
+        setIsDetailOpen(Boolean(routeSosId));
     }, [routeSosId]);
 
     useEffect(() => {
@@ -333,99 +333,6 @@ export default function LiveSOS() {
                 </CardContent>
             </Card>
 
-            <div className="mb-5 grid shrink-0 gap-4 md:grid-cols-4">
-                <button
-                    type="button"
-                    onClick={() => updateTabRoute('live')}
-                    className="text-left"
-                    aria-pressed={activeTab === 'live'}
-                >
-                    <Card className={cn(
-                        "border-emergency/20 bg-emergency/5 transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                        activeTab === 'live' && "ring-2 ring-emergency/30 shadow-md"
-                    )}>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">
-                            Live SOS
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-bold text-emergency">
-                            {liveAlerts.length}
-                        </div>
-                        <p className="text-sm text-muted-foreground">Unassigned open SOS threads</p>
-                    </CardContent>
-                    </Card>
-                </button>
-                <button
-                    type="button"
-                    onClick={() => updateTabRoute('dispatched')}
-                    className="text-left"
-                    aria-pressed={activeTab === 'dispatched'}
-                >
-                    <Card className={cn(
-                        "transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                        activeTab === 'dispatched' && "ring-2 ring-primary/30 shadow-md"
-                    )}>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">
-                            Dispatch
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-bold text-primary">
-                            {dispatchedAlerts.length}
-                        </div>
-                        <p className="text-sm text-muted-foreground">Assigned SOS threads</p>
-                    </CardContent>
-                    </Card>
-                </button>
-                <button
-                    type="button"
-                    onClick={() => updateTabRoute('cancelled')}
-                    className="text-left"
-                    aria-pressed={activeTab === 'cancelled'}
-                >
-                    <Card className={cn(
-                        "transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                        activeTab === 'cancelled' && "ring-2 ring-warning/30 shadow-md"
-                    )}>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">
-                            Cancelled SOS
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-bold text-warning">
-                            {cancelledAlerts.length}
-                        </div>
-                        <p className="text-sm text-muted-foreground">Cancelled outcomes</p>
-                    </CardContent>
-                    </Card>
-                </button>
-                <button
-                    type="button"
-                    onClick={() => updateTabRoute('resolved')}
-                    className="text-left"
-                    aria-pressed={activeTab === 'resolved'}
-                >
-                    <Card className={cn(
-                        "transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                        activeTab === 'resolved' && "ring-2 ring-success/30 shadow-md"
-                    )}>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">
-                            Resolved SOS
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-bold text-success">{resolvedAlerts.length}</div>
-                        <p className="text-sm text-muted-foreground">Resolved outcomes</p>
-                    </CardContent>
-                    </Card>
-                </button>
-            </div>
-
             <Tabs value={activeTab} onValueChange={updateTabRoute} className="flex flex-col">
                 <TabsList className="mb-4 w-full shrink-0 justify-start">
                     <TabsTrigger value="live">Live SOS ({liveAlerts.length})</TabsTrigger>
@@ -446,7 +353,7 @@ export default function LiveSOS() {
                         onAcknowledge={handleAcknowledge}
                         onViewDetails={handleOpenDetails}
                         actionMode="live"
-                        contentHeightClassName="h-[40rem] max-h-[calc(100vh-24rem)] min-h-[34rem]"
+                        contentHeightClassName="h-[calc(100vh-18rem)] min-h-[320px] max-h-[calc(100vh-18rem)]"
                     />
                     {attentionAlerts.length === 0 && liveAlerts.length > 0 && (
                         <p className="mt-3 shrink-0 text-xs text-muted-foreground">All visible live SOS threads are acknowledged and waiting for assignment.</p>
@@ -465,7 +372,7 @@ export default function LiveSOS() {
                         onResolve={handleOpenResolveDialog}
                         onViewDetails={handleOpenDetails}
                         actionMode="dispatch"
-                        contentHeightClassName="h-[40rem] max-h-[calc(100vh-24rem)] min-h-[34rem]"
+                        contentHeightClassName="h-[calc(100vh-18rem)] min-h-[320px] max-h-[calc(100vh-18rem)]"
                     />
                 </TabsContent>
 
@@ -480,7 +387,7 @@ export default function LiveSOS() {
                         emptySubtitle="Cancelled outcomes will appear here."
                         actionMode="readonly"
                         onViewDetails={handleOpenDetails}
-                        contentHeightClassName="h-[calc(100vh-22rem)] min-h-[420px]"
+                        contentHeightClassName="h-[calc(100vh-18rem)] min-h-[320px] max-h-[calc(100vh-18rem)]"
                     />
                 </TabsContent>
 
@@ -495,7 +402,7 @@ export default function LiveSOS() {
                         emptySubtitle="Resolved outcomes will appear here."
                         actionMode="readonly"
                         onViewDetails={handleOpenDetails}
-                        contentHeightClassName="h-[calc(100vh-22rem)] min-h-[420px]"
+                        contentHeightClassName="h-[calc(100vh-18rem)] min-h-[320px] max-h-[calc(100vh-18rem)]"
                     />
                 </TabsContent>
             </Tabs>

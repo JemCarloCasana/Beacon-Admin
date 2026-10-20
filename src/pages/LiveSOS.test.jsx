@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import LiveSOS from "@/pages/LiveSOS";
 import { useAcknowledgeSOS, useResolveSOS, useSOSDetail, useSOSLiveQueue } from "@/api/useSosAPI";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom";
 
 const { mockToast } = vi.hoisted(() => ({ mockToast: vi.fn() }));
 
@@ -284,20 +284,56 @@ describe("LiveSOS page", () => {
     });
   });
 
-  it("clicking summary cards activates the matching tab", () => {
+  it("activating a tab reflects in the url", () => {
     renderPage();
 
-    fireEvent.click(screen.getByRole("button", { name: /Dispatch\s+1\s+Assigned SOS threads/i }));
+    fireEvent.mouseDown(screen.getByRole("tab", { name: /Dispatch \(1\)/i }));
+
     expect(screen.getByRole("tab", { name: /Dispatch \(1\)/i })).toHaveAttribute("data-state", "active");
+  });
 
-    fireEvent.click(screen.getByRole("button", { name: /Cancelled SOS\s+1\s+Cancelled outcomes/i }));
-    expect(screen.getByRole("tab", { name: /Cancelled SOS \(1\)/i })).toHaveAttribute("data-state", "active");
+  it("renders one set of tab counts", () => {
+    renderPage();
 
-    fireEvent.click(screen.getByRole("button", { name: /Resolved SOS\s+1\s+Resolved outcomes/i }));
-    expect(screen.getByRole("tab", { name: /Resolved SOS \(1\)/i })).toHaveAttribute("data-state", "active");
+    expect(screen.getAllByText(/Live SOS \(1\)/i)).toHaveLength(1);
+  });
 
-    fireEvent.click(screen.getByRole("button", { name: /Live SOS\s+1\s+Unassigned open SOS threads/i }));
-    expect(screen.getByRole("tab", { name: /Live SOS \(1\)/i })).toHaveAttribute("data-state", "active");
+  it("closes the detail dialog when the route loses its sos id", async () => {
+    function BackButton() {
+      const navigate = useNavigate();
+      return (
+        <button type="button" onClick={() => navigate("/sos")}>
+          back
+        </button>
+      );
+    }
+
+    render(
+      <MemoryRouter initialEntries={["/sos/1"]}>
+        <Routes>
+          {/* One route, so navigating does not remount LiveSOS. */}
+          <Route
+            path="/sos/:sosId?"
+            element={
+              <>
+                <LiveSOS />
+                <BackButton />
+              </>
+            }
+          />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Reporter: Liza")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "back" }));
+
+    await waitFor(() => {
+      expect(screen.queryByText("Reporter: Liza")).not.toBeInTheDocument();
+    });
   });
 
   it("tells the operator when acknowledging fails instead of doing nothing", async () => {
@@ -373,11 +409,13 @@ describe("LiveSOS page", () => {
     expect(screen.getByRole("tab", { name: /Live SOS \(1\)/i })).toHaveAttribute("data-state", "active");
   });
 
-  it("passes a 5-card-sized viewport height to the live feed", () => {
+  it("passes a viewport-sized height to the live feed", () => {
     renderPage();
 
-    expect(screen.getByTestId("live-sos-feed-scroll-area")).toHaveClass("h-[40rem]");
-    expect(screen.getByTestId("live-sos-feed-scroll-area")).toHaveClass("min-h-[34rem]");
+    expect(screen.getByTestId("live-sos-feed-scroll-area")).toHaveClass(
+      "h-[calc(100vh-18rem)]"
+    );
+    expect(screen.getByTestId("live-sos-feed-scroll-area")).toHaveClass("min-h-[320px]");
   });
 
   it("moves assigned open sos threads into dispatch", async () => {
@@ -385,7 +423,7 @@ describe("LiveSOS page", () => {
 
     expect(screen.getByRole("tab", { name: /Live SOS \(1\)/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Dispatch \(1\)/i })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /Dispatch\s+1\s+Assigned SOS threads/i }));
+    fireEvent.mouseDown(screen.getByRole("tab", { name: /Dispatch \(1\)/i }));
     expect(await screen.findByText("Liza")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Mark as Resolved/i })).toBeInTheDocument();
   });
