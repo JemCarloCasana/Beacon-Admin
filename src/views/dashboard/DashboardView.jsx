@@ -7,6 +7,15 @@ import { formatDurationSeconds } from "@/models/reports.model";
 import { toIncidentMapMarker } from "@/models/incident.model";
 import { getMapStyleConfig } from "@/lib/mapStyle";
 
+function formatMetric(value) {
+  return value === null || value === undefined ? "—" : value;
+}
+
+function formatMetricDuration(value) {
+  if (value === null || value === undefined) return "—";
+  return formatDurationSeconds(value);
+}
+
 function KpiCard({ label, value, icon: Icon }) {
   return (
     <Card className="border-slate-200 shadow-sm">
@@ -87,10 +96,10 @@ export default function DashboardView({
         </div>
 
         <div className="grid gap-3 border-b border-slate-200 bg-slate-50/40 px-4 py-3 md:grid-cols-2 xl:grid-cols-4">
-          <KpiCard label="Active Incidents" value={kpis.activeIncidents} icon={AlertTriangle} />
-          <KpiCard label="Active SOS" value={kpis.activeSOS} icon={Radio} />
-          <KpiCard label="Resolved Incidents" value={kpis.resolvedIncidents} icon={CheckCircle2} />
-          <KpiCard label="Avg Response" value={formatDurationSeconds(kpis.avgResponseSeconds)} icon={Activity} />
+          <KpiCard label="Active Incidents" value={formatMetric(kpis.activeIncidents)} icon={AlertTriangle} />
+          <KpiCard label="Active SOS" value={formatMetric(kpis.activeSOS)} icon={Radio} />
+          <KpiCard label="Resolved Incidents" value={formatMetric(kpis.resolvedIncidents)} icon={CheckCircle2} />
+          <KpiCard label="Avg Response" value={formatMetricDuration(kpis.avgResponseSeconds)} icon={Activity} />
         </div>
 
         {kpiError && (

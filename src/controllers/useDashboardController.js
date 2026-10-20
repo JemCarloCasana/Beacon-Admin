@@ -121,8 +121,10 @@ export function useDashboardController() {
       activeSOS:
         reportsKpis.activeSOS ??
         liveSosAlerts.filter((item) => item.requires_attention === true).length,
-      avgResponseSeconds: reportsKpis.avgResponseSeconds ?? 0,
-      resolvedIncidents: reportsKpis.resolvedIncidents ?? 0,
+      // No local source for these two, so a missing figure stays missing
+      // rather than being reported as zero.
+      avgResponseSeconds: reportsKpis.avgResponseSeconds ?? null,
+      resolvedIncidents: reportsKpis.resolvedIncidents ?? null,
     };
   }, [liveSosAlerts, reportsOverview.kpis, transformedIncidents.length]);
 

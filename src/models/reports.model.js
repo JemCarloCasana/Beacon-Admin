@@ -106,12 +106,12 @@ export function toReportsOverviewModel(raw) {
       };
     }),
     kpis: {
-      totalIncidents: toFiniteNumber(payload?.kpis?.total_incidents, 0),
-      activeIncidents: toFiniteNumber(payload?.kpis?.active_incidents, 0),
-      resolvedIncidents: toFiniteNumber(payload?.kpis?.resolved_incidents, 0),
-      activeSOS: toFiniteNumber(payload?.kpis?.active_sos, 0),
-      avgResponseSeconds: toFiniteNumber(payload?.kpis?.avg_response_seconds, 0),
-      avgResolutionSeconds: toFiniteNumber(payload?.kpis?.avg_resolution_seconds, 0),
+      totalIncidents: toFiniteNumber(payload?.kpis?.total_incidents, null),
+      activeIncidents: toFiniteNumber(payload?.kpis?.active_incidents, null),
+      resolvedIncidents: toFiniteNumber(payload?.kpis?.resolved_incidents, null),
+      activeSOS: toFiniteNumber(payload?.kpis?.active_sos, null),
+      avgResponseSeconds: toFiniteNumber(payload?.kpis?.avg_response_seconds, null),
+      avgResolutionSeconds: toFiniteNumber(payload?.kpis?.avg_resolution_seconds, null),
     },
     charts: {
       incidentsByStatus: normalizeDistributionSeries(payload?.charts?.incidents_by_status),

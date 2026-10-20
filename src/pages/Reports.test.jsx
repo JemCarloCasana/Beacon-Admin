@@ -118,6 +118,40 @@ describe("Reports page", () => {
     anchorClickSpy?.mockRestore();
   });
 
+  it("does not render the KPI grid as zeros when the overview query failed", () => {
+    useReportsOverview.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      error: new Error("overview unavailable"),
+      refetch: vi.fn().mockResolvedValue({}),
+    });
+
+    render(<Reports />);
+
+    expect(screen.getByText("overview unavailable")).toBeInTheDocument();
+    expect(screen.queryByText("Total Incidents")).not.toBeInTheDocument();
+    expect(screen.queryByText("Active SOS")).not.toBeInTheDocument();
+  });
+
+  it("shows a dash for a KPI the backend did not report", () => {
+    useReportsOverview.mockReturnValue({
+      data: {
+        ...overviewResponse,
+        kpis: { ...overviewResponse.kpis, active_sos: undefined },
+      },
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn().mockResolvedValue({}),
+    });
+
+    render(<Reports />);
+
+    expect(screen.getByText("—")).toBeInTheDocument();
+    expect(screen.queryByText("Active SOS")).toBeInTheDocument();
+  });
+
   it("renders backend cards and KPI values", () => {
     render(<Reports />);
 

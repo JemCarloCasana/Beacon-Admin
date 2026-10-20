@@ -3,8 +3,8 @@ import { formatDistanceToNow } from "date-fns";
 import { DashboardLayout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DataState } from "@/components/common/DataState";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -88,6 +88,15 @@ function downloadCsv(csvContent, filename) {
   URL.revokeObjectURL(url);
 }
 
+function formatKpi(value) {
+  return value === null || value === undefined ? "—" : value;
+}
+
+function formatKpiDuration(value) {
+  if (value === null || value === undefined) return "—";
+  return formatDurationSeconds(value);
+}
+
 function ReportsLoadingState() {
   return (
     <div className="space-y-6">
@@ -111,9 +120,24 @@ function ReportsLoadingState() {
           <Skeleton className="h-6 w-40" />
           <Skeleton className="h-4 w-72" />
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2">
-          <Skeleton className="h-48 w-full" />
-          <Skeleton className="h-48 w-full" />
+        <CardContent className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <Card key={`kpi-${index}`}>
+                <CardHeader className="pb-2">
+                  <Skeleton className="h-4 w-24" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-8 w-16" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <Skeleton key={`chart-${index}`} className="h-48 w-full" />
+            ))}
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -173,17 +197,6 @@ export default function Reports() {
         <ReportsLoadingState />
       ) : (
         <div className="space-y-6">
-          {overviewQuery.isError && (
-            <Alert variant="destructive">
-              <AlertDescription className="flex items-center justify-between gap-3">
-                <span>{overviewQuery.error?.message || "Failed to load reports."}</span>
-                <Button size="sm" variant="outline" onClick={() => overviewQuery.refetch()}>
-                  Retry
-                </Button>
-              </AlertDescription>
-            </Alert>
-          )}
-
           <Card>
             <CardHeader>
               <CardTitle>Report Exports</CardTitle>
@@ -272,37 +285,49 @@ export default function Reports() {
                 </p>
               </div>
 
+              <DataState
+                status={overviewQuery.isError ? "error" : "live"}
+                error={overviewQuery.error}
+                onRetry={() => overviewQuery.refetch()}
+                skeleton={
+                  <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
+                    {Array.from({ length: 6 }).map((_, index) => (
+                      <Skeleton key={`kpi-${index}`} className="h-20 w-full" />
+                    ))}
+                  </div>
+                }
+              >
               <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground">Total Incidents</CardTitle>
                   </CardHeader>
-                  <CardContent className="text-2xl font-bold">{model.kpis.totalIncidents}</CardContent>
+                  <CardContent className="text-2xl font-bold">{formatKpi(model.kpis.totalIncidents)}</CardContent>
                 </Card>
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground">Active Incidents</CardTitle>
                   </CardHeader>
-                  <CardContent className="text-2xl font-bold">{model.kpis.activeIncidents}</CardContent>
+                  <CardContent className="text-2xl font-bold">{formatKpi(model.kpis.activeIncidents)}</CardContent>
                 </Card>
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground">Resolved Incidents</CardTitle>
                   </CardHeader>
-                  <CardContent className="text-2xl font-bold">{model.kpis.resolvedIncidents}</CardContent>
+                  <CardContent className="text-2xl font-bold">{formatKpi(model.kpis.resolvedIncidents)}</CardContent>
                 </Card>
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground">Active SOS</CardTitle>
                   </CardHeader>
-                  <CardContent className="text-2xl font-bold">{model.kpis.activeSOS}</CardContent>
+                  <CardContent className="text-2xl font-bold">{formatKpi(model.kpis.activeSOS)}</CardContent>
                 </Card>
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground">Avg Response</CardTitle>
                   </CardHeader>
                   <CardContent className="text-2xl font-bold">
-                    {formatDurationSeconds(model.kpis.avgResponseSeconds)}
+                    {formatKpiDuration(model.kpis.avgResponseSeconds)}
                   </CardContent>
                 </Card>
                 <Card>
@@ -310,14 +335,23 @@ export default function Reports() {
                     <CardTitle className="text-sm font-medium text-muted-foreground">Avg Resolution</CardTitle>
                   </CardHeader>
                   <CardContent className="text-2xl font-bold">
-                    {formatDurationSeconds(model.kpis.avgResolutionSeconds)}
+                    {formatKpiDuration(model.kpis.avgResolutionSeconds)}
                   </CardContent>
                 </Card>
               </div>
+              </DataState>
 
               {!hasChartData && !overviewQuery.isError && (
                 <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-                  No analytics data available for selected range.
+                  <p>No analytics data available for selected range.</p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-3"
+                    onClick={() => setAnalyticsRange("30d")}
+                  >
+                    Try 30 days
+                  </Button>
                 </div>
               )}
 

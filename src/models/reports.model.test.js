@@ -6,12 +6,12 @@ describe("reports.model", () => {
 
     expect(result.cards).toHaveLength(3);
     expect(result.kpis).toEqual({
-      totalIncidents: 0,
-      activeIncidents: 0,
-      resolvedIncidents: 0,
-      activeSOS: 0,
-      avgResponseSeconds: 0,
-      avgResolutionSeconds: 0,
+      totalIncidents: null,
+      activeIncidents: null,
+      resolvedIncidents: null,
+      activeSOS: null,
+      avgResponseSeconds: null,
+      avgResolutionSeconds: null,
     });
     expect(result.charts.incidentsByStatus).toEqual([]);
     expect(result.charts.incidentsByPriority).toEqual([]);
