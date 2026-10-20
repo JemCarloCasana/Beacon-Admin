@@ -1,5 +1,6 @@
+import { CommandPalette } from './CommandPalette';
 import { useEffect, useMemo, useState } from 'react';
-import { Bell, LogOut } from 'lucide-react';
+import { Bell, LogOut, Menu } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -28,7 +29,7 @@ import {
 } from '@/api/useAdminRequests';
 import { useToast } from '@/hooks/use-toast';
 
-export function Header({ onMenuClick }) {
+export function Header({ onMenuClick, title }) {
     const [isNotifOpen, setIsNotifOpen] = useState(false);
     const [showAllNotifications, setShowAllNotifications] = useState(false);
     const [invitePopupNotification, setInvitePopupNotification] = useState(null);
@@ -304,14 +305,22 @@ export function Header({ onMenuClick }) {
     };
 
     const handleLogout = async () => {
+        // logout() calls the backend, then clears the local session and
+        // navigates to /login. Clearing the token here as well would race it.
         await logout();
-        localStorage.removeItem('admin_token');
-        // admin_me is never stored in localStorage, only token
-        navigate('/login');
     };
+
+    const initials = String(me?.full_name || "")
+        .split(" ")
+        .filter(Boolean)
+        .map((part) => part[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase();
 
     return (
         <>
+            <CommandPalette />
             <Dialog
                 open={!!invitePopupNotification}
                 onOpenChange={(open) => {
@@ -350,13 +359,30 @@ export function Header({ onMenuClick }) {
                 )}
             </Dialog>
 
-            <header className="flex h-16 items-center justify-end border-b bg-white px-6">
+            <header className="flex h-16 items-center justify-between gap-4 border-b bg-card px-4 md:px-6">
+                <div className="flex min-w-0 items-center gap-3">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={onMenuClick}
+                        aria-label="Open menu"
+                        className="h-9 w-9 lg:hidden"
+                    >
+                        <Menu className="h-5 w-5" />
+                    </Button>
+                    {title ? (
+                        <span className="truncate text-sm font-semibold text-foreground lg:hidden">
+                            {title}
+                        </span>
+                    ) : null}
+                </div>
+
                 <div className="flex items-center gap-4">
                     {/* Notifications */}
                     <div className="relative">
                         <DropdownMenu open={isNotifOpen} onOpenChange={handleNotificationOpenChange}>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="relative h-9 w-9 text-slate-500">
+                                <Button variant="ghost" size="icon" aria-label="Notifications" className="relative h-9 w-9 text-muted-foreground">
                                     <Bell className="h-5 w-5" />
                                     {hasUnread && (
                                         <span className="absolute right-0.5 top-0.5 inline-flex min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-4 text-white">
@@ -454,16 +480,32 @@ export function Header({ onMenuClick }) {
                         </DropdownMenu>
                     </div>
 
-                    {/* Logout Button */}
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleLogout}
-                        className="ml-2 flex items-center gap-2"
-                    >
-                        <LogOut className="h-4 w-4" />
-                        Logout
-                    </Button>
+                    {/* Admin menu */}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="flex items-center gap-2">
+                                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground">
+                                    {initials}
+                                </span>
+                                <span className="hidden text-left sm:block">
+                                    <span className="block text-sm font-medium leading-tight text-foreground">
+                                        {me?.full_name || "Operator"}
+                                    </span>
+                                    <span className="block text-xs leading-tight text-muted-foreground">
+                                        {me?.role || ""}
+                                    </span>
+                                </span>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>{me?.full_name || "Operator"}</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={handleLogout}>
+                                <LogOut className="mr-2 h-4 w-4" />
+                                Logout
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
             </header>
         </>

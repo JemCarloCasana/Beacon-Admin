@@ -96,6 +96,17 @@ export const NAV_ITEMS = [
       },
     ],
   },
+  {
+    category: "ADMIN",
+    items: [
+      {
+        path: "/admin-requests",
+        label: "Admin Requests",
+        icon: "UserCog",
+        requiredPermission: "manage_admins",
+      },
+    ],
+  },
 ];
 
 // Pagination defaults

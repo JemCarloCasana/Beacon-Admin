@@ -67,35 +67,7 @@ export default function DashboardView({
   return (
     <DashboardLayout>
       <div className="flex h-full w-full flex-col overflow-hidden">
-        <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 text-xs text-slate-600">
-          <div>
-            Logged in as <span className="font-semibold text-slate-800">{me.full_name}</span> ({me.role})
-          </div>
-
-          <div className="flex items-center gap-3">
-            <span>
-              Avg Response: <span className="font-semibold text-slate-900">{formatDurationSeconds(kpis.avgResponseSeconds)}</span>
-            </span>
-            {canManageUsers && (
-              <button
-                className="text-[11px] font-semibold text-blue-700 hover:underline"
-                onClick={actions.onGoToPersonnel}
-              >
-                Manage Users
-              </button>
-            )}
-            {canManageAdmins && (
-              <button
-                className="text-[11px] font-semibold text-blue-700 hover:underline"
-                onClick={actions.onGoToAdmins}
-              >
-                Manage Admins
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div className="grid gap-3 border-b border-slate-200 bg-slate-50/40 px-4 py-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-3 border-b border-border bg-muted/30 px-4 py-3 md:grid-cols-2 xl:grid-cols-4">
           <KpiCard label="Active Incidents" value={formatMetric(kpis.activeIncidents)} icon={AlertTriangle} />
           <KpiCard label="Active SOS" value={formatMetric(kpis.activeSOS)} icon={Radio} />
           <KpiCard label="Resolved Incidents" value={formatMetric(kpis.resolvedIncidents)} icon={CheckCircle2} />

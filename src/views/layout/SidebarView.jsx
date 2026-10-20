@@ -29,7 +29,7 @@ const iconMap = {
 
 export default function SidebarView({ pathname, visibleNavItems, profile }) {
   return (
-    <aside className="flex h-screen w-64 flex-col bg-[#0B1221] text-slate-300">
+    <aside className="flex h-screen w-64 flex-col bg-sidebar text-slate-300">
       <div className="flex h-16 items-center gap-3 px-6">
         <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded bg-blue-600">
           <img
@@ -56,20 +56,21 @@ export default function SidebarView({ pathname, visibleNavItems, profile }) {
               <div className="space-y-[2px]">
                 {(group.items || []).map((item) => {
                   const Icon = iconMap[item.icon] || Shield;
-                  const isActive = pathname === item.path;
+                  const isActive = pathname === item.path || pathname.startsWith(`${item.path}/`);
 
                   return (
                     <Link
                       key={item.path}
                       to={item.path}
+                      aria-current={isActive ? "page" : undefined}
                       className={cn(
                         "relative flex items-center gap-3 px-6 py-2.5 text-sm font-medium transition-all group",
                         isActive
-                          ? "bg-blue-600/10 text-white"
+                          ? "bg-sidebar-primary/10 text-white"
                           : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
                       )}
                     >
-                      {isActive && <div className="absolute left-0 top-0 h-full w-[3px] bg-blue-500" />}
+                      {isActive && <div className="absolute left-0 top-0 h-full w-[3px] bg-sidebar-primary" />}
                       <Icon
                         className={cn(
                           "h-4 w-4",
@@ -86,7 +87,7 @@ export default function SidebarView({ pathname, visibleNavItems, profile }) {
         </nav>
       </ScrollArea>
 
-      <div className="mt-auto border-t border-slate-800 bg-[#080E1A] p-4">
+      <div className="mt-auto border-t border-sidebar-border bg-sidebar-accent/40 p-4">
         <div className="mb-4 flex items-center gap-3 px-2">
           <div className="flex h-10 w-10 items-center justify-center rounded bg-slate-800 text-xs font-bold text-slate-300">
             {profile?.initials || "OP"}

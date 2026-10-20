@@ -81,6 +81,14 @@ describe("Header notifications", () => {
     });
     useToast.mockReturnValue({ toast: mockToast });
 
+    useNotifications.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+      isFetching: false,
+      refetch: vi.fn(),
+    });
+
     useMarkNotificationRead.mockReturnValue({
       mutateAsync: mockMarkRead.mockResolvedValue({}),
     });
@@ -90,6 +98,28 @@ describe("Header notifications", () => {
     useRejectAdminRequest.mockReturnValue({
       mutateAsync: mockReject.mockResolvedValue({}),
     });
+  });
+
+  it("renders a menu button that calls onMenuClick", () => {
+    const onMenuClick = vi.fn();
+    renderWithQueryClient(<Header onMenuClick={onMenuClick} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /open menu/i }));
+
+    expect(onMenuClick).toHaveBeenCalled();
+  });
+
+  it("shows the current admin's name and role", () => {
+    useAuth.mockReturnValue({
+      me: { id: 1, full_name: "Juan Dela Cruz", role: "admin" },
+      loading: false,
+      logout: vi.fn().mockResolvedValue(undefined),
+      refreshMe: vi.fn().mockResolvedValue(undefined),
+    });
+
+    renderWithQueryClient(<Header onMenuClick={vi.fn()} />);
+
+    expect(screen.getAllByText("Juan Dela Cruz").length).toBeGreaterThan(0);
   });
 
   it("opens decision modal only for actionable admin_request notification", async () => {
