@@ -2,10 +2,11 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { useDashboardController } from "@/controllers/useDashboardController";
 import { useAdminAuth } from "@/auth/AdminAuthProvider";
 import { useIncidentsAPI, useReporterDetail } from "@/api/useIncidentsAPI";
-import { useSOSLiveQueue } from "@/api/useSosAPI";
+import { useSOSLiveQueue, useAcknowledgeSOS } from "@/api/useSosAPI";
 import { useReportsOverview } from "@/api/useReportsAPI";
 
 const mockNavigate = vi.fn();
+const mockAcknowledgeMutateAsync = vi.fn().mockResolvedValue({ ok: true });
 
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom");
@@ -26,6 +27,7 @@ vi.mock("@/api/useIncidentsAPI", () => ({
 
 vi.mock("@/api/useSosAPI", () => ({
   useSOSLiveQueue: vi.fn(),
+  useAcknowledgeSOS: vi.fn(),
 }));
 
 vi.mock("@/api/useReportsAPI", () => ({
@@ -94,6 +96,11 @@ describe("useDashboardController", () => {
       refetch: vi.fn(),
     });
 
+    useAcknowledgeSOS.mockReturnValue({
+      mutateAsync: mockAcknowledgeMutateAsync,
+      isPending: false,
+    });
+
     useReportsOverview.mockReturnValue({
       data: {
         kpis: {
@@ -108,6 +115,100 @@ describe("useDashboardController", () => {
       refetch: vi.fn(),
     });
 
+  });
+
+  it("assigns the fixed responder without navigating away", async () => {
+    useSOSLiveQueue.mockReturnValue({
+      data: [
+        {
+          sos_id: 101,
+          user_id: 10,
+          full_name: "Maria",
+          latest_status: "active",
+          emergency_category: "medical",
+          latest_event_at: "2026-03-01T10:10:00.000Z",
+          latest_message: "Need help",
+          latest_address: "SOS Street",
+        },
+      ],
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    const { result } = renderHook(() => useDashboardController());
+
+    await act(async () => {
+      await result.current.actions.onDispatchSos("101");
+    });
+
+    expect(mockAcknowledgeMutateAsync).toHaveBeenCalledWith({
+      sosId: "101",
+      assigned_unit: "Emergency Medical Unit",
+      note: "Acknowledged and assigned to Emergency Medical Unit",
+    });
+    expect(mockNavigate).not.toHaveBeenCalledWith("/sos");
+  });
+
+  it("assigns no unit when the emergency type was not reported", async () => {
+    useSOSLiveQueue.mockReturnValue({
+      data: [
+        {
+          sos_id: 102,
+          user_id: 10,
+          full_name: "Ana",
+          latest_status: "active",
+          emergency_category: "i dont know",
+          latest_event_at: "2026-03-01T10:10:00.000Z",
+          latest_message: "Something is wrong",
+          latest_address: "SOS Street",
+        },
+      ],
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    const { result } = renderHook(() => useDashboardController());
+
+    await act(async () => {
+      await result.current.actions.onDispatchSos("102");
+    });
+
+    expect(mockAcknowledgeMutateAsync).not.toHaveBeenCalled();
+    expect(result.current.pendingUnitAssignment).toBe("102");
+  });
+
+  it("assigns the unit the operator chose when the type was not reported", async () => {
+    useSOSLiveQueue.mockReturnValue({
+      data: [
+        {
+          sos_id: 102,
+          user_id: 10,
+          full_name: "Ana",
+          latest_status: "active",
+          emergency_category: "i dont know",
+          latest_event_at: "2026-03-01T10:10:00.000Z",
+          latest_message: "Something is wrong",
+          latest_address: "SOS Street",
+        },
+      ],
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    const { result } = renderHook(() => useDashboardController());
+
+    await act(async () => {
+      await result.current.actions.onAssignUnit("102", "Police Personnel");
+    });
+
+    expect(mockAcknowledgeMutateAsync).toHaveBeenCalledWith({
+      sosId: "102",
+      assigned_unit: "Police Personnel",
+      note: "Acknowledged and assigned to Police Personnel",
+    });
   });
 
   it("selects first active incident and keeps priority sort enabled by default", async () => {

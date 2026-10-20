@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAdminAuth } from "@/auth/AdminAuthProvider";
 import { useIncidentsAPI, useReporterDetail } from "@/api/useIncidentsAPI";
-import { useSOSLiveQueue } from "@/api/useSosAPI";
+import { useSOSLiveQueue, useAcknowledgeSOS } from "@/api/useSosAPI";
+import { unitForEmergencyCategory } from "@/config/emergency";
 import { useReportsOverview } from "@/api/useReportsAPI";
 import { toAdminModel } from "@/models/admin.model";
 import { toDashboardIncidentListModel, toIncidentListViewModel } from "@/models/incident.model";
@@ -38,6 +39,7 @@ export function useDashboardController() {
   const [sortByPriority, setSortByPriority] = useState(true);
   const [isReporterDialogOpen, setIsReporterDialogOpen] = useState(false);
   const [reporterIncidentContext, setReporterIncidentContext] = useState(null);
+  const [pendingUnitAssignment, setPendingUnitAssignment] = useState(null);
 
   const admin = useMemo(() => toAdminModel(me), [me]);
   const incidents = useMemo(
@@ -61,6 +63,8 @@ export function useDashboardController() {
       return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
     });
   }, [incidents, sortByPriority, statusFilter]);
+  const acknowledgeMutation = useAcknowledgeSOS();
+
   const liveSosAlerts = useMemo(() => {
     const rows = Array.isArray(sosQuery.data) ? sosQuery.data : [];
     return rows.map(toSosFeedAlert);
@@ -148,6 +152,7 @@ export function useDashboardController() {
     },
     kpis,
     activeSOS,
+    pendingUnitAssignment,
     isIncidentsLoading: incidentsQuery.isLoading,
     isSosLoading: sosQuery.isLoading,
     isKpiLoading: reportsQuery.isLoading,
@@ -157,13 +162,45 @@ export function useDashboardController() {
     actions: {
       onSelectIncident: (incident) => setSelectedIncidentId(incident?.id || null),
       onCloseSos: () => setDismissedSosId(activeSOS?.id || null),
-      onAcknowledgeSos: async (id) => {
-        if (!id) return;
-        navigate("/sos");
+      onDispatchSos: async (sosId) => {
+        const alert = liveSosAlerts.find((item) => String(item.id) === String(sosId));
+        if (!alert) return;
+        const assignedUnit = unitForEmergencyCategory(alert.emergencyType);
+        if (!assignedUnit) {
+          setPendingUnitAssignment(alert.id);
+          return;
+        }
+        await acknowledgeMutation.mutateAsync({
+          sosId: String(alert.id),
+          assigned_unit: assignedUnit,
+          note: `Acknowledged and assigned to ${assignedUnit}`,
+        });
       },
-      onDispatchSos: () => {
-        navigate("/sos");
+      onAcknowledgeSos: async (sosId) => {
+        const alert = liveSosAlerts.find((item) => String(item.id) === String(sosId));
+        if (!alert) return;
+        const assignedUnit = unitForEmergencyCategory(alert.emergencyType);
+        if (!assignedUnit) {
+          setPendingUnitAssignment(alert.id);
+          return;
+        }
+        await acknowledgeMutation.mutateAsync({
+          sosId: String(alert.id),
+          assigned_unit: assignedUnit,
+          note: `Acknowledged and assigned to ${assignedUnit}`,
+        });
       },
+      onAssignUnit: async (sosId, unit) => {
+        const assignedUnit = String(unit || "").trim();
+        if (!assignedUnit || !sosId) return;
+        await acknowledgeMutation.mutateAsync({
+          sosId: String(sosId),
+          assigned_unit: assignedUnit,
+          note: `Acknowledged and assigned to ${assignedUnit}`,
+        });
+        setPendingUnitAssignment(null);
+      },
+      onCancelUnitAssignment: () => setPendingUnitAssignment(null),
       onStatusFilterChange: (value) => setStatusFilter(value),
       onTogglePrioritySort: () => setSortByPriority((prev) => !prev),
       onRetryIncidents: () => incidentsQuery.refetch(),
