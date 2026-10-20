@@ -4,7 +4,6 @@ import { DashboardLayout } from '@/components/layout';
 import { LiveSOSDetailsDialog, LiveSOSFeed } from '@/components/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAcknowledgeSOS, useResolveSOS, SOS_ASSIGNED_UNITS, useSOSDetail, useSOSLiveQueue } from '@/api/useSosAPI';
 import { toSosFeedAlert } from '@/models/sos-live.model';
 import { Button } from '@/components/ui/button';
@@ -303,8 +302,15 @@ export default function LiveSOS() {
                         <div>
                             <p className="font-medium">Backend SOS Queue Connection</p>
                             <p className="text-sm text-muted-foreground">
-                                Polling SOS queues every 5 seconds
+                                {isQueueLoading
+                                    ? "Connecting to the SOS queues..."
+                                    : "Polling SOS queues every 5 seconds"}
                             </p>
+                            {queueError && (
+                                <p className="text-xs text-destructive">
+                                    {queueError?.message || "Failed to load SOS queues."}
+                                </p>
+                            )}
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -420,20 +426,6 @@ export default function LiveSOS() {
                 </button>
             </div>
 
-            {isQueueLoading && (
-                <Alert className="mb-5 shrink-0">
-                    <AlertDescription>Loading SOS queues...</AlertDescription>
-                </Alert>
-            )}
-
-            {queueError && (
-                <Alert variant="destructive" className="mb-5 shrink-0">
-                    <AlertDescription>
-                        {queueError?.message || 'Failed to load SOS queues.'}
-                    </AlertDescription>
-                </Alert>
-            )}
-
             <Tabs value={activeTab} onValueChange={updateTabRoute} className="flex flex-col">
                 <TabsList className="mb-4 w-full shrink-0 justify-start">
                     <TabsTrigger value="live">Live SOS ({liveAlerts.length})</TabsTrigger>
@@ -445,6 +437,9 @@ export default function LiveSOS() {
                 <TabsContent value="live" className="mt-0 flex flex-col">
                     <LiveSOSFeed
                         alerts={liveAlerts}
+                        loading={liveQueueQuery.isLoading}
+                        error={liveQueueQuery.error || null}
+                        onRetry={() => liveQueueQuery.refetch()}
                         title="Live SOS Feed"
                         emptyTitle="No live SOS alerts"
                         emptySubtitle="Monitoring for emergencies..."
@@ -461,6 +456,9 @@ export default function LiveSOS() {
                 <TabsContent value="dispatched" className="mt-0 flex flex-col">
                     <LiveSOSFeed
                         alerts={dispatchedAlerts}
+                        loading={liveQueueQuery.isLoading}
+                        error={liveQueueQuery.error || null}
+                        onRetry={() => liveQueueQuery.refetch()}
                         title="Dispatch Queue"
                         emptyTitle="No dispatched SOS"
                         emptySubtitle="Assigned SOS threads will appear here."
@@ -474,6 +472,9 @@ export default function LiveSOS() {
                 <TabsContent value="cancelled" className="mt-0 flex flex-col">
                     <LiveSOSFeed
                         alerts={cancelledAlerts}
+                        loading={cancelledQueueQuery.isLoading}
+                        error={cancelledQueueQuery.error || null}
+                        onRetry={() => cancelledQueueQuery.refetch()}
                         title="Cancelled SOS"
                         emptyTitle="No cancelled SOS"
                         emptySubtitle="Cancelled outcomes will appear here."
@@ -486,6 +487,9 @@ export default function LiveSOS() {
                 <TabsContent value="resolved" className="mt-0 flex flex-col">
                     <LiveSOSFeed
                         alerts={resolvedAlerts}
+                        loading={resolvedQueueQuery.isLoading}
+                        error={resolvedQueueQuery.error || null}
+                        onRetry={() => resolvedQueueQuery.refetch()}
                         title="Resolved SOS"
                         emptyTitle="No resolved SOS"
                         emptySubtitle="Resolved outcomes will appear here."

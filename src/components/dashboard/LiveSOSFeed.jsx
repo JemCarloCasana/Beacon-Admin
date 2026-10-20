@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { DataState } from "@/components/common/DataState";
 import { cn } from "@/lib/utils";
 
 const statusStyles = {
@@ -33,14 +34,33 @@ export function LiveSOSFeed({
   onAcknowledge,
   onResolve,
   onViewDetails,
+  onRetry = null,
+  loading = false,
+  error = null,
   title = "Live SOS Feed",
   emptyTitle = "No active SOS alerts",
   emptySubtitle = "Monitoring for emergencies...",
   actionMode = "live",
   contentHeightClassName = "h-full",
 }) {
-  const attentionAlerts = alerts.filter((a) => a.requires_attention === true);
-  const otherAlerts = alerts.filter((a) => a.requires_attention !== true);
+  const byMostRecent = (a, b) => {
+    const aTime = new Date(a?.timestamp || 0).getTime();
+    const bTime = new Date(b?.timestamp || 0).getTime();
+    const aSafe = Number.isFinite(aTime) ? aTime : 0;
+    const bSafe = Number.isFinite(bTime) ? bTime : 0;
+    return bSafe - aSafe;
+  };
+
+  const attentionAlerts = alerts.filter((a) => a.requires_attention === true).sort(byMostRecent);
+  const otherAlerts = alerts.filter((a) => a.requires_attention !== true).sort(byMostRecent);
+
+  const status = loading
+    ? "loading"
+    : error
+      ? "error"
+      : alerts.length === 0
+        ? "empty"
+        : "live";
 
   const getVisualState = (alert) => {
     const status = String(alert?.status || "").toLowerCase();
@@ -56,7 +76,7 @@ export function LiveSOSFeed({
     if (alert?.requires_attention === true) return "NEEDS ATTENTION";
     if (status === "cancelled") return alert?.terminal_label || alert?.terminalLabel || "Cancelled SOS";
     if (status === "resolved") return alert?.terminal_label || alert?.terminalLabel || "Resolved";
-    if (status === "active") return "ACKNOWLEDGED";
+    if (status === "active") return "Active";
     return status ? status.toUpperCase() : "ACTIVE";
   };
 
@@ -70,7 +90,7 @@ export function LiveSOSFeed({
         emphasized
           ? "border-2 border-emergency/50 bg-emergency/5"
           : "hover:bg-accent/50",
-        alert.requires_attention ? "animate-pulse" : ""
+        alert.requires_attention ? "border-l-4 border-l-emergency" : ""
       )}
     >
       <div className="flex items-start justify-between gap-2">
@@ -102,7 +122,12 @@ export function LiveSOSFeed({
         {alert.userPhone && (
           <div className="flex items-center gap-2 text-sm">
             <Phone className="h-4 w-4 text-muted-foreground" />
-            <span>{alert.userPhone}</span>
+            <a
+              href={`tel:${alert.userPhone}`}
+              className="text-primary underline-offset-2 hover:underline"
+            >
+              {alert.userPhone}
+            </a>
           </div>
         )}
         <div className="flex items-center gap-2 text-sm">
@@ -162,26 +187,35 @@ export function LiveSOSFeed({
           )}
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-success status-dot-active" />
-          <span className="text-xs text-muted-foreground">Connected</span>
+          {attentionAlerts.length > 0 && (
+            <span className="text-xs text-muted-foreground">
+              {attentionAlerts.length} need attention
+            </span>
+          )}
         </div>
       </CardHeader>
       <CardContent className="min-h-0 flex-1 p-0 pb-2">
-        <ScrollArea className={contentHeightClassName} data-testid="live-sos-feed-scroll-area">
-          <div className="space-y-2 p-4 pb-8 pt-0">
-            {attentionAlerts.map((alert) => renderAlertCard(alert, { emphasized: true }))}
+        <DataState
+          status={status}
+          error={error}
+          onRetry={onRetry}
+          emptyTitle={emptyTitle}
+          emptyDescription={emptySubtitle}
+          skeleton={
+            <div
+              data-testid="live-sos-feed-skeleton"
+              className="m-4 h-24 animate-pulse rounded-md bg-muted"
+            />
+          }
+        >
+          <ScrollArea className={contentHeightClassName} data-testid="live-sos-feed-scroll-area">
+            <div className="space-y-2 p-4 pb-8 pt-0">
+              {attentionAlerts.map((alert) => renderAlertCard(alert, { emphasized: true }))}
 
-            {otherAlerts.map((alert) => renderAlertCard(alert))}
-
-            {alerts.length === 0 && (
-              <div className="py-8 text-center text-muted-foreground">
-                <Radio className="mx-auto mb-2 h-8 w-8 opacity-50" />
-                <p>{emptyTitle}</p>
-                <p className="text-sm">{emptySubtitle}</p>
-              </div>
-            )}
-          </div>
-        </ScrollArea>
+              {otherAlerts.map((alert) => renderAlertCard(alert))}
+            </div>
+          </ScrollArea>
+        </DataState>
       </CardContent>
     </Card>
   );

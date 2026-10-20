@@ -224,4 +224,156 @@ describe("LiveSOSFeed", () => {
     fireEvent.click(screen.getByRole("button", { name: /Mark as Resolved/i }));
     expect(onResolve).toHaveBeenCalledWith(expect.objectContaining({ id: "7" }));
   });
+
+  it("shows the loading state instead of 'no alerts' while the queue loads", () => {
+    render(
+      <LiveSOSFeed
+        alerts={[]}
+        loading
+        error={null}
+        emptyTitle="No live SOS alerts"
+        emptySubtitle="Monitoring for emergencies..."
+      />
+    );
+
+    expect(screen.queryByText("No live SOS alerts")).not.toBeInTheDocument();
+    expect(screen.getByTestId("live-sos-feed-skeleton")).toBeInTheDocument();
+  });
+
+  it("shows the error with a retry action instead of the empty state", () => {
+    const onRetry = vi.fn();
+    render(
+      <LiveSOSFeed
+        alerts={[]}
+        loading={false}
+        error={new Error("queue unavailable")}
+        onRetry={onRetry}
+        emptyTitle="No live SOS alerts"
+      />
+    );
+
+    expect(screen.getByText("queue unavailable")).toBeInTheDocument();
+    expect(screen.queryByText("No live SOS alerts")).not.toBeInTheDocument();
+  });
+
+  it("does not render a Connected badge", () => {
+    render(
+      <LiveSOSFeed
+        alerts={[
+          {
+            id: "10",
+            status: "active",
+            requires_attention: true,
+            timestamp: "2026-02-27T10:00:00.000Z",
+            userName: "Juan",
+            userPhone: null,
+            location: { address: "Dagupan City", latitude: null, longitude: null },
+            message: null,
+          },
+        ]}
+      />
+    );
+
+    expect(screen.queryByText("Connected")).not.toBeInTheDocument();
+  });
+
+  it("labels an active thread as Active, not Acknowledged", () => {
+    render(
+      <LiveSOSFeed
+        alerts={[
+          {
+            id: "11",
+            status: "active",
+            requires_attention: false,
+            acknowledged_at: null,
+            timestamp: "2026-02-27T10:00:00.000Z",
+            userName: "Juan",
+            userPhone: null,
+            location: { address: "Dagupan City", latitude: null, longitude: null },
+            message: null,
+          },
+        ]}
+      />
+    );
+
+    expect(screen.queryByText("ACKNOWLEDGED")).not.toBeInTheDocument();
+    expect(screen.getByText("Active")).toBeInTheDocument();
+  });
+
+  it("makes the phone number a tappable link", () => {
+    render(
+      <LiveSOSFeed
+        alerts={[
+          {
+            id: "12",
+            status: "active",
+            requires_attention: false,
+            timestamp: "2026-02-27T10:00:00.000Z",
+            userName: "Joan",
+            userPhone: "09171234567",
+            location: { address: "Lingayen", latitude: null, longitude: null },
+            message: null,
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByRole("link", { name: "09171234567" })).toHaveAttribute(
+      "href",
+      "tel:09171234567"
+    );
+  });
+
+  it("shows the newest thread first", () => {
+    render(
+      <LiveSOSFeed
+        alerts={[
+          {
+            id: "old",
+            status: "active",
+            requires_attention: false,
+            timestamp: "2026-02-27T09:00:00.000Z",
+            userName: "OlderThread",
+            userPhone: null,
+            location: { address: "Dagupan City", latitude: null, longitude: null },
+            message: null,
+          },
+          {
+            id: "new",
+            status: "active",
+            requires_attention: false,
+            timestamp: "2026-02-27T10:00:00.000Z",
+            userName: "NewerThread",
+            userPhone: null,
+            location: { address: "Dagupan City", latitude: null, longitude: null },
+            message: null,
+          },
+        ]}
+      />
+    );
+
+    const names = screen.getAllByText(/Thread$/, { selector: "span" }).map((el) => el.textContent);
+    expect(names).toEqual(["NewerThread", "OlderThread"]);
+  });
+
+  it("does not pulse the whole card", () => {
+    const { container } = render(
+      <LiveSOSFeed
+        alerts={[
+          {
+            id: "13",
+            status: "active",
+            requires_attention: true,
+            timestamp: "2026-02-27T10:00:00.000Z",
+            userName: "Juan",
+            userPhone: null,
+            location: { address: "Dagupan City", latitude: null, longitude: null },
+            message: null,
+          },
+        ]}
+      />
+    );
+
+    expect(container.querySelector(".animate-pulse")).toBeNull();
+  });
 });
