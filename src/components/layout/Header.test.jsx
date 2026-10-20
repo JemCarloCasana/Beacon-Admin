@@ -122,6 +122,12 @@ describe("Header notifications", () => {
     expect(screen.getAllByText("Juan Dela Cruz").length).toBeGreaterThan(0);
   });
 
+  it("offers a theme toggle", () => {
+    renderWithQueryClient(<Header onMenuClick={vi.fn()} />);
+
+    expect(screen.getByRole("button", { name: /theme/i })).toBeInTheDocument();
+  });
+
   it("opens decision modal only for actionable admin_request notification", async () => {
     useNotifications.mockReturnValue({
       data: [

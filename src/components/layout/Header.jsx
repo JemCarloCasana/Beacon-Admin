@@ -1,6 +1,7 @@
 import { CommandPalette } from './CommandPalette';
 import { useEffect, useMemo, useState } from 'react';
-import { Bell, LogOut, Menu } from 'lucide-react';
+import { Bell, LogOut, Menu, SunMoon } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -38,6 +39,7 @@ export function Header({ onMenuClick, title }) {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { me, logout, refreshMe } = useAuth();
+    const { theme, setTheme, resolvedTheme } = useTheme();
     const { toast } = useToast();
 
     const notificationsQuery = useNotifications();
@@ -318,6 +320,10 @@ export function Header({ onMenuClick, title }) {
         .slice(0, 2)
         .toUpperCase();
 
+    const toggleTheme = () => {
+        setTheme(resolvedTheme === "dark" ? "light" : "dark");
+    };
+
     return (
         <>
             <CommandPalette />
@@ -500,6 +506,10 @@ export function Header({ onMenuClick, title }) {
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>{me?.full_name || "Operator"}</DropdownMenuLabel>
                             <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={toggleTheme}>
+                                <SunMoon className="mr-2 h-4 w-4" />
+                                {resolvedTheme === "dark" ? "Use light theme" : "Use dark theme"}
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={handleLogout}>
                                 <LogOut className="mr-2 h-4 w-4" />
                                 Logout

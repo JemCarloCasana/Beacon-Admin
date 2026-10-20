@@ -176,6 +176,26 @@
   }
 }
 
+/* Respect a stated preference for less motion. The emergency pulse is the
+   most visually urgent thing in the app, and a continuous fade on the most
+   important text is exactly what an operator asked us not to do. */
+@media (prefers-reduced-motion: reduce) {
+  .pulse-emergency,
+  .status-dot-active,
+  .status-dot-active::after {
+    animation: none !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Keep map provider credits visible while removing the non-required logo mark. */
 .maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib {
   margin: 0 0.5rem 0.5rem 0;
