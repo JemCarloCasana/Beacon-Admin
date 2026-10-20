@@ -12,6 +12,26 @@ vi.mock("@/lib/mapStyle", async (importOriginal) => ({
 }));
 vi.mock("maplibre-gl", () => ({
   AttributionControl: class {},
+  NavigationControl: class {},
+  Marker: class {
+    constructor(options) {
+      this.options = options;
+      this.element = options.element;
+      this.lngLat = null;
+      this.removed = false;
+    }
+    setLngLat(lngLat) { this.lngLat = lngLat; return this; }
+    addTo(map) {
+      (map.markers ||= []).push(this);
+      // The real Marker appends its element to the map container.
+      map.options.container?.appendChild(this.element);
+      return this;
+    }
+    remove() {
+      this.removed = true;
+      this.element?.remove();
+    }
+  },
   Map: class {
     constructor(options) {
       this.options = options;
@@ -92,7 +112,8 @@ describe("Dagupan map restrictions", () => {
     expect(map.getMinZoom()).toBe(12.25);
     expect(map.getSource("dagupan-city").data).toBe(area);
     expect(map.getLayer("dagupan-city-outline").source).toBe("dagupan-city");
-    expect(map.getSource("markers").data.features.map((feature) => feature.properties.id)).toEqual([inside.id, edge.id]);
+    expect([...document.querySelectorAll(".beacon-marker")].map((el) => el.getAttribute("aria-label")))
+      .toEqual(["SOS", "Incidents"]);
     expect(markers).toEqual([inside, edge, outside, hole]);
     expect(map.flyTo).toHaveBeenLastCalledWith(expect.objectContaining({ center: [inside.lng, inside.lat] }));
     map.cameraForBounds.mockReturnValue({ zoom: 14 });
@@ -112,7 +133,7 @@ describe("Dagupan map restrictions", () => {
     expect(map.flyTo).not.toHaveBeenCalled();
     rerender(<MapCanvas ref={ref} markers={[inside, hole]} selectedMarker={hole} />);
     expect(map.flyTo).not.toHaveBeenCalled();
-    expect(map.getSource("markers").data.features).toHaveLength(1);
+    expect(document.querySelectorAll(".beacon-marker")).toHaveLength(1);
     rerender(<MapCanvas ref={ref} markers={[inside, edge]} selectedMarker={inside} />);
     expect(screen.queryByText(/outside Dagupan City/)).not.toBeInTheDocument();
     expect(map.flyTo).toHaveBeenLastCalledWith(expect.objectContaining({ center: [inside.lng, inside.lat] }));
@@ -133,15 +154,32 @@ describe("Dagupan map restrictions", () => {
       map.layers = {};
       map.emit("style.load");
       map.emit("style.load");
-      map.emit("click:incident-points", { features: [{ properties: { id: edge.id } }] });
     });
     expect(state.maps).toHaveLength(1);
     expect(map.getSource("dagupan-city").data).toBe(area);
     expect(map.getLayer("dagupan-city-outline")).toBeDefined();
-    expect(map.getSource("markers").data.features.map((feature) => feature.properties.id)).toEqual([edge.id]);
+    expect(document.querySelectorAll(".beacon-marker")).toHaveLength(1);
+
+    // The marker is a real button, so it selects on click.
+    fireEvent.click(document.querySelector(".beacon-marker"));
     expect(newSelect).toHaveBeenCalledExactlyOnceWith(edge.id);
     expect(oldSelect).not.toHaveBeenCalled();
     expect(map.options.maxBounds).toEqual([[120.30, 16.00], [120.38, 16.12]]);
+  });
+
+  it("gives the map an accessible name and a zoom control", async () => {
+    render(<MapCanvas markers={[inside]} />);
+    await loadedMap();
+
+    expect(screen.getByRole("application", { name: /map of incidents and sos threads/i })).toBeInTheDocument();
+  });
+
+  it("reports the markers the service area drops instead of showing a blank map", async () => {
+    render(<MapCanvas markers={[inside, outside]} />);
+    await loadedMap();
+
+    expect(document.querySelectorAll(".beacon-marker")).toHaveLength(1);
+    expect(screen.getByText(/outside Dagupan City and not shown/i)).toBeInTheDocument();
   });
 
   it.each([new Error("offline"), null])("fails closed and lets the operator retry a missing or invalid boundary", async (failure) => {

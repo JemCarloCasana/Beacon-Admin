@@ -98,8 +98,13 @@ export function useMapController() {
       showIncidents,
     },
     stats: {
-      sosCount: sosMarkers.length,
-      incidentCount: incidentMarkers.length,
+      // Count what is actually drawn, not everything that was fetched. A
+      // count that does not match the map is a number the operator cannot
+      // trust.
+      sosCount: visibleMarkers.filter((item) => item.type === "sos").length,
+      incidentCount: visibleMarkers.filter((item) => item.type === "incident").length,
+      sosTotal: sosMarkers.length,
+      incidentTotal: incidentMarkers.length,
       isRefetching,
       isLive: !error,
     },

@@ -1,19 +1,9 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM, getMapStyleConfig } from "@/lib/mapStyle";
-import { MAP_MARKER_TYPE_STYLES } from "@/lib/mapMarkerStyles";
+import { MARKER_TYPES, markerLabel } from "@/lib/mapMarkerStyles";
 import { apiGet } from "@/services/api";
+import { Button } from "@/components/ui/button";
 import { filterServiceAreaMarkers, isInsideServiceArea, validateServiceArea } from "@/lib/serviceArea";
-
-function markersToGeoJson(markers, area) {
-  return {
-    type: "FeatureCollection",
-    features: filterServiceAreaMarkers(markers, area).map((item) => ({
-      type: "Feature",
-      properties: { id: item.id, type: item.type, title: item.title },
-      geometry: { type: "Point", coordinates: [item.lng, item.lat] },
-    })),
-  };
-}
 
 export const MapCanvas = forwardRef(function MapCanvas(
   { markers, selectedMarker, onSelectMarker, onCenterChanged, heightClassName = "h-full" },
@@ -21,6 +11,8 @@ export const MapCanvas = forwardRef(function MapCanvas(
 ) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
+  const maplibreRef = useRef(null);
+  const markerRefs = useRef(new Map());
   const latestRef = useRef(null);
   const styleConfig = useMemo(() => getMapStyleConfig(), []);
   const [runtimeError, setRuntimeError] = useState(null);
@@ -28,6 +20,8 @@ export const MapCanvas = forwardRef(function MapCanvas(
   const [boundaryError, setBoundaryError] = useState(null);
   const [retry, setRetry] = useState(0);
   const [outsideFocus, setOutsideFocus] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
+  const [droppedCount, setDroppedCount] = useState(0);
   latestRef.current = { markers, selectedMarker, onSelectMarker, onCenterChanged, serviceArea };
 
   useEffect(() => {
@@ -75,6 +69,7 @@ export const MapCanvas = forwardRef(function MapCanvas(
       try {
         const maplibre = await import("maplibre-gl");
         if (cancelled) return;
+        maplibreRef.current = maplibre;
         const bounds = [[serviceArea.bbox[0], serviceArea.bbox[1]], [serviceArea.bbox[2], serviceArea.bbox[3]]];
         localMap = new maplibre.Map({
           container: containerRef.current,
@@ -87,6 +82,7 @@ export const MapCanvas = forwardRef(function MapCanvas(
         });
         mapRef.current = localMap;
         localMap.addControl(new maplibre.AttributionControl({ compact: true }), "bottom-right");
+        localMap.addControl(new maplibre.NavigationControl({ showCompass: true }), "top-right");
         const syncMinZoom = () => {
           const camera = localMap.cameraForBounds(bounds, { padding: 24 });
           if (Number.isFinite(camera?.zoom)) localMap.setMinZoom(camera.zoom);
@@ -123,40 +119,15 @@ export const MapCanvas = forwardRef(function MapCanvas(
               id: "dagupan-city-outline",
               type: "line",
               source: "dagupan-city",
-              paint: { "line-color": "#2563eb", "line-width": 2 },
-            });
-          }
-          if (!localMap.getSource("markers")) {
-            localMap.addSource("markers", { type: "geojson", data: markersToGeoJson(latestRef.current.markers, serviceArea) });
-          }
-          for (const type of ["sos", "incident"]) {
-            if (localMap.getLayer(`${type}-points`)) continue;
-            localMap.addLayer({
-              id: `${type}-points`,
-              type: "circle",
-              source: "markers",
-              filter: ["==", ["get", "type"], type],
-              paint: {
-                "circle-radius": MAP_MARKER_TYPE_STYLES[type].radius,
-                "circle-color": MAP_MARKER_TYPE_STYLES[type].color,
-                "circle-stroke-width": 1.5,
-                "circle-stroke-color": "#fff",
-              },
+              paint: { "line-color": "hsl(var(--primary))", "line-width": 2 },
             });
           }
         });
         localMap.on("load", () => {
-          if (!cancelled) focusMarker(latestRef.current.selectedMarker, 15);
+          if (cancelled) return;
+          setMapReady(true);
+          focusMarker(latestRef.current.selectedMarker, 15);
         });
-        // Bind interactions once; style reloads only rebuild the layers above.
-        for (const type of ["sos", "incident"]) {
-          localMap.on("click", `${type}-points`, (event) => {
-            const markerId = event?.features?.[0]?.properties?.id;
-            if (markerId) latestRef.current.onSelectMarker?.(markerId);
-          });
-          localMap.on("mouseenter", `${type}-points`, () => { localMap.getCanvas().style.cursor = "pointer"; });
-          localMap.on("mouseleave", `${type}-points`, () => { localMap.getCanvas().style.cursor = ""; });
-        }
         localMap.on("moveend", () => {
           const center = localMap.getCenter();
           latestRef.current.onCenterChanged?.({ lat: center.lat, lng: center.lng });
@@ -169,18 +140,57 @@ export const MapCanvas = forwardRef(function MapCanvas(
     return () => {
       cancelled = true;
       observer?.disconnect();
+      markerRefs.current.forEach((entry) => entry.marker.remove());
+      markerRefs.current.clear();
       localMap?.remove();
       if (mapRef.current === localMap) mapRef.current = null;
+      setMapReady(false);
     };
   }, [serviceArea, focusMarker, styleConfig.isValid, styleConfig.styleUrl]);
+
+  // Markers are DOM elements rather than map layers, so their shape, colour
+  // and focus ring are ordinary CSS, and each one is a real button.
+  useEffect(() => {
+    const map = mapRef.current;
+    const maplibre = maplibreRef.current;
+    if (!mapReady || !map || !maplibre || !serviceArea) return;
+
+    const visible = filterServiceAreaMarkers(markers || [], serviceArea);
+    const visibleIds = new Set(visible.map((item) => item.id));
+
+    markerRefs.current.forEach((entry, id) => {
+      if (visibleIds.has(id)) return;
+      entry.marker.remove();
+      markerRefs.current.delete(id);
+    });
+
+    visible.forEach((item) => {
+      let entry = markerRefs.current.get(item.id);
+      if (!entry) {
+        const element = document.createElement("button");
+        element.type = "button";
+        element.className = `beacon-marker beacon-marker--${item.type === "sos" ? "sos" : "incident"}`;
+        element.addEventListener("click", () => latestRef.current.onSelectMarker?.(item.id));
+        const marker = new maplibre.Marker({ element, anchor: "center" })
+          .setLngLat([item.lng, item.lat])
+          .addTo(map);
+        entry = { marker, element };
+        markerRefs.current.set(item.id, entry);
+      }
+      entry.marker.setLngLat([item.lng, item.lat]);
+      entry.element.setAttribute(
+        "aria-label",
+        markerLabel(item.type, item.title)
+      );
+    });
+
+    const dropped = (markers || []).length - visible.length;
+    setDroppedCount(dropped > 0 ? dropped : 0);
+  }, [mapReady, markers, serviceArea]);
 
   useEffect(() => {
     mapRef.current?.resize();
   }, [heightClassName]);
-
-  useEffect(() => {
-    mapRef.current?.getSource("markers")?.setData(markersToGeoJson(markers, serviceArea));
-  }, [markers, serviceArea]);
 
   useEffect(() => {
     setOutsideFocus(false);
@@ -199,12 +209,27 @@ export const MapCanvas = forwardRef(function MapCanvas(
     !isInsideServiceArea(serviceArea, selectedMarker.lng, selectedMarker.lat);
   return (
     <div className={`relative ${heightClassName} w-full`}>
-      <div ref={containerRef} className="h-full w-full" />
+      <div
+        ref={containerRef}
+        role="application"
+        aria-label="Map of incidents and SOS threads in Dagupan City"
+        className="h-full w-full"
+      />
       {(boundaryError || runtimeError || !serviceArea) && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background p-6 text-sm" role={boundaryError || runtimeError ? "alert" : "status"}>
           <p>{boundaryError || runtimeError || "Loading Dagupan City boundary..."}</p>
-          {boundaryError && <button className="rounded border px-3 py-2" onClick={() => setRetry((value) => value + 1)}>Retry</button>}
+          {boundaryError && (
+            <Button variant="outline" size="sm" onClick={() => setRetry((value) => value + 1)}>
+              Retry
+            </Button>
+          )}
         </div>
+      )}
+      {droppedCount > 0 && !boundaryError && !runtimeError && (
+        <p className="absolute left-3 bottom-3 rounded border bg-background/90 p-2 text-xs text-muted-foreground">
+          {droppedCount} {droppedCount === 1 ? "marker is" : "markers are"} outside Dagupan City and not
+          shown.
+        </p>
       )}
       {!boundaryError && !runtimeError && serviceArea && (outsideSelected || outsideFocus) && (
         <p role="status" className="absolute left-3 right-3 top-3 rounded border bg-background p-3 text-sm">

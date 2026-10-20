@@ -196,6 +196,71 @@
   }
 }
 
+/* Map markers. The shape carries the meaning as well as the colour: an SOS
+   is a triangle, an incident is a circle. */
+.beacon-marker {
+  position: relative;
+  display: block;
+  border: 2px solid hsl(var(--card));
+  border-radius: 9999px;
+  cursor: pointer;
+  padding: 0;
+  box-shadow: 0 1px 3px hsl(222 47% 11% / 0.35);
+  transition: transform 150ms ease;
+}
+
+.beacon-marker:hover,
+.beacon-marker:focus-visible {
+  transform: scale(1.15);
+}
+
+.beacon-marker:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+.beacon-marker--incident {
+  width: 18px;
+  height: 18px;
+  background: hsl(var(--warning));
+}
+
+.beacon-marker--sos {
+  width: 22px;
+  height: 22px;
+  background: hsl(var(--emergency));
+  border-radius: 4px;
+  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+}
+
+.beacon-marker--sos::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 9999px;
+  border: 2px solid hsl(var(--emergency));
+  animation: beacon-marker-pulse 1.6s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes beacon-marker-pulse {
+  0% { transform: scale(0.6); opacity: 0.9; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .beacon-marker--sos::after {
+    animation: none;
+    opacity: 0.4;
+  }
+  .beacon-marker,
+  .beacon-marker:hover,
+  .beacon-marker:focus-visible {
+    transition: none;
+    transform: none;
+  }
+}
+
 /* Keep map provider credits visible while removing the non-required logo mark. */
 .maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib {
   margin: 0 0.5rem 0.5rem 0;

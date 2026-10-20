@@ -105,12 +105,16 @@ export default function MapViewScreen({
                   <Badge variant="outline" className="mr-2">
                     <Radio className="mr-1 h-3 w-3 text-destructive" />
                     SOS {stats.sosCount}
+                    {stats.sosTotal > stats.sosCount ? ` of ${stats.sosTotal}` : ""}
                   </Badge>
                 )}
                 {canViewIncidents && (
                   <Badge variant="outline">
                     <AlertTriangle className="mr-1 h-3 w-3 text-warning" />
                     Incidents {stats.incidentCount}
+                    {stats.incidentTotal > stats.incidentCount
+                      ? ` of ${stats.incidentTotal}`
+                      : ""}
                   </Badge>
                 )}
                 <p className="text-xs text-muted-foreground">
