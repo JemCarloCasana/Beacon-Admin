@@ -1,8 +1,13 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import Incidents from "@/pages/Incidents";
 import { useIncidentDetail, useIncidentsAPI, useUpdateIncident } from "@/api/useIncidentsAPI";
 import { useAdminAuth } from "@/auth/AdminAuthProvider";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
+
+function LocationProbe() {
+  const location = useLocation();
+  return <div data-testid="location-search">{location.search}</div>;
+}
 
 vi.mock("@/api/useIncidentsAPI", () => ({
   useIncidentsAPI: vi.fn(),
@@ -26,8 +31,8 @@ describe("Incidents page", () => {
   const renderIncidents = () => render(
     <MemoryRouter initialEntries={["/incidents"]}>
       <Routes>
-        <Route path="/incidents" element={<Incidents />} />
-        <Route path="/incidents/:incidentId" element={<Incidents />} />
+        <Route path="/incidents" element={<><Incidents /><LocationProbe /></>} />
+        <Route path="/incidents/:incidentId" element={<><Incidents /><LocationProbe /></>} />
       </Routes>
     </MemoryRouter>
   );
@@ -55,6 +60,37 @@ describe("Incidents page", () => {
       mutateAsync: vi.fn().mockResolvedValue({ ok: true }),
       isPending: false,
     });
+  });
+
+  it("keeps the filter in the url", async () => {
+    renderIncidents();
+
+    const search = screen.getByLabelText(/search incidents/i);
+    fireEvent.change(search, { target: { value: "fire" } });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("location-search")).toHaveTextContent("q=fire");
+    });
+  });
+
+  it("reads the filters from the url on load", () => {
+    useIncidentsAPI.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+      error: null,
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/incidents?q=fire&status=pending"]}>
+        <Routes>
+          <Route path="/incidents" element={<Incidents />} />
+          <Route path="/incidents/:incidentId" element={<Incidents />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(screen.getByLabelText(/search incidents/i)).toHaveValue("fire");
   });
 
   it("loads the widest result set the backend allows, not one page", () => {

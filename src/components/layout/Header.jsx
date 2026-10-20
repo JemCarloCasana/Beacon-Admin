@@ -178,6 +178,9 @@ export function Header({ onMenuClick, title }) {
                 !dismissedInviteRequestIds.includes(getActionableAdminRequestId(notification))
         );
         if (unreadInvite) {
+            // Each invite starts from the least privilege. A widened
+            // selection from an earlier invite must not carry over.
+            setGrantedPermissions(DEFAULT_PROMOTED_ADMIN_PERMISSIONS);
             setInvitePopupNotification(unreadInvite);
         }
     }, [notifications, invitePopupNotification, dismissedInviteRequestIds]);

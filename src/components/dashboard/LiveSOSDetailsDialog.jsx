@@ -53,7 +53,8 @@ function formatShortDate(value) {
 
 function formatEmergencyLabel(value) {
   const normalized = String(value || "").trim().toLowerCase();
-  if (!normalized || normalized === "unknown") return "Emergency Alert";
+  if (!normalized) return "Emergency type not reported";
+  if (normalized === "unknown") return "Emergency type not reported";
   return `${normalized.charAt(0).toUpperCase()}${normalized.slice(1)} Emergency`;
 }
 
@@ -113,7 +114,7 @@ export function LiveSOSDetailsDialog({
     }
     return "Friend-side SOS notifications are best-effort and do not change the admin result shown here.";
   })();
-  const summaryTitle = detail?.assigned_unit || formatEmergencyLabel(detail?.emergencyType);
+  const summaryTitle = detail?.assigned_unit || "No responder assigned yet";
   const coordinatesLabel = Number.isFinite(detail?.location?.latitude) && Number.isFinite(detail?.location?.longitude)
     ? `${formatCoordinate(detail.location.latitude, detail.location.latitude >= 0 ? "N" : "S")} | ${formatCoordinate(detail.location.longitude, detail.location.longitude >= 0 ? "E" : "W")}`
     : "Coordinates unavailable";
@@ -253,6 +254,13 @@ export function LiveSOSDetailsDialog({
                         <div>
                           <p className="text-xs font-medium uppercase tracking-[0.15em] text-muted-foreground">Type</p>
                           <p className="mt-1 font-semibold text-foreground">{formatEmergencyLabel(detail.emergencyType)}</p>
+                          {!detail.emergencyType && detail.emergencyTypeFromMessage && (
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              The message appears to describe a{" "}
+                              {formatEmergencyLabel(detail.emergencyTypeFromMessage).replace(" Emergency", "")}{" "}
+                              emergency, but the person did not report a type.
+                            </p>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-start gap-3 rounded-2xl bg-muted/35 p-3">

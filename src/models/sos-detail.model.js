@@ -99,8 +99,13 @@ export function toSosDetailViewModel(data) {
   const emergencyTypeFromThread =
     resolveEmergencyCategory(thread?.emergency_category) ||
     resolveEmergencyCategory(thread?.category);
-  const emergencyTypeSource = pickEmergencyTypeText(thread, events);
-  const emergencyType = emergencyTypeFromThread || deriveEmergencyType(emergencyTypeSource);
+  // The reported category is the only thing that names an emergency. A guess
+  // taken from the free-text message is kept separate and labelled as an
+  // inference, so it can never be read as a reported fact.
+  const emergencyType = emergencyTypeFromThread;
+  const emergencyTypeFromMessage = emergencyTypeFromThread
+    ? null
+    : deriveEmergencyTypeFromMessage(pickEmergencyTypeText(thread, events));
 
   const requiresAttention = computeRequiresAttention(thread);
   const terminalLabel = deriveSosTerminalLabel({
@@ -147,6 +152,7 @@ export function toSosDetailViewModel(data) {
     message: thread?.latest_message || null,
     timestamp: thread?.latest_event_at || thread?.opened_at || null,
     emergencyType,
+    emergencyTypeFromMessage,
     location: {
       latitude,
       longitude,

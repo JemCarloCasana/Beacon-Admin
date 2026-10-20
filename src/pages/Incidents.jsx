@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -53,9 +53,11 @@ export default function Incidents() {
     const { me, hasPermission, loading: authLoading } = useAdminAuth();
     const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [selectedIncidentId, setSelectedIncidentId] = useState(null);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [statusFilter, setStatusFilter] = useState('all');
-    const [priorityFilter, setPriorityFilter] = useState('all');
+    const [searchParams, setSearchParams] = useSearchParams();
+    const [searchTerm, setSearchTerm] = useState(() => searchParams.get('q') || '');
+    const [statusFilter, setStatusFilter] = useState(() => searchParams.get('status') || 'all');
+    const [priorityFilter, setPriorityFilter] = useState(() => searchParams.get('priority') || 'all');
+    const appliedParamsRef = useRef(searchParams.toString());
     const [page, setPage] = useState(1);
     const pageSize = 20;
     // The backend caps a page at 100 and returns no total, so the widest
@@ -103,6 +105,19 @@ export default function Incidents() {
     const canGoPreviousPage = currentPage > 1;
     const canGoNextPage = currentPage < totalPages;
     const isFiltered = searchTerm.trim() !== '' || priorityFilter !== 'all' || statusFilter !== 'all';
+
+    // The filters live in the URL, so a filtered view can be shared, and it
+    // survives a refresh.
+    useEffect(() => {
+        const next = new URLSearchParams();
+        if (searchTerm.trim()) next.set('q', searchTerm);
+        if (statusFilter !== 'all') next.set('status', statusFilter);
+        if (priorityFilter !== 'all') next.set('priority', priorityFilter);
+        const serialized = next.toString();
+        if (serialized === appliedParamsRef.current) return;
+        appliedParamsRef.current = serialized;
+        setSearchParams(next, { replace: true });
+    }, [searchTerm, statusFilter, priorityFilter, setSearchParams]);
 
     useEffect(() => {
         if (!routeIncidentId) return;
