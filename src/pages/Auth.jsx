@@ -140,7 +140,10 @@ export default function Auth() {
                 <div className="relative group">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                   <Input
+                    id="login-email"
+                    name="email"
                     type="email"
+                    autoComplete="email"
                     placeholder="name@dagupan.gov"
                     className="pl-10 h-11 bg-muted/40/50 border-border focus-visible:ring-ring rounded-lg text-sm transition-all"
                     value={loginEmail}
@@ -166,7 +169,10 @@ export default function Auth() {
                 <div className="relative group">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                   <Input
+                    id="login-password"
+                    name="password"
                     type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
                     placeholder="********"
                     className="pl-10 pr-11 h-11 bg-muted/40/50 border-border focus-visible:ring-ring rounded-lg text-sm font-mono transition-all"
                     value={loginPassword}
