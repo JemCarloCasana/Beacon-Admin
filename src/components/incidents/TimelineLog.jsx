@@ -1,5 +1,7 @@
+import { useMemo } from "react";
 import { Clock3 } from "lucide-react";
 import { format, formatDistanceStrict } from "date-fns";
+import { toIncidentViewModel } from "@/models/incident.model";
 
 function toDateOrNull(value) {
   if (!value) return null;
@@ -49,7 +51,10 @@ function buildTimelineItems(incident) {
 }
 
 export function TimelineLog({ incident }) {
-  const items = buildTimelineItems(incident);
+  // Normalise here so the timeline reads the same field names whether it is
+  // handed a view model or a raw incident payload from the API.
+  const model = useMemo(() => (incident ? toIncidentViewModel(incident) : null), [incident]);
+  const items = buildTimelineItems(model);
 
   return (
     <div className="rounded-lg border p-4">
