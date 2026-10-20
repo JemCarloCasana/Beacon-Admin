@@ -11,6 +11,9 @@ export default function ProtectedRoute({ children, requiredPermission, requiredP
     return <Navigate to="/dashboard" replace />;
   }
 
+  // A list of required permissions means ANY ONE of them. The map is
+  // deliberately usable with partial access - useMapController gates each
+  // layer separately - so this must not become "all of".
   if (requiredPermissions && !requiredPermissions.some(hasPermission)) return <Navigate to="/dashboard" replace />;
   return children;
 }

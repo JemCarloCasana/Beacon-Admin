@@ -90,6 +90,7 @@ export function useMapController() {
 
   return {
     markers: visibleMarkers,
+    permissions: { canViewSos, canViewIncidents },
     selectedMarker,
     legendItems,
     filters: {

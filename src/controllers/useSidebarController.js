@@ -17,6 +17,9 @@ export function useSidebarController() {
     return (NAV_ITEMS || [])
       .map((group) => {
         const items = (group.items || []).filter((item) => {
+          // A list of required permissions means ANY ONE of them. The map is
+          // deliberately usable with partial access - useMapController gates
+          // each layer separately - so this must not become "all of".
           if (item.requiredPermissions) return !loading && item.requiredPermissions.some(hasPermission);
           if (!item.requiredPermission) return true;
           if (loading) return false;
