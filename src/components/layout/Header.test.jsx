@@ -27,7 +27,17 @@ vi.mock("@/api/useNotifications", () => ({
 }));
 
 vi.mock("@/api/useAdminRequests", () => ({
-  DEFAULT_PROMOTED_ADMIN_PERMISSIONS: ["manage_sos", "view_incidents", "manage_incidents", "manage_reports", "view_broadcasts", "manage_broadcasts"],
+  ADMIN_PERMISSION_CATALOG: [
+    "manage_users",
+    "manage_admins",
+    "manage_broadcasts",
+    "view_broadcasts",
+    "view_incidents",
+    "manage_incidents",
+    "manage_sos",
+    "manage_reports",
+  ],
+  DEFAULT_PROMOTED_ADMIN_PERMISSIONS: ["view_incidents"],
   useAcceptAdminRequest: vi.fn(),
   useRejectAdminRequest: vi.fn(),
 }));
@@ -128,6 +138,74 @@ describe("Header notifications", () => {
     expect(screen.getByRole("button", { name: /theme/i })).toBeInTheDocument();
   });
 
+  it("shows which permissions accepting an invite will grant", async () => {
+    useNotifications.mockReturnValue({
+      data: [
+        {
+          id: 1,
+          type: "admin_request",
+          title: "Admin Access Request",
+          metadata: { admin_request_id: "60" },
+          reference_id: "60",
+          is_read: false,
+          created_at: "2026-03-07T00:00:00.000Z",
+        },
+      ],
+      isLoading: false,
+      isError: false,
+      isFetching: false,
+      refetch: vi.fn(),
+    });
+
+    renderWithQueryClient(<Header onMenuClick={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Permissions to grant")).toBeInTheDocument();
+    });
+
+    // The read-only default is pre-selected, and the wider grants are not.
+    expect(screen.getByLabelText("view_incidents")).toBeChecked();
+    expect(screen.getByLabelText("manage_sos")).not.toBeChecked();
+    expect(screen.getByLabelText("manage_admins")).not.toBeChecked();
+  });
+
+  it("grants only the permissions the operator chose", async () => {
+    useNotifications.mockReturnValue({
+      data: [
+        {
+          id: 1,
+          type: "admin_request",
+          title: "Admin Access Request",
+          metadata: { admin_request_id: "61" },
+          reference_id: "61",
+          is_read: false,
+          created_at: "2026-03-07T00:00:00.000Z",
+        },
+      ],
+      isLoading: false,
+      isError: false,
+      isFetching: false,
+      refetch: vi.fn(),
+    });
+
+    renderWithQueryClient(<Header onMenuClick={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Permissions to grant")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByLabelText("manage_sos"));
+    fireEvent.click(screen.getByText("Accept"));
+
+    await waitFor(() => {
+      expect(mockAccept).toHaveBeenCalledWith({
+        requestId: "61",
+        role: "admin",
+        permissions: ["view_incidents", "manage_sos"],
+      });
+    });
+  });
+
   it("opens decision modal only for actionable admin_request notification", async () => {
     useNotifications.mockReturnValue({
       data: [
@@ -219,7 +297,7 @@ describe("Header notifications", () => {
       expect(mockAccept).toHaveBeenCalledWith({
         requestId: "56",
         role: "admin",
-        permissions: ["manage_sos", "view_incidents", "manage_incidents", "manage_reports", "view_broadcasts", "manage_broadcasts"],
+        permissions: ["view_incidents"],
       });
       expect(mockMarkRead).toHaveBeenCalledWith(8);
     });

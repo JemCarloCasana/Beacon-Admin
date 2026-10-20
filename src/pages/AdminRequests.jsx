@@ -223,6 +223,9 @@ export default function AdminRequests() {
                       <TableCell className="text-right">
                         {isPending ? (
                           <div className="flex items-center justify-end gap-2">
+                            <span className="text-xs text-muted-foreground">
+                              Grants: {DEFAULT_PROMOTED_ADMIN_PERMISSIONS.join(", ")}
+                            </span>
                             <Input
                               aria-label={`Decision note for request ${item.id}`}
                               placeholder="Decision note (optional)"

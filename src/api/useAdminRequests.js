@@ -1,14 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiPatch } from "@/services/api";
 
-const DEFAULT_PROMOTED_ADMIN_PERMISSIONS = [
-  "manage_sos",
+export const ADMIN_PERMISSION_CATALOG = [
+  "manage_users",
+  "manage_admins",
+  "manage_broadcasts",
+  "view_broadcasts",
   "view_incidents",
   "manage_incidents",
+  "manage_sos",
   "manage_reports",
-  "view_broadcasts",
-  "manage_broadcasts",
 ];
+
+// The least privilege that still lets a new admin work. The accept dialog
+// pre-selects this, and the operator can widen it - but never by accident.
+export const DEFAULT_PROMOTED_ADMIN_PERMISSIONS = ["view_incidents"];
 
 function normalizeAdminRequestsPayload(payload) {
   if (Array.isArray(payload)) return payload;

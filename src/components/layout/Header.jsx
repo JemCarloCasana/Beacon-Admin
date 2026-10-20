@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/dialog';
 import { useNotifications, useMarkNotificationRead } from '@/api/useNotifications';
 import {
+    ADMIN_PERMISSION_CATALOG,
     DEFAULT_PROMOTED_ADMIN_PERMISSIONS,
     useAcceptAdminRequest,
     useRejectAdminRequest,
@@ -40,6 +41,11 @@ export function Header({ onMenuClick, title }) {
     const queryClient = useQueryClient();
     const { me, logout, refreshMe } = useAuth();
     const { theme, setTheme, resolvedTheme } = useTheme();
+    // What the operator is about to hand over. Pre-selected with the least
+    // privilege, and widened only by a deliberate click.
+    const [grantedPermissions, setGrantedPermissions] = useState(
+        () => DEFAULT_PROMOTED_ADMIN_PERMISSIONS
+    );
     const { toast } = useToast();
 
     const notificationsQuery = useNotifications();
@@ -268,12 +274,12 @@ export function Header({ onMenuClick, title }) {
                 await acceptAdminRequestMutation.mutateAsync({
                     requestId,
                     role: 'admin',
-                    permissions: DEFAULT_PROMOTED_ADMIN_PERMISSIONS,
+                    permissions: grantedPermissions,
                 });
                 await refreshMe?.();
                 toast({
                     title: 'Request accepted',
-                    description: 'Admin permissions granted.',
+                    description: `Admin permissions granted: ${grantedPermissions.join(', ') || 'none'}.`,
                 });
             } else {
                 await rejectAdminRequestMutation.mutateAsync({ requestId });
@@ -346,6 +352,33 @@ export function Header({ onMenuClick, title }) {
                                 {invitePopupNotification.message || 'An admin access request is awaiting your review. Accept or reject it below.'}
                             </DialogDescription>
                         </DialogHeader>
+                        <div className="space-y-2">
+                            <p className="text-sm font-medium">Permissions to grant</p>
+                            <p className="text-xs text-muted-foreground">
+                                Choose exactly what this person needs. The default is read-only.
+                            </p>
+                            <div className="max-h-48 space-y-2 overflow-y-auto rounded border p-2">
+                                {ADMIN_PERMISSION_CATALOG.map((permission) => (
+                                    <label
+                                        key={permission}
+                                        className="flex cursor-pointer items-center gap-2 text-sm"
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={grantedPermissions.includes(permission)}
+                                            onChange={(event) =>
+                                                setGrantedPermissions((previous) =>
+                                                    event.target.checked
+                                                        ? [...previous, permission]
+                                                        : previous.filter((item) => item !== permission)
+                                                )
+                                            }
+                                        />
+                                        {permission}
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
                         <DialogFooter>
                             <Button
                                 variant="outline"
