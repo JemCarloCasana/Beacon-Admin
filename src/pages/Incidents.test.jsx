@@ -57,6 +57,32 @@ describe("Incidents page", () => {
     });
   });
 
+  it("loads the widest result set the backend allows, not one page", () => {
+    renderIncidents();
+
+    expect(useIncidentsAPI).toHaveBeenCalledWith(
+      expect.objectContaining({ page: 1, limit: 100 }),
+      expect.anything()
+    );
+  });
+
+  it("says how many incidents the search covers", () => {
+    useIncidentsAPI.mockReturnValue({
+      data: [
+        { id: 1, title: "Fire Incident", incident_type: "fire", priority: "critical", status: "pending" },
+        { id: 2, title: "Traffic Accident", incident_type: "traffic_accident", priority: "high", status: "pending" },
+      ],
+      isLoading: false,
+      isError: false,
+      error: null,
+    });
+
+    renderIncidents();
+
+    // The scope is stated, so nobody reads a filtered list as the whole list.
+    expect(screen.getByText(/searching the 100 most recent incidents/i)).toBeInTheDocument();
+  });
+
   it("renders incidents from API and removes New Incident button", () => {
     useIncidentsAPI.mockReturnValue({
       data: [
