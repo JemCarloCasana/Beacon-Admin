@@ -32,7 +32,7 @@ describe("useNotifications", () => {
     vi.clearAllMocks();
   });
 
-  it("maps reference_id from numeric metadata.admin_request_id", async () => {
+  it("maps reference_id from a string metadata.admin_request_id", async () => {
     apiGet.mockResolvedValueOnce([
       {
         id: 1,
@@ -46,15 +46,15 @@ describe("useNotifications", () => {
     const { result } = renderHook(() => useNotifications(), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data?.[0]?.reference_id).toBe(42);
+    expect(result.current.data?.[0]?.reference_id).toBe("42");
   });
 
-  it("keeps non-numeric admin_request_id non-actionable", async () => {
+  it("leaves reference_id null when no admin request id is present", async () => {
     apiGet.mockResolvedValueOnce([
       {
         id: 2,
         type: "admin_request",
-        metadata: { admin_request_id: "abc" },
+        metadata: {},
         is_read: false,
       },
     ]);
@@ -73,7 +73,7 @@ describe("useNotifications", () => {
           {
             id: 3,
             type: "admin_request",
-            metadata: { admin_request_id: 77 },
+            metadata: { admin_request_id: "77" },
             is_read: false,
           },
         ],
@@ -86,7 +86,7 @@ describe("useNotifications", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toHaveLength(1);
     expect(result.current.data?.[0]?.id).toBe(3);
-    expect(result.current.data?.[0]?.reference_id).toBe(77);
+    expect(result.current.data?.[0]?.reference_id).toBe("77");
   });
 
   it("reads notifications from deeper wrapper payload", async () => {
@@ -111,7 +111,7 @@ describe("useNotifications", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toHaveLength(1);
     expect(result.current.data?.[0]?.id).toBe(4);
-    expect(result.current.data?.[0]?.reference_id).toBe(88);
+    expect(result.current.data?.[0]?.reference_id).toBe("88");
   });
 
   it("configures polling and focus behavior on the notifications query", () => {

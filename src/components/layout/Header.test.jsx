@@ -99,8 +99,8 @@ describe("Header notifications", () => {
           id: 1,
           type: "admin_request",
           title: "Admin Access Request",
-          metadata: { admin_request_id: 55 },
-          reference_id: 55,
+          metadata: { admin_request_id: "55" },
+          reference_id: "55",
           is_read: false,
           created_at: "2026-03-07T00:00:00.000Z",
         },
@@ -131,8 +131,8 @@ describe("Header notifications", () => {
           type: "admin_request",
           title: "Admin Access Request",
           message: "Please review this elevated access request.",
-          metadata: { admin_request_id: 58 },
-          reference_id: 58,
+          metadata: { admin_request_id: "58" },
+          reference_id: "58",
           is_read: false,
           created_at: "2026-03-07T00:00:00.000Z",
         },
@@ -158,8 +158,8 @@ describe("Header notifications", () => {
         type: "admin_request",
         title: "Admin Access Request",
         message: "Please review",
-        metadata: { admin_request_id: 56 },
-        reference_id: 56,
+        metadata: { admin_request_id: "56" },
+        reference_id: "56",
         is_read: false,
         created_at: "2026-03-07T00:00:00.000Z",
       },
@@ -181,7 +181,7 @@ describe("Header notifications", () => {
 
     await waitFor(() => {
       expect(mockAccept).toHaveBeenCalledWith({
-        requestId: 56,
+        requestId: "56",
         role: "admin",
         permissions: ["manage_sos", "view_incidents", "manage_incidents", "manage_reports", "view_broadcasts", "manage_broadcasts"],
       });
@@ -210,8 +210,8 @@ describe("Header notifications", () => {
         type: "admin_request",
         title: "Admin Access Request",
         message: "Please review",
-        metadata: { admin_request_id: 57 },
-        reference_id: 57,
+        metadata: { admin_request_id: "57" },
+        reference_id: "57",
         is_read: false,
         created_at: "2026-03-07T00:00:00.000Z",
       },
@@ -232,7 +232,7 @@ describe("Header notifications", () => {
     fireEvent.click(screen.getByText("Reject"));
 
     await waitFor(() => {
-      expect(mockReject).toHaveBeenCalledWith({ requestId: 57 });
+      expect(mockReject).toHaveBeenCalledWith({ requestId: "57" });
       expect(mockMarkRead).toHaveBeenCalledWith(9);
     });
 
@@ -265,7 +265,7 @@ describe("Header notifications", () => {
           type: "admin_request",
           title: "Old Notification",
           message: "Missing request id",
-          metadata: { admin_request_id: "not-a-number" },
+          metadata: {},
           reference_id: null,
           is_read: false,
           created_at: "2026-03-07T00:00:00.000Z",
@@ -383,7 +383,6 @@ describe("Header notifications", () => {
           title: "Incident missing target",
           message: "No routeable id",
           metadata: {
-            incident_id: "not-a-number",
             reference_id: null,
             fallback_route: "/admin/unknown/123",
           },

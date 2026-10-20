@@ -56,7 +56,7 @@ describe("LiveSOS page", () => {
         return {
           data: [
             {
-              sos_id: 11,
+              sos_id: "11",
               latest_status: "cancelled",
               latest_message: "CANCELLED: duplicate trigger",
               latest_event_at: "2026-03-01T09:00:00.000Z",
@@ -74,7 +74,7 @@ describe("LiveSOS page", () => {
         return {
           data: [
             {
-              sos_id: 11,
+              sos_id: "11",
               latest_status: "resolved",
               latest_message: "CANCELLED: duplicate trigger",
               latest_event_at: "2026-03-01T09:00:00.000Z",
@@ -82,7 +82,7 @@ describe("LiveSOS page", () => {
               latest_address: "Calasiao",
             },
             {
-              sos_id: 12,
+              sos_id: "12",
               latest_status: "resolved",
               latest_message: "SAFE: assisted user",
               latest_event_at: "2026-03-01T08:00:00.000Z",
@@ -99,7 +99,7 @@ describe("LiveSOS page", () => {
       return {
         data: [
           {
-            sos_id: 1,
+            sos_id: "1",
             latest_status: "active",
             requires_attention: true,
             latest_event_at: "2026-03-01T10:00:00.000Z",
@@ -107,7 +107,7 @@ describe("LiveSOS page", () => {
             latest_address: "Dagupan",
           },
           {
-            sos_id: 2,
+            sos_id: "2",
             latest_status: "active",
             acknowledged_at: "2026-03-01T10:05:00.000Z",
             assigned_unit: "Emergency Medical Unit",
@@ -172,7 +172,7 @@ describe("LiveSOS page", () => {
     fireEvent.click(confirmButton);
     expect(mutateAsync).toHaveBeenCalledWith(
       expect.objectContaining({
-        sosId: 1,
+        sosId: "1",
         assigned_unit: "Police Personnel",
       })
     );
@@ -202,7 +202,7 @@ describe("LiveSOS page", () => {
       return {
         data: [
           {
-            sos_id: 2,
+            sos_id: "2",
             latest_status: "active",
             requires_attention: true,
             emergency_category: "fire",
@@ -211,7 +211,7 @@ describe("LiveSOS page", () => {
             latest_address: "Bonuan",
           },
           {
-            sos_id: 3,
+            sos_id: "3",
             latest_status: "active",
             assigned_unit: "Emergency Medical Unit",
             latest_event_at: "2026-03-01T10:01:00.000Z",
@@ -244,7 +244,7 @@ describe("LiveSOS page", () => {
     fireEvent.click(confirmButton);
     expect(mutateAsync).toHaveBeenCalledWith(
       expect.objectContaining({
-        sosId: 2,
+        sosId: "2",
         assigned_unit: "Fire Station Unit",
       })
     );
@@ -272,7 +272,7 @@ describe("LiveSOS page", () => {
     fireEvent.click(screen.getByRole("button", { name: /Confirm Resolve/i }));
 
     expect(mutateAsync).toHaveBeenCalledWith({
-      sosId: 1,
+      sosId: "1",
       terminalOutcome: "safe",
       note: "User confirmed safe",
     });
