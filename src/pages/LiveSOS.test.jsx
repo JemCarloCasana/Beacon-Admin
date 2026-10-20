@@ -1,7 +1,13 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import LiveSOS from "@/pages/LiveSOS";
 import { useAcknowledgeSOS, useResolveSOS, useSOSDetail, useSOSLiveQueue } from "@/api/useSosAPI";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
+
+const { mockToast } = vi.hoisted(() => ({ mockToast: vi.fn() }));
+
+vi.mock("@/hooks/use-toast", () => ({
+  useToast: () => ({ toast: mockToast }),
+}));
 
 vi.mock("@/api/useSosAPI", () => ({
   useSOSLiveQueue: vi.fn(),
@@ -292,6 +298,61 @@ describe("LiveSOS page", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Live SOS\s+1\s+Unassigned open SOS threads/i }));
     expect(screen.getByRole("tab", { name: /Live SOS \(1\)/i })).toHaveAttribute("data-state", "active");
+  });
+
+  it("tells the operator when acknowledging fails instead of doing nothing", async () => {
+    const mutateAsync = vi.fn().mockRejectedValue(new Error("network down"));
+    useAcknowledgeSOS.mockReturnValue({ mutateAsync, isPending: false });
+    mockToast.mockClear();
+
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: /Acknowledge/i }));
+    fireEvent.click(screen.getByRole("combobox"));
+    fireEvent.click(screen.getByText("Police Personnel"));
+    fireEvent.click(screen.getByRole("button", { name: /Confirm Acknowledge/i }));
+
+    await waitFor(() => {
+      expect(mockToast).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "Failed to acknowledge SOS", variant: "destructive" })
+      );
+    });
+  });
+
+  it("tells the operator when resolving fails instead of doing nothing", async () => {
+    const mutateAsync = vi.fn().mockRejectedValue(new Error("network down"));
+    useResolveSOS.mockReturnValue({ mutateAsync, isPending: false });
+    mockToast.mockClear();
+
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: /Details/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^Mark Resolved$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Confirm Resolve/i }));
+
+    await waitFor(() => {
+      expect(mockToast).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "Failed to resolve SOS", variant: "destructive" })
+      );
+    });
+  });
+
+  it("resolves a thread as cancelled when the operator picks that outcome", async () => {
+    const mutateAsync = vi.fn().mockResolvedValue({ ok: true });
+    useResolveSOS.mockReturnValue({ mutateAsync, isPending: false });
+
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: /Details/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^Mark Resolved$/i }));
+    fireEvent.click(screen.getByRole("radio", { name: "Caller cancelled" }));
+    fireEvent.click(screen.getByRole("button", { name: /Confirm Resolve/i }));
+
+    await waitFor(() => {
+      expect(mutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ terminalOutcome: "cancelled" })
+      );
+    });
   });
 
   it("reads the active tab from the URL query", () => {

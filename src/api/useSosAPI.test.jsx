@@ -100,6 +100,30 @@ describe("useSosAPI", () => {
     });
   });
 
+  it("resolve prefixes note with FALSE ALARM when the outcome is a false alarm", async () => {
+    apiPost.mockResolvedValue({ ok: true });
+    const wrapper = createWrapper();
+    const { result } = renderHook(() => useResolveSOS(), { wrapper });
+
+    await result.current.mutateAsync({ sosId: 123, terminalOutcome: "false_alarm", note: "no emergency found" });
+
+    expect(apiPost).toHaveBeenCalledWith("/admin/sos/123/resolve", {
+      note: "FALSE ALARM: no emergency found",
+    });
+  });
+
+  it("resolve still records the false alarm when there is no note", async () => {
+    apiPost.mockResolvedValue({ ok: true });
+    const wrapper = createWrapper();
+    const { result } = renderHook(() => useResolveSOS(), { wrapper });
+
+    await result.current.mutateAsync({ sosId: 123, terminalOutcome: "false_alarm" });
+
+    expect(apiPost).toHaveBeenCalledWith("/admin/sos/123/resolve", {
+      note: "FALSE ALARM:",
+    });
+  });
+
   it("acknowledge mutation throws when assigned_unit is missing", async () => {
     const wrapper = createWrapper();
     const { result } = renderHook(() => useAcknowledgeSOS(), { wrapper });

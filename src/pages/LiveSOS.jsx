@@ -25,6 +25,9 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
 import { Radio, Wifi, WifiOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -81,6 +84,7 @@ function dedupeAlertsById(alerts) {
 export default function LiveSOS() {
     const navigate = useNavigate();
     const location = useLocation();
+    const { toast } = useToast();
     const { sosId: routeSosId } = useParams();
     const [searchParams] = useSearchParams();
     const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -91,6 +95,7 @@ export default function LiveSOS() {
     const [ackAssignedUnit, setAckAssignedUnit] = useState("");
     const [resolveTarget, setResolveTarget] = useState(null);
     const [resolveNote, setResolveNote] = useState("");
+    const [resolveOutcome, setResolveOutcome] = useState("safe");
     const [activeTab, setActiveTab] = useState(() => getValidTab(searchParams.get('tab')));
 
     const liveQueueQuery = useSOSLiveQueue({ status: 'open', limit: 100 });
@@ -249,8 +254,12 @@ export default function LiveSOS() {
             }));
             setAckTargetId(null);
             setAckAssignedUnit("");
-        } catch (_error) {
-            // Keep existing server-driven state on mutation failure.
+        } catch (error) {
+            toast({
+                title: "Failed to acknowledge SOS",
+                description: error?.message || "Please try again.",
+                variant: "destructive",
+            });
         }
     };
 
@@ -261,15 +270,20 @@ export default function LiveSOS() {
         try {
             await resolveMutation.mutateAsync({
                 sosId,
-                terminalOutcome: "safe",
+                terminalOutcome: resolveOutcome,
                 note: resolveNote,
             });
             setResolveTarget(null);
             setResolveNote("");
+            setResolveOutcome("safe");
             setIsDetailOpen(false);
             setSelectedSosId(null);
-        } catch (_error) {
-            // Keep current UI state so the admin can retry or adjust the note.
+        } catch (error) {
+            toast({
+                title: "Failed to resolve SOS",
+                description: error?.message || "Please try again.",
+                variant: "destructive",
+            });
         }
     };
 
@@ -553,6 +567,7 @@ export default function LiveSOS() {
                     if (!open && !resolveMutation.isPending) {
                         setResolveTarget(null);
                         setResolveNote("");
+                        setResolveOutcome("safe");
                     }
                 }}
             >
@@ -572,6 +587,23 @@ export default function LiveSOS() {
                         </p>
                     )}
                     <div className="space-y-2">
+                        <p className="text-sm font-medium">Outcome</p>
+                        <RadioGroup value={resolveOutcome} onValueChange={setResolveOutcome}>
+                            <div className="flex items-center gap-2">
+                                <RadioGroupItem value="safe" id="resolve-outcome-safe" />
+                                <Label htmlFor="resolve-outcome-safe">Safe</Label>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <RadioGroupItem value="cancelled" id="resolve-outcome-cancelled" />
+                                <Label htmlFor="resolve-outcome-cancelled">Caller cancelled</Label>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <RadioGroupItem value="false_alarm" id="resolve-outcome-false-alarm" />
+                                <Label htmlFor="resolve-outcome-false-alarm">False alarm</Label>
+                            </div>
+                        </RadioGroup>
+                    </div>
+                    <div className="space-y-2">
                         <p className="text-sm font-medium">Resolution note (optional)</p>
                         <Textarea
                             value={resolveNote}
@@ -586,6 +618,7 @@ export default function LiveSOS() {
                             onClick={() => {
                                 setResolveTarget(null);
                                 setResolveNote("");
+                                setResolveOutcome("safe");
                             }}
                             disabled={resolveMutation.isPending}
                         >
