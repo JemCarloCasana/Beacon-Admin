@@ -1,4 +1,5 @@
 import { deriveSosTerminalLabel } from "@/models/sos-terminal-label";
+import { resolveEmergencyCategory } from "@/config/emergency";
 
 function toFiniteNumber(value) {
   if (value === null || value === undefined || value === "") return null;
@@ -6,27 +7,25 @@ function toFiniteNumber(value) {
   return Number.isFinite(number) ? number : null;
 }
 
-const EMERGENCY_TYPES = {
+const EMERGENCY_KEYWORDS = {
   medical: ["medical", "heart", "stroke", "seizure", "faint", "injury", "bleeding", "ambulance"],
   fire: ["fire", "smoke", "burn", "flame", "nasusunog"],
   violence: ["violence", "attack", "assault", "fight", "stab", "gun", "abuse"],
 };
 
-function normalizeEmergencyCategory(value) {
-  const normalized = String(value || "").trim().toLowerCase();
-  if (!normalized) return null;
-  if (normalized === "medical" || normalized === "fire" || normalized === "violence" || normalized === "unknown") {
-    return normalized;
-  }
-  if (normalized === "i dont know" || normalized === "i don't know") return "unknown";
-  return null;
-}
-
-function deriveEmergencyType(text) {
+/**
+ * DISPLAY ONLY.
+ *
+ * Infers an emergency type from free text so a thread can be labelled. It must
+ * never select a responder: the responder is fixed by the category the person
+ * reported, and a guess from a message can send the wrong unit to a real
+ * emergency.
+ */
+export function deriveEmergencyTypeFromMessage(text) {
   const normalized = String(text || "").toLowerCase();
-  if (EMERGENCY_TYPES.medical.some((keyword) => normalized.includes(keyword))) return "medical";
-  if (EMERGENCY_TYPES.fire.some((keyword) => normalized.includes(keyword))) return "fire";
-  if (EMERGENCY_TYPES.violence.some((keyword) => normalized.includes(keyword))) return "violence";
+  if (EMERGENCY_KEYWORDS.medical.some((keyword) => normalized.includes(keyword))) return "medical";
+  if (EMERGENCY_KEYWORDS.fire.some((keyword) => normalized.includes(keyword))) return "fire";
+  if (EMERGENCY_KEYWORDS.violence.some((keyword) => normalized.includes(keyword))) return "violence";
   return "unknown";
 }
 
@@ -48,9 +47,14 @@ export function toSosFeedAlert(item) {
     message: item?.latest_message,
   });
   const assignedUnit = item?.assigned_unit || item?.assignedUnit || null;
-  const emergencyTypeFromPayload =
-    normalizeEmergencyCategory(item?.emergency_category) || normalizeEmergencyCategory(item?.category);
-  const emergencyType = emergencyTypeFromPayload || deriveEmergencyType(item?.latest_message);
+  // The reported category is the only thing allowed to name an emergency. The
+  // message-derived type is a label hint and never selects a responder.
+  const reportedCategory =
+    resolveEmergencyCategory(item?.emergency_category) ??
+    resolveEmergencyCategory(item?.category);
+  const emergencyTypeSource = reportedCategory ? "payload" : null;
+  const emergencyType = reportedCategory;
+  const emergencyTypeFromMessage = deriveEmergencyTypeFromMessage(item?.latest_message);
 
   return {
     id: String(item?.sos_id ?? ""),
@@ -63,6 +67,8 @@ export function toSosFeedAlert(item) {
     assigned_unit: assignedUnit,
     assignedUnit,
     emergencyType,
+    emergencyTypeSource,
+    emergencyTypeFromMessage,
     timestamp: item?.latest_event_at || item?.opened_at || new Date().toISOString(),
     userName: item?.full_name || `User #${item?.user_id ?? "Unknown"}`,
     userPhone: item?.phone_number || null,

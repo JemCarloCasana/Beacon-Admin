@@ -1,10 +1,6 @@
 import { deriveSosTerminalLabel } from "@/models/sos-terminal-label";
-
-const EMERGENCY_TYPES = {
-  medical: ["medical", "heart", "stroke", "seizure", "faint", "injury", "bleeding", "ambulance"],
-  fire: ["fire", "smoke", "burn", "flame", "nasusunog"],
-  violence: ["violence", "attack", "assault", "fight", "stab", "gun", "abuse"],
-};
+import { deriveEmergencyTypeFromMessage } from "@/models/sos-live.model";
+import { resolveEmergencyCategory } from "@/config/emergency";
 
 function toFiniteNumber(value) {
   if (value === null || value === undefined || value === "") return null;
@@ -37,18 +33,6 @@ function pickEmergencyTypeText(thread, events) {
     .sort((a, b) => new Date(b?.created_at || 0).getTime() - new Date(a?.created_at || 0).getTime())[0];
 
   return String(latestEventWithMessage?.message || "").trim();
-}
-
-function normalizeEmergencyCategory(value) {
-  const normalized = String(value || "").trim().toLowerCase();
-  if (!normalized) return null;
-
-  if (normalized === "medical" || normalized === "fire" || normalized === "violence" || normalized === "unknown") {
-    return normalized;
-  }
-
-  if (normalized === "i dont know" || normalized === "i don't know") return "unknown";
-  return null;
 }
 
 function hasCancelledPrefix(value) {
@@ -99,14 +83,11 @@ function toEventLabel(event, isOldestEvent) {
   return status ? status.toUpperCase() : "ACTIVE";
 }
 
-export function deriveEmergencyType(text) {
-  const normalized = String(text || "").toLowerCase();
-
-  if (EMERGENCY_TYPES.medical.some((keyword) => normalized.includes(keyword))) return "medical";
-  if (EMERGENCY_TYPES.fire.some((keyword) => normalized.includes(keyword))) return "fire";
-  if (EMERGENCY_TYPES.violence.some((keyword) => normalized.includes(keyword))) return "violence";
-  return "unknown";
-}
+/**
+ * Kept under the previous name for existing callers. Display only: it infers
+ * an emergency type from free text and never selects a responder.
+ */
+export const deriveEmergencyType = deriveEmergencyTypeFromMessage;
 
 export function toSosDetailViewModel(data) {
   const thread = data?.thread || null;
@@ -116,8 +97,8 @@ export function toSosDetailViewModel(data) {
   const longitude = toFiniteNumber(thread?.latest_longitude);
 
   const emergencyTypeFromThread =
-    normalizeEmergencyCategory(thread?.emergency_category) ||
-    normalizeEmergencyCategory(thread?.category);
+    resolveEmergencyCategory(thread?.emergency_category) ||
+    resolveEmergencyCategory(thread?.category);
   const emergencyTypeSource = pickEmergencyTypeText(thread, events);
   const emergencyType = emergencyTypeFromThread || deriveEmergencyType(emergencyTypeSource);
 

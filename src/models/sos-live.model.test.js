@@ -1,4 +1,5 @@
 import { toSosFeedAlert } from "@/models/sos-live.model";
+import { unitForEmergencyCategory } from "@/config/emergency";
 
 describe("sos-live.model", () => {
   it("maps SosThread to LiveSOSFeed-compatible shape", () => {
@@ -25,7 +26,9 @@ describe("sos-live.model", () => {
       acknowledged_at: null,
       assigned_unit: null,
       assignedUnit: null,
-      emergencyType: "unknown",
+      emergencyType: null,
+      emergencyTypeSource: null,
+      emergencyTypeFromMessage: "unknown",
       timestamp: "2026-02-27T10:01:12.000Z",
       userName: "Juan Dela Cruz",
       userPhone: "+639171234567",
@@ -104,6 +107,52 @@ describe("sos-live.model", () => {
     });
 
     expect(result.emergencyType).toBe("medical");
+    expect(result.emergencyTypeSource).toBe("payload");
+  });
+
+  it("does not infer a responder from the message when no category was reported", () => {
+    const result = toSosFeedAlert({
+      sos_id: 1,
+      latest_status: "active",
+      latest_message: "my baby is burning",
+    });
+
+    expect(result.emergencyType).toBeNull();
+    expect(result.emergencyTypeSource).toBeNull();
+  });
+
+  it("keeps the message-derived type as a display-only hint", () => {
+    const result = toSosFeedAlert({
+      sos_id: 1,
+      latest_status: "active",
+      latest_message: "my baby is burning",
+    });
+
+    expect(result.emergencyTypeFromMessage).toBe("fire");
+  });
+
+  it("prefers the reported category over the message", () => {
+    const result = toSosFeedAlert({
+      sos_id: 3,
+      latest_status: "active",
+      emergency_category: "violence",
+      latest_message: "he collapsed and is not breathing",
+    });
+
+    expect(result.emergencyType).toBe("violence");
+    expect(result.emergencyTypeSource).toBe("payload");
+  });
+
+  it("records a reported 'i dont know' as reported, with no fixed responder", () => {
+    const result = toSosFeedAlert({
+      sos_id: 4,
+      latest_status: "active",
+      emergency_category: "i dont know",
+    });
+
+    expect(result.emergencyType).toBe("unknown");
+    expect(result.emergencyTypeSource).toBe("payload");
+    expect(unitForEmergencyCategory(result.emergencyType)).toBeNull();
   });
 
   it("derives Cancelled SOS terminal label for resolved rows with cancelled note convention", () => {
