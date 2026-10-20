@@ -75,8 +75,6 @@ export function useAcceptAdminRequest(options = {}) {
   });
 }
 
-export { DEFAULT_PROMOTED_ADMIN_PERMISSIONS };
-
 export function useRejectAdminRequest(options = {}) {
   const queryClient = useQueryClient();
 
