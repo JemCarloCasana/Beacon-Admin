@@ -7,7 +7,6 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Incidents from "./pages/Incidents";
 import LiveSOS from "./pages/LiveSOS";
-import SafetyAlerts from "./pages/SafetyAlerts";
 import MapView from "./pages/MapView";
 import Users from "./pages/Users";
 import AdminRequests from "./pages/AdminRequests";
@@ -68,15 +67,6 @@ const App = () => {
             element={
               <ProtectedRoute requiredPermission="manage_sos">
                 <LiveSOS />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/alerts"
-            element={
-              <ProtectedRoute requiredPermission="view_broadcasts">
-                <SafetyAlerts />
               </ProtectedRoute>
             }
           />
