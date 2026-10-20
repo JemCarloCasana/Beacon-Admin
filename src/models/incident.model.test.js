@@ -141,7 +141,7 @@ describe("incident.model", () => {
     expect(markerB).toBeNull();
   });
 
-  it("auto-derives priority from incident type for non-others", () => {
+  it("keeps the server's priority instead of deriving it from the incident type", () => {
     const fireIncident = toIncidentViewModel({
       id: 21,
       category: "fire",
@@ -154,11 +154,11 @@ describe("incident.model", () => {
       priority: "low",
     });
 
-    expect(fireIncident.priority).toBe("critical");
+    expect(fireIncident.priority).toBe("medium");
     expect(othersIncident.priority).toBe("low");
   });
 
-  it("auto-derives assigned department from incident type for non-others", () => {
+  it("falls back to the incident type proposal for assigned department when the server has none", () => {
     const fireIncident = toIncidentViewModel({
       id: 23,
       category: "fire",
@@ -225,6 +225,33 @@ describe("incident.model", () => {
       name: "",
       phone: "",
       email: "",
+    });
+  });
+
+  describe("toIncidentViewModel - server-owned fields", () => {
+    it("keeps the server's priority instead of the category proposal", () => {
+      const model = toIncidentViewModel({
+        id: 7, incident_type: "medical_emergency", priority: "low",
+        assigned_department: "Police Personnel",
+      });
+      expect(model.priority).toBe("low");
+      expect(model.assignedDepartment).toBe("Police Personnel");
+    });
+
+    it("offers the category proposal only as a proposal", () => {
+      const model = toIncidentViewModel({ id: 8, incident_type: "medical_emergency", priority: "low" });
+      expect(model.priorityProposal).toBe("critical");
+    });
+
+    it("uses the proposal when the server has no value", () => {
+      const model = toIncidentViewModel({ id: 9, incident_type: "traffic_accident" });
+      expect(model.priority).toBe("high");
+      expect(model.assignedDepartment).toBe("Traffic Enforcement Unit");
+    });
+
+    it("treats 'others' as 'other' for the proposal", () => {
+      const model = toIncidentViewModel({ id: 10, incident_type: "others" });
+      expect(model.priorityProposal).toBe("medium");
     });
   });
 });

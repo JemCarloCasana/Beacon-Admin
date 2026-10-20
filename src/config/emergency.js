@@ -41,6 +41,8 @@ export const INCIDENT_CATEGORY_PROPOSALS = {
   natural_disaster:      { unit: "Fire Station Unit",        priority: "high" },
   public_disturbance:    { unit: "Police Personnel",         priority: "medium" },
   other:                 { unit: null,                      priority: "medium" },
+  // The payload uses both spellings for the catch-all category.
+  others:                { unit: null,                      priority: "medium" },
 };
 
 const UNKNOWN_CATEGORY_ALIASES = new Set(["i dont know", "i don't know"]);
