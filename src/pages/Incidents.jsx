@@ -134,8 +134,9 @@ export default function Incidents() {
             title="Incidents"
             subtitle="Manage and track all reported incidents"
         >
+            <div className="space-y-6 p-4 md:p-6">
             {/* Filters */}
-            <Card className="mb-6">
+            <Card>
                 <CardContent className="flex flex-wrap items-center gap-4 py-4">
                     <div className="relative flex-1 min-w-[200px]">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -234,8 +235,8 @@ export default function Incidents() {
                                                 imageUrl={incident.imageUrl}
                                                 alt={`Incident ${incident.id || ''} thumbnail`.trim()}
                                                 className="h-12 w-12 rounded-md border object-cover"
-                                                loadingClassName="flex h-12 w-12 items-center justify-center rounded-md border bg-muted/20 text-[10px] text-muted-foreground"
-                                                fallbackClassName="flex h-12 w-12 items-center justify-center rounded-md border bg-muted/30 text-[10px] text-muted-foreground"
+                                                loadingClassName="flex h-12 w-12 items-center justify-center rounded-md border bg-muted/20 text-xs text-muted-foreground"
+                                                fallbackClassName="flex h-12 w-12 items-center justify-center rounded-md border bg-muted/30 text-xs text-muted-foreground"
                                                 fallbackText="No image"
                                                 loadingText="..."
                                             />
@@ -315,6 +316,7 @@ export default function Incidents() {
                 incidentPreview={selectedIncidentPreview}
                 canManage={hasPermission?.("manage_incidents") === true}
             />
+            </div>
         </DashboardLayout>
     );
 }

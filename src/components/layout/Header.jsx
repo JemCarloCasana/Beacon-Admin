@@ -391,7 +391,10 @@ export function Header({ onMenuClick, title }) {
                                 <Button variant="ghost" size="icon" aria-label="Notifications" className="relative h-9 w-9 text-muted-foreground">
                                     <Bell className="h-5 w-5" />
                                     {hasUnread && (
-                                        <span className="absolute right-0.5 top-0.5 inline-flex min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-4 text-white">
+                                        <span
+                                            aria-label={`${unreadCount} unread notifications`}
+                                            className="absolute right-0.5 top-0.5 inline-flex min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-xs font-bold leading-4 text-white"
+                                        >
                                             {unreadCount > 9 ? '9+' : unreadCount}
                                         </span>
                                     )}
@@ -432,7 +435,7 @@ export function Header({ onMenuClick, title }) {
                                                         type="button"
                                                         onClick={handleMarkAllAsRead}
                                                         disabled={markReadMutation.isPending}
-                                                        className="font-medium text-blue-600 transition hover:text-blue-700 disabled:cursor-not-allowed disabled:text-muted-foreground"
+                                                        className="font-medium text-primary transition hover:text-primary/80 disabled:cursor-not-allowed disabled:text-muted-foreground"
                                                     >
                                                         {markReadMutation.isPending ? 'Marking...' : 'Mark all as read'}
                                                     </button>
@@ -441,7 +444,7 @@ export function Header({ onMenuClick, title }) {
                                                     <button
                                                         type="button"
                                                         onClick={() => setShowAllNotifications(false)}
-                                                        className="font-medium text-slate-700 transition hover:text-slate-900"
+                                                        className="font-medium text-foreground transition hover:text-foreground"
                                                     >
                                                         Show less
                                                     </button>
@@ -449,7 +452,7 @@ export function Header({ onMenuClick, title }) {
                                                     <button
                                                         type="button"
                                                         onClick={() => setShowAllNotifications(true)}
-                                                        className="font-medium text-slate-700 transition hover:text-slate-900"
+                                                        className="font-medium text-foreground transition hover:text-foreground"
                                                     >
                                                         Show all
                                                     </button>
@@ -468,13 +471,13 @@ export function Header({ onMenuClick, title }) {
                                                         {notification.title || 'Notification'}
                                                     </p>
                                                     {!notification.is_read && (
-                                                        <span className="h-2 w-2 rounded-full bg-blue-600" />
+                                                        <span className="h-2 w-2 rounded-full bg-primary" />
                                                     )}
                                                 </div>
                                                 <p className="line-clamp-2 w-full text-xs text-muted-foreground">
                                                     {notification.message || notification.body || 'No message provided.'}
                                                 </p>
-                                                <p className="text-[10px] text-muted-foreground">
+                                                <p className="text-xs text-muted-foreground">
                                                     {formatNotificationDate(notification.created_at)}
                                                 </p>
                                             </DropdownMenuItem>

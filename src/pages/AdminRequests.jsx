@@ -25,10 +25,10 @@ import {
 import { AlertCircle, Check, Search, X } from "lucide-react";
 
 const statusClasses = {
-  pending: "bg-amber-100 text-amber-800",
-  approved: "bg-emerald-100 text-emerald-800",
-  rejected: "bg-red-100 text-red-800",
-  cancelled: "bg-slate-100 text-slate-700",
+  pending: "bg-warning text-warning-foreground",
+  approved: "bg-success text-success-foreground",
+  rejected: "bg-destructive text-destructive-foreground",
+  cancelled: "bg-muted text-foreground",
 };
 
 function RequestsSkeleton() {
@@ -119,7 +119,8 @@ export default function AdminRequests() {
 
   return (
     <DashboardLayout>
-      <Card className="mb-6">
+      <div className="space-y-6 p-4 md:p-6">
+      <Card>
         <CardContent className="flex items-center gap-4 py-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -140,7 +141,7 @@ export default function AdminRequests() {
       </Card>
 
       {requestsQuery.isError && (
-        <Alert variant="destructive" className="mb-6">
+        <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             {requestsQuery.error?.message || "Failed to load admin requests."}
@@ -188,7 +189,7 @@ export default function AdminRequests() {
                       </TableCell>
                       <TableCell>{item?.requested_by_admin_id || item?.requestedByAdminId || "-"}</TableCell>
                       <TableCell>
-                        <Badge className={statusClasses[item?.status] || "bg-slate-100 text-slate-700"}>
+                        <Badge className={statusClasses[item?.status] || "bg-muted text-foreground"}>
                           {item?.status || "unknown"}
                         </Badge>
                       </TableCell>
@@ -224,6 +225,7 @@ export default function AdminRequests() {
           )}
         </CardContent>
       </Card>
+      </div>
     </DashboardLayout>
   );
 }

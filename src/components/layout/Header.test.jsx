@@ -452,7 +452,7 @@ describe("Header notifications", () => {
     }));
 
     const view = renderWithQueryClient(<Header />);
-    expect(view.container.querySelector("span.bg-red-500")).toBeNull();
+    expect(view.container.querySelector("span.bg-destructive")).toBeNull();
 
     notificationState = [
       {
@@ -477,7 +477,7 @@ describe("Header notifications", () => {
     );
 
     await waitFor(() => {
-      expect(view.container.querySelector("span.bg-red-500")).not.toBeNull();
+      expect(view.container.querySelector("span.bg-destructive")).not.toBeNull();
     });
   });
 

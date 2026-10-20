@@ -72,6 +72,7 @@ export default function UsersView({
 }) {
   return (
     <DashboardLayout>
+      <div className="space-y-6 p-4 md:p-6">
       {!canManageUsers ? (
         <Card>
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
@@ -188,7 +189,7 @@ export default function UsersView({
             </DialogContent>
           </Dialog>
 
-          <Card className="mb-6">
+          <Card>
             <CardContent className="flex flex-col gap-4 py-4 md:flex-row md:items-center">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -221,7 +222,7 @@ export default function UsersView({
           </Card>
 
           {usersError && (
-            <Alert variant="destructive" className="mb-6">
+            <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
                 {usersError?.message || "Failed to load users. Please try again."}
@@ -328,6 +329,7 @@ export default function UsersView({
           </Card>
         </>
       )}
+      </div>
     </DashboardLayout>
   );
 }

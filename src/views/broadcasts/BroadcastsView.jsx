@@ -32,9 +32,9 @@ import {
 import { AlertCircle, Megaphone, RefreshCw, Send } from "lucide-react";
 
 const severityStyles = {
-  announcement: "bg-blue-100 text-blue-800",
-  warning: "bg-amber-100 text-amber-800",
-  danger: "bg-red-100 text-red-800",
+  announcement: "bg-info text-info-foreground",
+  warning: "bg-warning text-warning-foreground",
+  danger: "bg-destructive text-destructive-foreground",
 };
 
 function formatDateTime(value) {
@@ -86,7 +86,7 @@ function BroadcastTable({ items, isDraft, sending, canDeleteBroadcasts, actions 
               </div>
             </TableCell>
             <TableCell>
-              <Badge className={severityStyles[item.severity] || "bg-slate-100 text-slate-700"}>
+              <Badge className={severityStyles[item.severity] || "bg-muted text-foreground"}>
                 {item.severity || "announcement"}
               </Badge>
             </TableCell>

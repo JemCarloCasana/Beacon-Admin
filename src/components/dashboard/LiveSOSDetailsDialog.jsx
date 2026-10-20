@@ -181,7 +181,7 @@ export function LiveSOSDetailsDialog({
                         <Badge className={statusStyles[detailBadge.key] || statusStyles.active}>
                           {detailBadge.label}
                         </Badge>
-                        <Badge variant="outline" className="border-primary/20 bg-primary/5 text-[11px] uppercase tracking-[0.18em] text-primary">
+                        <Badge variant="outline" className="border-primary/20 bg-primary/5 text-xs uppercase tracking-[0.18em] text-primary">
                           ID: SOS-{detail.id || "-"}
                         </Badge>
                       </div>
@@ -195,7 +195,7 @@ export function LiveSOSDetailsDialog({
                       </div>
                     </div>
                     <div className="rounded-2xl border border-border/70 bg-muted/40 px-4 py-3 text-right">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                         Incident Time
                       </p>
                       <p className="mt-2 text-sm font-semibold text-foreground">{formatEventDate(detail.timestamp)}</p>
@@ -278,7 +278,7 @@ export function LiveSOSDetailsDialog({
                       <p className="mt-1 text-sm text-muted-foreground">Latest map position and GPS context for this SOS thread.</p>
                     </div>
                     <Badge variant="outline" className={cn(
-                      "rounded-full border text-[11px] uppercase tracking-[0.18em]",
+                      "rounded-full border text-xs uppercase tracking-[0.18em]",
                       mapMarker ? "border-primary/20 bg-primary/5 text-primary" : "border-border bg-muted/40 text-muted-foreground"
                     )}>
                       {trackingLabel}
