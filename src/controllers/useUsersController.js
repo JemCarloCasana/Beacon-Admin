@@ -167,8 +167,6 @@ export function useUsersController() {
     }
 
     const userLabel = user.full_name || user.email || `User #${user.id}`;
-    const isConfirmed = window.confirm(`Deactivate ${userLabel}?`);
-    if (!isConfirmed) return;
 
     try {
       setStatusUpdatingUserId(user.id ?? targetId);
@@ -202,8 +200,6 @@ export function useUsersController() {
     if (user?.status !== "deactivated") return;
 
     const userLabel = user.full_name || user.email || `User #${user.id}`;
-    const isConfirmed = window.confirm(`Reactivate ${userLabel}?`);
-    if (!isConfirmed) return;
 
     try {
       setStatusUpdatingUserId(user.id ?? targetId);
@@ -409,6 +405,7 @@ export function useUsersController() {
     searchQuery,
     statusFilter,
     users: filteredUsers,
+    usersTotal: users.length,
     usersLoading: usersQuery.isLoading,
     usersError: usersQuery.isError ? usersQuery.error : null,
     sendingAdminRequestId,

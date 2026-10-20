@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import UsersView from "@/views/users/UsersView";
 
 vi.mock("@/components/layout", () => ({
@@ -31,6 +31,21 @@ vi.mock("@/components/ui/dropdown-menu", () => ({
       {children}
     </button>
   ),
+}));
+
+vi.mock("@/components/ui/alert-dialog", () => ({
+  AlertDialog: ({ children, open }) => (open ? <div>{children}</div> : null),
+  AlertDialogContent: ({ children }) => <div>{children}</div>,
+  AlertDialogDescription: ({ children }) => <div>{children}</div>,
+  AlertDialogFooter: ({ children }) => <div>{children}</div>,
+  AlertDialogHeader: ({ children }) => <div>{children}</div>,
+  AlertDialogTitle: ({ children }) => <h2>{children}</h2>,
+  AlertDialogAction: ({ children, onClick }) => (
+    <button type="button" onClick={onClick}>
+      {children}
+    </button>
+  ),
+  AlertDialogCancel: ({ children }) => <button type="button">{children}</button>,
 }));
 
 describe("UsersView", () => {
@@ -71,6 +86,45 @@ describe("UsersView", () => {
       onSaveEditedUser: vi.fn(),
     },
   };
+
+  it("labels the search field", () => {
+    render(<UsersView {...baseProps} />);
+
+    expect(screen.getByLabelText(/search users by email or name/i)).toBeInTheDocument();
+  });
+
+  it("names the row action menu after the user it belongs to", () => {
+    render(<UsersView {...baseProps} />);
+
+    expect(screen.getByRole("button", { name: /actions for active user/i })).toBeInTheDocument();
+  });
+
+  it("confirms a deactivation in the app's own dialog", () => {
+    const actions = { ...baseProps.actions, onDeactivateUser: vi.fn() };
+    render(<UsersView {...baseProps} actions={actions} />);
+
+    // Nothing happens until the operator confirms.
+    fireEvent.click(screen.getByRole("button", { name: "Deactivate" }));
+    expect(actions.onDeactivateUser).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Deactivate account" }));
+    expect(actions.onDeactivateUser).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 1 })
+    );
+  });
+
+  it("renders a caption and scoped headers for the roster", () => {
+    render(<UsersView {...baseProps} />);
+
+    expect(screen.getByText(/one row per account/i)).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Email" })).toHaveAttribute("scope", "col");
+  });
+
+  it("shows the filtered count against the loaded count", () => {
+    render(<UsersView {...baseProps} users={baseProps.users.slice(0, 1)} usersTotal={2} />);
+
+    expect(screen.getByText(/1 of 2/)).toBeInTheDocument();
+  });
 
   it("renders status filter and status column", () => {
     render(<UsersView {...baseProps} />);

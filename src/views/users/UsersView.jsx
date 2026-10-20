@@ -1,10 +1,23 @@
+import { useState } from "react";
 import { DashboardLayout } from "@/components/layout";
+import { PAGINATION } from "@/config/constants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -24,6 +37,7 @@ import {
 import {
   Table,
   TableBody,
+  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -59,6 +73,7 @@ export default function UsersView({
   users,
   usersLoading,
   usersError,
+  usersTotal,
   sendingAdminRequestId,
   statusFilter,
   statusUpdatingUserId,
@@ -70,6 +85,17 @@ export default function UsersView({
   editForm,
   actions,
 }) {
+  const [pendingStatusChange, setPendingStatusChange] = useState(null);
+  const [page, setPage] = useState(1);
+
+  const pageSize = PAGINATION.DEFAULT_PAGE_SIZE;
+  const totalPages = Math.max(1, Math.ceil(users.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const visibleUsers = users.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
   return (
     <DashboardLayout>
       <div className="space-y-6 p-4 md:p-6">
@@ -92,16 +118,16 @@ export default function UsersView({
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <p className="text-sm font-medium">Full name</p>
-                  <Input
+                  <Label htmlFor="createForm-full_name" className="text-sm font-medium">Full name</Label>
+                  <Input id="createForm-full_name"
                     value={createForm?.full_name || ""}
                     onChange={(e) => actions.onCreateFormChange?.("full_name", e.target.value)}
                     placeholder="Enter full name"
                   />
                 </div>
                 <div className="space-y-2">
-                  <p className="text-sm font-medium">Email</p>
-                  <Input
+                  <Label htmlFor="createForm-email" className="text-sm font-medium">Email</Label>
+                  <Input id="createForm-email"
                     type="email"
                     value={createForm?.email || ""}
                     onChange={(e) => actions.onCreateFormChange?.("email", e.target.value)}
@@ -109,8 +135,8 @@ export default function UsersView({
                   />
                 </div>
                 <div className="space-y-2">
-                  <p className="text-sm font-medium">Password</p>
-                  <Input
+                  <Label htmlFor="createForm-password" className="text-sm font-medium">Password</Label>
+                  <Input id="createForm-password"
                     type="password"
                     value={createForm?.password || ""}
                     onChange={(e) => actions.onCreateFormChange?.("password", e.target.value)}
@@ -118,9 +144,9 @@ export default function UsersView({
                   />
                 </div>
                 <div className="space-y-2">
-                  <p className="text-sm font-medium">Role</p>
+                  <Label htmlFor="createForm-role" className="text-sm font-medium">Role</Label>
                   <Select value={createForm?.role || "personnel"} onValueChange={(value) => actions.onCreateFormChange?.("role", value)}>
-                    <SelectTrigger>
+                    <SelectTrigger id="createForm-role">
                       <SelectValue placeholder="Select role" />
                     </SelectTrigger>
                     <SelectContent>
@@ -153,16 +179,16 @@ export default function UsersView({
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <p className="text-sm font-medium">Full name</p>
-                  <Input
+                  <Label htmlFor="editForm-full_name" className="text-sm font-medium">Full name</Label>
+                  <Input id="editForm-full_name"
                     value={editForm?.full_name || ""}
                     onChange={(e) => actions.onEditFormChange?.("full_name", e.target.value)}
                     placeholder="Enter full name"
                   />
                 </div>
                 <div className="space-y-2">
-                  <p className="text-sm font-medium">Email</p>
-                  <Input
+                  <Label htmlFor="editForm-email" className="text-sm font-medium">Email</Label>
+                  <Input id="editForm-email"
                     type="email"
                     value={editForm?.email || ""}
                     onChange={(e) => actions.onEditFormChange?.("email", e.target.value)}
@@ -192,8 +218,12 @@ export default function UsersView({
           <Card>
             <CardContent className="flex flex-col gap-4 py-4 md:flex-row md:items-center">
               <div className="relative flex-1">
+                <Label htmlFor="user-search" className="sr-only">
+                  Search users by email or name
+                </Label>
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
+                  id="user-search"
                   placeholder="Search users by email or name..."
                   className="pl-9"
                   value={searchQuery}
@@ -201,8 +231,11 @@ export default function UsersView({
                 />
               </div>
               <div className="w-full md:w-52">
+                <Label htmlFor="user-status-filter" className="sr-only">
+                  Filter users by status
+                </Label>
                 <Select value={statusFilter} onValueChange={(value) => actions.setStatusFilter?.(value)}>
-                  <SelectTrigger>
+                  <SelectTrigger id="user-status-filter">
                     <SelectValue placeholder="Filter status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -216,6 +249,18 @@ export default function UsersView({
                 <Button className="w-full md:w-auto" onClick={() => actions.onOpenCreateUser?.()}>
                   <Plus className="mr-2 h-4 w-4" />
                   Add User
+                </Button>
+              )}
+              {(searchQuery || (statusFilter && statusFilter !== "all")) && (
+                <Button
+                  variant="outline"
+                  className="w-full md:w-auto"
+                  onClick={() => {
+                    actions.setSearchQuery?.("");
+                    actions.setStatusFilter?.("all");
+                  }}
+                >
+                  Clear filters
                 </Button>
               )}
             </CardContent>
@@ -232,7 +277,10 @@ export default function UsersView({
 
           <Card>
             <CardHeader>
-              <CardTitle>All Users ({users.length})</CardTitle>
+              <CardTitle>
+                Users ({users.length}
+                {typeof usersTotal === "number" && usersTotal !== users.length ? ` of ${usersTotal}` : ""})
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {usersLoading ? (
@@ -243,6 +291,9 @@ export default function UsersView({
                 </div>
               ) : (
                 <Table>
+                  <TableCaption className="sr-only">
+                    Beacon personnel, one row per account.
+                  </TableCaption>
                   <TableHeader>
                     <TableRow>
                       <TableHead>User</TableHead>
@@ -253,7 +304,7 @@ export default function UsersView({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {users.map((user) => (
+                    {visibleUsers.map((user) => (
                       <TableRow key={user.id}>
                         <TableCell>
                           <div className="flex items-center gap-3">
@@ -275,14 +326,25 @@ export default function UsersView({
                           {user.role || "personnel"}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={user.status === "deactivated" ? "secondary" : "outline"}>
+                          <Badge
+                            variant="outline"
+                            className={
+                              user.status === "deactivated"
+                                ? "border-destructive/40 text-destructive"
+                                : "border-success/40 text-success"
+                            }
+                          >
                             {user.status || "active"}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                aria-label={`Actions for ${user.full_name || user.email || user.id}`}
+                              >
                                 Actions
                                 <ChevronDown className="ml-2 h-4 w-4" />
                               </Button>
@@ -305,9 +367,10 @@ export default function UsersView({
                               <DropdownMenuItem
                                 className="text-destructive focus:text-destructive"
                                 onClick={() =>
-                                  user.status === "deactivated"
-                                    ? actions.onReactivateUser?.(user)
-                                    : actions.onDeactivateUser?.(user)
+                                  setPendingStatusChange({
+                                    user,
+                                    nextStatus: user.status === "deactivated" ? "active" : "deactivated",
+                                  })
                                 }
                                 disabled={statusUpdatingUserId === user.id}
                               >
@@ -325,10 +388,70 @@ export default function UsersView({
                   </TableBody>
                 </Table>
               )}
+              {users.length > pageSize && (
+                <div className="flex items-center justify-end gap-3 border-t pt-4">
+                  <span className="text-xs text-muted-foreground">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage <= 1}
+                    onClick={() => setPage((previous) => Math.max(1, previous - 1))}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage >= totalPages}
+                    onClick={() => setPage((previous) => Math.min(totalPages, previous + 1))}
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </>
       )}
+      <AlertDialog
+        open={Boolean(pendingStatusChange)}
+        onOpenChange={(open) => {
+          if (!open) setPendingStatusChange(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {pendingStatusChange?.nextStatus === "deactivated" ? "Deactivate" : "Reactivate"}{" "}
+              {pendingStatusChange?.user?.full_name || pendingStatusChange?.user?.email || "this account"}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingStatusChange?.nextStatus === "deactivated"
+                ? "They will lose access to the admin console immediately. You can reactivate them later."
+                : "They will be able to sign in to the admin console again."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const target = pendingStatusChange;
+                setPendingStatusChange(null);
+                if (!target) return;
+                if (target.nextStatus === "deactivated") {
+                  actions.onDeactivateUser?.(target.user);
+                } else {
+                  actions.onReactivateUser?.(target.user);
+                }
+              }}
+            >
+              {pendingStatusChange?.nextStatus === "deactivated" ? "Deactivate account" : "Reactivate account"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       </div>
     </DashboardLayout>
   );
