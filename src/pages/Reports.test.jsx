@@ -21,7 +21,17 @@ vi.mock("@/hooks/use-toast", () => ({
 }));
 
 vi.mock("@/components/ui/chart", () => ({
-  ChartContainer: ({ children }) => <div>{children}</div>,
+  ChartContainer: ({ children, title, description }) => (
+    <figure>
+      {title ? (
+        <figcaption className="sr-only">
+          {title}
+          {description ? `. ${description}` : ""}
+        </figcaption>
+      ) : null}
+      {children}
+    </figure>
+  ),
   ChartLegend: () => null,
   ChartLegendContent: () => null,
   ChartTooltip: () => null,
@@ -150,6 +160,24 @@ describe("Reports page", () => {
 
     expect(screen.getByText("—")).toBeInTheDocument();
     expect(screen.queryByText("Active SOS")).toBeInTheDocument();
+  });
+
+  it("gives every chart an accessible description", () => {
+    render(<Reports />);
+
+    const figures = screen.getAllByRole("figure");
+    expect(figures.length).toBeGreaterThan(0);
+    figures.forEach((figure) => {
+      expect(figure.querySelector("figcaption")).not.toBeNull();
+    });
+  });
+
+  it("separates the two series by more than colour", () => {
+    render(<Reports />);
+
+    // The SOS series is dashed, so the two lines are distinguishable without
+    // relying on hue - and the description says so.
+    expect(screen.getByText(/dashed line for SOS count/i)).toBeInTheDocument();
   });
 
   it("renders backend cards and KPI values", () => {

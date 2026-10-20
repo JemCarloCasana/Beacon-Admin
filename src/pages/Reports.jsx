@@ -43,7 +43,7 @@ const ICONS = {
 
 const CHART_CONFIG = {
   incidents: { label: "Incidents", color: "hsl(var(--primary))" },
-  sos: { label: "SOS", color: "hsl(var(--warning))" },
+  sos: { label: "SOS", color: "hsl(var(--emergency))" },
   avg_response_seconds: { label: "Avg Response (s)", color: "hsl(var(--info))" },
   avg_resolution_seconds: { label: "Avg Resolution (s)", color: "hsl(var(--success))" },
   value: { label: "Count", color: "hsl(var(--primary))" },
@@ -368,15 +368,20 @@ export default function Reports() {
                           <CardTitle className="text-base">Incidents vs SOS Trend</CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <ChartContainer config={CHART_CONFIG} className="h-[260px] w-full">
-                            <RechartsLineChart data={model.charts.incidentsTrend}>
+                          <ChartContainer
+                            config={CHART_CONFIG}
+                            className="h-[260px] w-full"
+                            title="Incidents versus SOS over time"
+                            description="A line for incident count and a dashed line for SOS count, across the selected range."
+                          >
+                            <RechartsLineChart data={model.charts.incidentsTrend} accessibilityLayer>
                               <CartesianGrid vertical={false} />
                               <XAxis dataKey="bucket" tickFormatter={formatChartBucket} />
                               <YAxis />
                               <ChartTooltip content={<ChartTooltipContent />} />
                               <ChartLegend content={<ChartLegendContent />} />
                               <RechartsLine type="monotone" dataKey="incidents" stroke="var(--color-incidents)" strokeWidth={2} />
-                              <RechartsLine type="monotone" dataKey="sos" stroke="var(--color-sos)" strokeWidth={2} />
+                              <RechartsLine type="monotone" dataKey="sos" stroke="var(--color-sos)" strokeWidth={2} strokeDasharray="6 3" />
                             </RechartsLineChart>
                           </ChartContainer>
                         </CardContent>
@@ -387,8 +392,8 @@ export default function Reports() {
                           <CardTitle className="text-base">Response and Resolution Trend</CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <ChartContainer config={CHART_CONFIG} className="h-[260px] w-full">
-                            <RechartsLineChart data={model.charts.responseTimeTrend}>
+                          <ChartContainer config={CHART_CONFIG} className="h-[260px] w-full" title="Average response and resolution time over time" description="A line for average response seconds and a dashed line for average resolution seconds, across the selected range.">
+                            <RechartsLineChart data={model.charts.responseTimeTrend} accessibilityLayer>
                               <CartesianGrid vertical={false} />
                               <XAxis dataKey="bucket" tickFormatter={formatChartBucket} />
                               <YAxis />
@@ -403,7 +408,7 @@ export default function Reports() {
                               <RechartsLine
                                 type="monotone"
                                 dataKey="avg_resolution_seconds"
-                                stroke="var(--color-avg_resolution_seconds)"
+                                stroke="var(--color-avg_resolution_seconds)" strokeDasharray="6 3"
                                 strokeWidth={2}
                               />
                             </RechartsLineChart>
@@ -424,12 +429,13 @@ export default function Reports() {
                           <CardTitle className="text-base">Incidents by Status</CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <ChartContainer config={CHART_CONFIG} className="h-[260px] w-full">
-                            <RechartsBarChart data={model.charts.incidentsByStatus}>
+                          <ChartContainer config={CHART_CONFIG} className="h-[260px] w-full" title="Incidents by status" description="A bar per incident status, counted over the selected range.">
+                            <RechartsBarChart data={model.charts.incidentsByStatus} accessibilityLayer>
                               <CartesianGrid vertical={false} />
                               <XAxis dataKey="label" />
                               <YAxis />
                               <ChartTooltip content={<ChartTooltipContent />} />
+                              <ChartLegend content={<ChartLegendContent />} />
                               <RechartsBar dataKey="value" fill="var(--color-value)" radius={4} />
                             </RechartsBarChart>
                           </ChartContainer>
@@ -441,12 +447,13 @@ export default function Reports() {
                           <CardTitle className="text-base">Incidents by Priority</CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <ChartContainer config={CHART_CONFIG} className="h-[260px] w-full">
-                            <RechartsBarChart data={model.charts.incidentsByPriority}>
+                          <ChartContainer config={CHART_CONFIG} className="h-[260px] w-full" title="Incidents by priority" description="A bar per priority level, counted over the selected range.">
+                            <RechartsBarChart data={model.charts.incidentsByPriority} accessibilityLayer>
                               <CartesianGrid vertical={false} />
                               <XAxis dataKey="label" />
                               <YAxis />
                               <ChartTooltip content={<ChartTooltipContent />} />
+                              <ChartLegend content={<ChartLegendContent />} />
                               <RechartsBar dataKey="value" fill="var(--color-value)" radius={4} />
                             </RechartsBarChart>
                           </ChartContainer>
@@ -466,12 +473,13 @@ export default function Reports() {
                           <CardTitle className="text-base">Most Reported Incident Categories</CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <ChartContainer config={CHART_CONFIG} className="h-[260px] w-full">
-                            <RechartsBarChart data={model.charts.incidentCategoriesFrequency}>
+                          <ChartContainer config={CHART_CONFIG} className="h-[260px] w-full" title="Incident categories by frequency" description="A bar per incident category, counted over the selected range.">
+                            <RechartsBarChart data={model.charts.incidentCategoriesFrequency} accessibilityLayer>
                               <CartesianGrid vertical={false} />
                               <XAxis dataKey="label" />
                               <YAxis />
                               <ChartTooltip content={<ChartTooltipContent />} />
+                              <ChartLegend content={<ChartLegendContent />} />
                               <RechartsBar dataKey="value" fill="var(--color-value)" radius={4} />
                             </RechartsBarChart>
                           </ChartContainer>
@@ -483,12 +491,13 @@ export default function Reports() {
                           <CardTitle className="text-base">Most Reported SOS Categories</CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <ChartContainer config={CHART_CONFIG} className="h-[260px] w-full">
-                            <RechartsBarChart data={model.charts.sosCategoriesFrequency}>
+                          <ChartContainer config={CHART_CONFIG} className="h-[260px] w-full" title="SOS categories by frequency" description="A bar per SOS category, counted over the selected range.">
+                            <RechartsBarChart data={model.charts.sosCategoriesFrequency} accessibilityLayer>
                               <CartesianGrid vertical={false} />
                               <XAxis dataKey="label" />
                               <YAxis />
                               <ChartTooltip content={<ChartTooltipContent />} />
+                              <ChartLegend content={<ChartLegendContent />} />
                               <RechartsBar dataKey="value" fill="var(--color-value)" radius={4} />
                             </RechartsBarChart>
                           </ChartContainer>
