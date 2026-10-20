@@ -27,7 +27,7 @@ vi.mock("@/api/useNotifications", () => ({
 }));
 
 vi.mock("@/api/useAdminRequests", () => ({
-  DEFAULT_PROMOTED_ADMIN_PERMISSIONS: ["manage_admins", "manage_users"],
+  DEFAULT_PROMOTED_ADMIN_PERMISSIONS: ["manage_sos", "view_incidents", "manage_incidents", "manage_reports", "view_broadcasts", "manage_broadcasts"],
   useAcceptAdminRequest: vi.fn(),
   useRejectAdminRequest: vi.fn(),
 }));
@@ -183,7 +183,7 @@ describe("Header notifications", () => {
       expect(mockAccept).toHaveBeenCalledWith({
         requestId: 56,
         role: "admin",
-        permissions: ["manage_admins", "manage_users"],
+        permissions: ["manage_sos", "view_incidents", "manage_incidents", "manage_reports", "view_broadcasts", "manage_broadcasts"],
       });
       expect(mockMarkRead).toHaveBeenCalledWith(8);
     });

@@ -91,7 +91,7 @@ function getDetailErrorMessage(statusCode, fallback) {
   return fallback || "Failed to load incident details.";
 }
 
-export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incidentPreview }) {
+export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incidentPreview, canManage = false }) {
   const { toast } = useToast();
   const detailQuery = useIncidentDetail(incidentId, {
     enabled: open && !!incidentId,
@@ -158,6 +158,7 @@ export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incident
   }, [incident?.id, incident?.imageUrl, incident?.imageUrls]);
 
   const onSave = async () => {
+    if (!canManage) return;
     if (!incident?.id) return;
     const effectivePriority = typeBasedPriority || priority;
     const effectiveAssignedDepartment = typeBasedAssignedDepartment || assignedDepartment || null;
@@ -314,7 +315,7 @@ export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incident
 
             <TimelineLog incident={incident} />
 
-            <div className="rounded-lg border p-4">
+            {canManage && <div className="rounded-lg border p-4">
               <div className="mb-3 text-sm font-medium">Update Incident</div>
               <div className="mb-3 rounded-md bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
                 Reporter notifications are sent only when status changes to Dispatched, In Progress, or Resolved.
@@ -417,7 +418,7 @@ export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incident
                   {updateIncidentMutation.isPending ? "Saving..." : "Save Changes"}
                 </Button>
               </div>
-            </div>
+            </div>}
           </div>
         )}
         </div>

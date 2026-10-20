@@ -3,6 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { fetchAdminMe, clearSession, getToken } from "@/api/adminMe";
 
+import { adminLogout } from "@/api/adminAuth";
+import { toast } from "sonner";
+
 const AdminAuthContext = createContext(null);
 
 export function AdminAuthProvider({ children }) {
@@ -12,7 +15,7 @@ export function AdminAuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const generation = useRef(0);
 
-  const logout = useCallback(() => {
+  const clearLocalSession = useCallback(() => {
     generation.current += 1;
     clearSession();
     setMe(null);
@@ -21,6 +24,14 @@ export function AdminAuthProvider({ children }) {
     queryClient.clear();
     navigate("/login", { replace: true });
   }, [navigate, queryClient]);
+
+  const logout = useCallback(async () => {
+    const token = getToken();
+    generation.current += 1;
+    try { if (token) await adminLogout(token); }
+    catch { toast.error("Signed out locally. Signing out all devices was not confirmed; retry when connected."); }
+    finally { clearLocalSession(); }
+  }, [clearLocalSession]);
 
   const refreshMe = useCallback(async () => {
     const requestGeneration = ++generation.current;
@@ -33,17 +44,17 @@ export function AdminAuthProvider({ children }) {
       return data;
     } catch (error) {
       if (requestGeneration !== generation.current || token !== getToken()) return null;
-      logout();
+      if (error?.status === 401 || (error?.status === 403 && /deactivated/i.test(error.message))) clearLocalSession();
       throw error;
     } finally {
       if (requestGeneration === generation.current) setLoading(false);
     }
-  }, [logout]);
+  }, [clearLocalSession]);
 
   useEffect(() => {
-    window.addEventListener("auth:logout", logout);
-    return () => window.removeEventListener("auth:logout", logout);
-  }, [logout]);
+    window.addEventListener("auth:logout", clearLocalSession);
+    return () => window.removeEventListener("auth:logout", clearLocalSession);
+  }, [clearLocalSession]);
 
   useEffect(() => {
     if (getToken()) void refreshMe().catch(() => {});

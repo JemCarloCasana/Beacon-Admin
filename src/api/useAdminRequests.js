@@ -2,8 +2,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiPatch } from "@/services/api";
 
 const DEFAULT_PROMOTED_ADMIN_PERMISSIONS = [
-  "manage_admins",
-  "manage_users",
+  "manage_sos",
+  "view_incidents",
+  "manage_incidents",
+  "manage_reports",
+  "view_broadcasts",
+  "manage_broadcasts",
 ];
 
 function normalizeAdminRequestsPayload(payload) {

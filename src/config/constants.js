@@ -71,21 +71,21 @@ export const NAV_ITEMS = [
     category: "COMMAND",
     items: [
       { path: "/dashboard", label: "Overview", icon: "LayoutDashboard" },
-      { path: "/sos", label: "SOS Screen", icon: "Radio" },
-      { path: "/incidents", label: "Incidents", icon: "AlertTriangle" },
+      { path: "/sos", label: "SOS Screen", icon: "Radio", requiredPermission: "manage_sos" },
+      { path: "/incidents", label: "Incidents", icon: "AlertTriangle", requiredPermission: "view_incidents" },
       {
         path: "/broadcasts",
         label: "Broadcasts",
         icon: "Megaphone",
-        requiredPermission: "manage_broadcasts",
+        requiredPermission: "view_broadcasts",
       },
     ],
   },
   {
     category: "ANALYSIS",
     items: [
-      { path: "/map", label: "Map View", icon: "Map" },
-      { path: "/reports", label: "Reports", icon: "FileText" },
+      { path: "/map", label: "Map View", icon: "Map", requiredPermissions: ["manage_sos", "view_incidents"] },
+      { path: "/reports", label: "Reports", icon: "FileText", requiredPermission: "manage_reports" },
 
       // Admin-only: Manage users
       {

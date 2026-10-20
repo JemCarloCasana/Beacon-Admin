@@ -49,7 +49,7 @@ const statusStyles = {
 export default function Incidents() {
     const navigate = useNavigate();
     const { incidentId: routeIncidentId } = useParams();
-    const { me, loading: authLoading } = useAdminAuth();
+    const { me, hasPermission, loading: authLoading } = useAdminAuth();
     const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [selectedIncidentId, setSelectedIncidentId] = useState(null);
     const [selectedIncidentPreview, setSelectedIncidentPreview] = useState(null);
@@ -313,6 +313,7 @@ export default function Incidents() {
                 onOpenChange={handleDetailOpenChange}
                 incidentId={selectedIncidentId}
                 incidentPreview={selectedIncidentPreview}
+                canManage={hasPermission?.("manage_incidents") === true}
             />
         </DashboardLayout>
     );

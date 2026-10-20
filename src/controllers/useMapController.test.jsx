@@ -1,4 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
+import { useAdminAuth } from "@/auth/AdminAuthProvider";
 import { useMapController } from "@/controllers/useMapController";
 import { useMapIncidents } from "@/api/useIncidentsAPI";
 import { useSOSLiveQueue } from "@/api/useSosAPI";
@@ -10,6 +11,8 @@ vi.mock("@/api/useSosAPI", () => ({
 vi.mock("@/api/useIncidentsAPI", () => ({
   useMapIncidents: vi.fn(),
 }));
+
+vi.mock("@/auth/AdminAuthProvider", () => ({ useAdminAuth: vi.fn() }));
 
 function mockDataHooks() {
   useSOSLiveQueue.mockReturnValue({
@@ -50,6 +53,7 @@ function mockDataHooks() {
 describe("useMapController", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useAdminAuth.mockReturnValue({hasPermission:()=>true});
     mockDataHooks();
   });
 
@@ -140,4 +144,14 @@ describe("useMapController", () => {
     expect(result.current.stats.incidentCount).toBe(0);
     expect(result.current.legendItems).toEqual([{ type: "sos" }]);
   });
+});
+
+it("hides revoked map data and suppresses forbidden queries and refreshes",()=>{
+  mockDataHooks(); useAdminAuth.mockReturnValue({hasPermission:()=>false});
+  const {result}=renderHook(()=>useMapController());
+  expect(result.current.markers).toEqual([]);
+  expect(useSOSLiveQueue).toHaveBeenLastCalledWith({status:"open",limit:500},{enabled:false});
+  expect(useMapIncidents).toHaveBeenLastCalledWith({enabled:false});
+  act(()=>result.current.actions.onRefresh());
+  expect(useSOSLiveQueue().refetch).not.toHaveBeenCalled();
 });

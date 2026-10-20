@@ -41,7 +41,7 @@ const App = () => {
           <Route
             path="/incidents"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="view_incidents">
                 <Incidents />
               </ProtectedRoute>
             }
@@ -49,7 +49,7 @@ const App = () => {
           <Route
             path="/incidents/:incidentId"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="view_incidents">
                 <Incidents />
               </ProtectedRoute>
             }
@@ -58,7 +58,7 @@ const App = () => {
           <Route
             path="/sos"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="manage_sos">
                 <LiveSOS />
               </ProtectedRoute>
             }
@@ -66,7 +66,7 @@ const App = () => {
           <Route
             path="/sos/:sosId"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="manage_sos">
                 <LiveSOS />
               </ProtectedRoute>
             }
@@ -75,7 +75,7 @@ const App = () => {
           <Route
             path="/alerts"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="view_broadcasts">
                 <SafetyAlerts />
               </ProtectedRoute>
             }
@@ -84,7 +84,7 @@ const App = () => {
           <Route
             path="/map"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermissions={["manage_sos", "view_incidents"]}>
                 <MapView />
               </ProtectedRoute>
             }
@@ -93,7 +93,7 @@ const App = () => {
           <Route
             path="/reports"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="manage_reports">
                 <Reports />
               </ProtectedRoute>
             }
@@ -111,7 +111,7 @@ const App = () => {
           <Route
             path="/broadcasts"
             element={
-              <ProtectedRoute requiredPermission="manage_broadcasts">
+              <ProtectedRoute requiredPermission="view_broadcasts">
                 <Broadcasts />
               </ProtectedRoute>
             }

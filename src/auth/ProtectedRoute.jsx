@@ -1,7 +1,7 @@
 import { Navigate } from "react-router-dom";
 import { useAdminAuth } from "@/auth/AdminAuthProvider";
 
-export default function ProtectedRoute({ children, requiredPermission }) {
+export default function ProtectedRoute({ children, requiredPermission, requiredPermissions }) {
   const { me, loading, hasPermission } = useAdminAuth();
 
   if (loading) return null;
@@ -11,5 +11,6 @@ export default function ProtectedRoute({ children, requiredPermission }) {
     return <Navigate to="/dashboard" replace />;
   }
 
+  if (requiredPermissions && !requiredPermissions.some(hasPermission)) return <Navigate to="/dashboard" replace />;
   return children;
 }

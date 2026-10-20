@@ -17,3 +17,13 @@ export async function adminLogin({ email, password }) {
 
   return parseJson(res);
 }
+
+export async function adminLogout(token) {
+  const response = await fetch(`${API_BASE}/admin/auth/logout`, { method: "POST", headers: { Authorization: `Bearer ${token}` } });
+  if (response.status !== 204) throw new Error("Server session invalidation was not confirmed");
+}
+
+export async function changeAdminPassword(token, current_password, new_password) {
+  const response = await fetch(`${API_BASE}/admin/auth/change-password`, { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ current_password, new_password }) });
+  if (response.status !== 204) return parseJson(response);
+}

@@ -6,6 +6,8 @@ import {
   toSosMarker,
 } from "@/models/map.model";
 
+import { useAdminAuth } from "@/auth/AdminAuthProvider";
+
 const ACTIVE_INCIDENT_STATUSES = new Set(["pending", "dispatched", "in_progress"]);
 
 function byLatest(a, b) {
@@ -15,12 +17,15 @@ function byLatest(a, b) {
 }
 
 export function useMapController() {
+  const { hasPermission } = useAdminAuth();
+  const canViewSos = hasPermission("manage_sos");
+  const canViewIncidents = hasPermission("view_incidents");
   const [showSos, setShowSos] = useState(true);
   const [showIncidents, setShowIncidents] = useState(true);
   const [selectedMarkerId, setSelectedMarkerId] = useState(null);
 
-  const sosQuery = useSOSLiveQueue({ status: "open", limit: 500 });
-  const incidentsQuery = useMapIncidents();
+  const sosQuery = useSOSLiveQueue({ status: "open", limit: 500 }, { enabled: canViewSos });
+  const incidentsQuery = useMapIncidents({ enabled: canViewIncidents });
 
   const sosMarkers = useMemo(() => {
     const list = Array.isArray(sosQuery.data) ? sosQuery.data : [];
@@ -37,10 +42,10 @@ export function useMapController() {
 
   const visibleMarkers = useMemo(() => {
     const list = [];
-    if (showSos) list.push(...sosMarkers);
-    if (showIncidents) list.push(...incidentMarkers);
+    if (showSos && canViewSos) list.push(...sosMarkers);
+    if (showIncidents && canViewIncidents) list.push(...incidentMarkers);
     return list.sort(byLatest);
-  }, [showSos, showIncidents, sosMarkers, incidentMarkers]);
+  }, [showSos, showIncidents, sosMarkers, incidentMarkers, canViewSos, canViewIncidents]);
 
   const selectedMarker = useMemo(
     () => visibleMarkers.find((item) => item.id === selectedMarkerId) || null,
@@ -79,9 +84,9 @@ export function useMapController() {
   }, []);
 
   const onRefresh = useCallback(() => {
-    sosQuery.refetch();
-    incidentsQuery.refetch();
-  }, [incidentsQuery, sosQuery]);
+    if (canViewSos) sosQuery.refetch();
+    if (canViewIncidents) incidentsQuery.refetch();
+  }, [incidentsQuery, sosQuery, canViewSos, canViewIncidents]);
 
   return {
     markers: visibleMarkers,

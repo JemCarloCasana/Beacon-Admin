@@ -17,6 +17,7 @@ export function useSidebarController() {
     return (NAV_ITEMS || [])
       .map((group) => {
         const items = (group.items || []).filter((item) => {
+          if (item.requiredPermissions) return !loading && item.requiredPermissions.some(hasPermission);
           if (!item.requiredPermission) return true;
           if (loading) return false;
           return hasPermission(item.requiredPermission);

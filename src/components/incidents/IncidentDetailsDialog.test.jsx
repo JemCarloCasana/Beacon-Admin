@@ -48,8 +48,8 @@ describe("IncidentDetailsDialog", () => {
 
   it("renders incident image when image URL exists", () => {
     render(
-      <IncidentDetailsDialog
-        open
+      <IncidentDetailsDialog canManage
+open
         onOpenChange={() => {}}
         incidentId={7}
       />
@@ -84,8 +84,8 @@ describe("IncidentDetailsDialog", () => {
     });
 
     render(
-      <IncidentDetailsDialog
-        open
+      <IncidentDetailsDialog canManage
+open
         onOpenChange={() => {}}
         incidentId={8}
       />
@@ -111,8 +111,8 @@ describe("IncidentDetailsDialog", () => {
     });
 
     render(
-      <IncidentDetailsDialog
-        open
+      <IncidentDetailsDialog canManage
+open
         onOpenChange={() => {}}
         incidentId={7}
       />
@@ -143,8 +143,8 @@ describe("IncidentDetailsDialog", () => {
     });
 
     render(
-      <IncidentDetailsDialog
-        open
+      <IncidentDetailsDialog canManage
+open
         onOpenChange={() => {}}
         incidentId={9}
       />
@@ -176,8 +176,8 @@ describe("IncidentDetailsDialog", () => {
     });
 
     render(
-      <IncidentDetailsDialog
-        open
+      <IncidentDetailsDialog canManage
+open
         onOpenChange={() => {}}
         incidentId={10}
       />
@@ -210,8 +210,8 @@ describe("IncidentDetailsDialog", () => {
     });
 
     render(
-      <IncidentDetailsDialog
-        open
+      <IncidentDetailsDialog canManage
+open
         onOpenChange={() => {}}
         incidentId={11}
       />
@@ -248,8 +248,8 @@ describe("IncidentDetailsDialog", () => {
     });
 
     render(
-      <IncidentDetailsDialog
-        open
+      <IncidentDetailsDialog canManage
+open
         onOpenChange={() => {}}
         incidentId={12}
       />
@@ -288,8 +288,8 @@ describe("IncidentDetailsDialog", () => {
     });
 
     render(
-      <IncidentDetailsDialog
-        open
+      <IncidentDetailsDialog canManage
+open
         onOpenChange={() => {}}
         incidentId={14}
       />
@@ -305,4 +305,11 @@ describe("IncidentDetailsDialog", () => {
       })
     );
   });
+});
+
+it("view-only personnel cannot edit an incident",()=>{
+  useIncidentDetail.mockReturnValue({data:{id:"case",title:"Fire Incident",status:"pending"},isLoading:false});
+  useUpdateIncident.mockReturnValue({mutateAsync:vi.fn(),isPending:false});
+  render(<IncidentDetailsDialog open incidentId="case" onOpenChange={()=>{}} />);
+  expect(screen.queryByRole("button",{name:"Save Changes"})).not.toBeInTheDocument();
 });
