@@ -337,9 +337,10 @@ export function toIncidentViewModel(input) {
   const proposal = INCIDENT_CATEGORY_PROPOSALS[normalizedIncidentType] || null;
   const priorityProposal = proposal?.priority || null;
   const departmentProposal = proposal?.unit || null;
-  const effectivePriority = incident?.priority || priorityProposal || null;
-  const effectiveAssignedDepartment =
-    incident?.assigned_department || incident?.assignedDepartment || departmentProposal || null;
+  const serverPriority = incident?.priority || null;
+  const serverDepartment = incident?.assigned_department || incident?.assignedDepartment || null;
+  const effectivePriority = serverPriority || priorityProposal || null;
+  const effectiveAssignedDepartment = serverDepartment || departmentProposal || null;
   const location = {
     latitude: coords?.latitude ?? null,
     longitude: coords?.longitude ?? null,
@@ -367,6 +368,8 @@ export function toIncidentViewModel(input) {
     assignedDepartment: effectiveAssignedDepartment,
     priorityProposal,
     departmentProposal,
+    serverPriority,
+    serverDepartment,
     assignedAdminId: incident?.assignedAdminId ?? incident?.assigned_admin_id ?? null,
     resolutionNotes: incident?.resolutionNotes || incident?.resolution_notes || "",
     raw: incident,
