@@ -46,7 +46,7 @@ export function IncidentDetailPanel({ incident, mapState, actions }) {
   }
 
   const priority = incident.priority || "unknown";
-  const priorityLabel = PRIORITY_CONFIG[priority]?.label || priority;
+  const priorityLabel = incident.priorityLabel || PRIORITY_CONFIG[priority]?.label || priority;
 
   return (
     <div className="flex h-full flex-col overflow-hidden border-l bg-card">

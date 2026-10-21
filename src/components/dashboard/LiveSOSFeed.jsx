@@ -78,7 +78,7 @@ export function LiveSOSFeed({
     if (status === "cancelled") return alert?.terminal_label || alert?.terminalLabel || "Cancelled SOS";
     if (status === "resolved") return alert?.terminal_label || alert?.terminalLabel || "Resolved";
     if (status === "active") return "Active";
-    return sosStatusLabel(status);
+    return alert?.statusLabel || sosStatusLabel(status);
   };
 
   const hasPrimaryAction = actionMode === "live" || actionMode === "dispatch";

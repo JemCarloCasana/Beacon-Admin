@@ -221,11 +221,11 @@ export default function BroadcastsView({
                       <SelectValue placeholder="Select severity" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="announcement">Announcement</SelectItem>
-                      <SelectItem value="info">Information</SelectItem>
-                      <SelectItem value="warning">Warning</SelectItem>
-                      <SelectItem value="danger">Danger</SelectItem>
-                      <SelectItem value="all_clear">All clear</SelectItem>
+                      {SEVERITY_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -401,7 +401,7 @@ export default function BroadcastsView({
               <label htmlFor="edit-broadcast-severity">Severity</label>
               <Select value={editForm?.severity || "announcement"} disabled={updating} onValueChange={(value) => actions.onEditFormChange("severity", value)}>
                 <SelectTrigger id="edit-broadcast-severity"><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="announcement">Announcement</SelectItem><SelectItem value="info">Information</SelectItem><SelectItem value="warning">Warning</SelectItem><SelectItem value="danger">Danger</SelectItem><SelectItem value="all_clear">All clear</SelectItem></SelectContent>
+                <SelectContent>{SEVERITY_OPTIONS.map((option) => (<SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>))}</SelectContent>
               </Select>
               {mutationError && <p role="alert" className="text-sm text-destructive">{mutationError}</p>}
               <DialogFooter><Button variant="outline" disabled={updating} onClick={actions.onCloseEditDialog}>Cancel</Button><Button disabled={updating} onClick={actions.onSaveDraft}>{updating ? "Saving..." : "Save Changes"}</Button></DialogFooter>

@@ -103,7 +103,7 @@ export function LiveSOSDetailsDialog({
     if (status === "active") return { key: "acknowledged", label: "Acknowledged" };
     if (status === "cancelled") return { key: "cancelled", label: detail?.terminal_label || detail?.terminalLabel || "Cancelled SOS" };
     if (status === "resolved") return { key: "resolved", label: detail?.terminal_label || detail?.terminalLabel || "Resolved" };
-    return { key: "active", label: sosStatusLabel(status) };
+    return { key: "active", label: detail?.statusLabel || sosStatusLabel(status) };
   })();
   const senderNotificationMessage = (() => {
     const status = String(detail?.status || "").toLowerCase();
