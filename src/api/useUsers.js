@@ -93,13 +93,16 @@ export async function updateUserStatus(userId, status) {
   return apiPatch(`/admin/users/${userId}`, { status: normalizedStatus });
 }
 
-export async function createUser({ full_name, email, password, role }) {
-  return apiPost("/admin/admins", {
-    full_name,
-    email,
-    password,
-    role,
-  });
+export async function createUser({ full_name, email, password, role, permissions }) {
+  const body = { full_name, email, password, role };
+
+  // The backend defaults a personnel account to no permissions at all,
+  // which locks it out of every protected route. Send the grant the
+  // operator chose, including an empty one, so the stored account is
+  // exactly what the screen showed.
+  if (Array.isArray(permissions)) body.permissions = permissions;
+
+  return apiPost("/admin/admins", body);
 }
 
 /**
