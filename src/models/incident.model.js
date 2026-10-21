@@ -1,5 +1,6 @@
 import { formatDistanceToNow } from "date-fns";
 import { INCIDENT_CATEGORY_PROPOSALS } from "@/config/emergency";
+import { STATUS_CONFIG, PRIORITY_CONFIG } from "@/config/constants";
 
 const API_BASE_URL = String(import.meta.env.VITE_API_BASE_URL || "http://localhost:3000").replace(/\/+$/, "");
 
@@ -396,6 +397,12 @@ export function toIncidentMapMarker(input) {
   };
 }
 
+function toTitleCase(value) {
+  const text = String(value || "");
+  if (!text) return "Unknown";
+  return text.charAt(0).toUpperCase() + text.slice(1).replace("_", " ");
+}
+
 /**
  * Normalize and shape incident data for dashboard UI.
  * @param {any} incident
@@ -420,7 +427,8 @@ export function toDashboardIncidentModel(incident) {
       timeAgo: formatDistanceToNow(date, { addSuffix: true }).replace("about ", ""),
       categoryLabel: incidentTypeLabel || "Other",
       address: incident?.location?.address || "",
-      statusLabel: status.charAt(0).toUpperCase() + status.slice(1).replace("_", " "),
+      statusLabel: STATUS_CONFIG[status]?.label || toTitleCase(status),
+      priorityLabel: PRIORITY_CONFIG[incident?.priority ?? "medium"]?.label || toTitleCase(incident?.priority),
     };
   } catch (_error) {
     return {
@@ -433,6 +441,7 @@ export function toDashboardIncidentModel(incident) {
       categoryLabel: "Other",
       address: "",
       statusLabel: "Pending",
+      priorityLabel: "Medium",
     };
   }
 }

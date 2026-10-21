@@ -26,7 +26,7 @@ export const PERMISSION_LABELS = {
   view_broadcasts: "View broadcasts",
   view_incidents: "View incidents",
   manage_incidents: "Manage incidents",
-  manage_sos: "Respond to SOS alerts",
+  manage_sos: "Respond to SOS requests",
   manage_reports: "Reports and exports",
 };
 

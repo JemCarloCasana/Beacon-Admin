@@ -27,6 +27,10 @@ describe("permissions config", () => {
     }
   });
 
+  it("names the SOS permission after the request it answers", () => {
+    expect(PERMISSION_LABELS.manage_sos).toBe("Respond to SOS requests");
+  });
+
   it("gives personnel the console features and no account management", () => {
     expect(rolePermissionPreset("personnel")).toEqual(CONSOLE_FEATURE_PERMISSIONS);
     expect(rolePermissionPreset("personnel")).toContain("manage_sos");

@@ -1,6 +1,7 @@
 import { deriveSosTerminalLabel } from "@/models/sos-terminal-label";
 import { deriveEmergencyTypeFromMessage } from "@/models/sos-live.model";
 import { resolveEmergencyCategory } from "@/config/emergency";
+import { sosStatusLabel } from "@/config/constants";
 
 function toFiniteNumber(value) {
   if (value === null || value === undefined || value === "") return null;
@@ -139,6 +140,7 @@ export function toSosDetailViewModel(data) {
   return {
     id: thread?.sos_id ? String(thread.sos_id) : "",
     status,
+    statusLabel: sosStatusLabel(status),
     terminal_label: terminalLabel,
     terminalLabel,
     requires_attention: requiresAttention,

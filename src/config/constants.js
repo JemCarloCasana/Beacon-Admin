@@ -62,6 +62,51 @@ export const STATUS_CONFIG = {
     closed: { label: 'Closed', color: 'muted' },
 };
 
+// The wording an operator reads for a backend value.
+//
+// A raw code that reaches the screen - ACKNOWLEDGED, all_clear, personnel -
+// tells the operator nothing. Every one of these maps exists so the screens
+// can name the value instead of printing it.
+
+/** SOS request states, in the order an operator meets them. */
+export const SOS_STATUS_CONFIG = {
+    active: 'New',
+    acknowledged: 'Acknowledged',
+    responding: 'Responding',
+    dispatched: 'Dispatched',
+    cancelled: 'Cancelled',
+    resolved: 'Resolved',
+};
+export const sosStatusLabel = (status) =>
+    SOS_STATUS_CONFIG[String(status || '').toLowerCase()] || 'Unknown';
+
+/** Account roles. */
+export const ROLE_CONFIG = {
+    admin: 'Administrator',
+    personnel: 'Personnel',
+};
+export const roleLabel = (role) =>
+    ROLE_CONFIG[String(role || '').toLowerCase()] || 'Personnel';
+
+/** Account states. */
+export const ACCOUNT_STATUS_CONFIG = {
+    active: 'Active',
+    deactivated: 'Deactivated',
+};
+export const accountStatusLabel = (status) =>
+    ACCOUNT_STATUS_CONFIG[String(status || '').toLowerCase()] || 'Active';
+
+/** Report ranges, in words rather than as duration codes. */
+export const RANGE_CONFIG = {
+    '24h': 'Last 24 hours',
+    '7d': 'Last 7 days',
+    '30d': 'Last 30 days',
+};
+export const rangeLabel = (range) => RANGE_CONFIG[range] || range;
+
+/** The timezone the reports are counted in, by name. */
+export const TIMEZONE_LABEL = 'Philippine Standard Time';
+
 // Navigation items grouped by category
 // Each item can optionally have a requiredPermission field
 // If specified, the menu item will only show for users with that permission

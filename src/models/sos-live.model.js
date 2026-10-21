@@ -1,5 +1,6 @@
 import { deriveSosTerminalLabel } from "@/models/sos-terminal-label";
 import { resolveEmergencyCategory } from "@/config/emergency";
+import { sosStatusLabel } from "@/config/constants";
 
 function toFiniteNumber(value) {
   if (value === null || value === undefined || value === "") return null;
@@ -59,6 +60,7 @@ export function toSosFeedAlert(item) {
   return {
     id: String(item?.sos_id ?? ""),
     status,
+    statusLabel: sosStatusLabel(status),
     terminal_label: terminalLabel,
     terminalLabel,
     requires_attention: requiresAttention,

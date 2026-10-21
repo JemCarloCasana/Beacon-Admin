@@ -1,6 +1,30 @@
-import { toIncidentListViewModel, toIncidentMapMarker, toIncidentViewModel } from "@/models/incident.model";
+import { toIncidentListViewModel, toIncidentMapMarker, toIncidentViewModel, toDashboardIncidentModel } from "@/models/incident.model";
 
 describe("incident.model", () => {
+  it("names the status and priority an operator reads", () => {
+    const incident = toDashboardIncidentModel({
+      id: 10,
+      status: "in_progress",
+      priority: "critical",
+      createdAt: "2026-02-27T10:00:00.000Z",
+    });
+
+    expect(incident.statusLabel).toBe("In Progress");
+    expect(incident.priorityLabel).toBe("Critical");
+  });
+
+  it("falls back to a known label when the status is not in the catalogue", () => {
+    const incident = toDashboardIncidentModel({
+      id: 11,
+      status: "escalated",
+      priority: "medium",
+      createdAt: "2026-02-27T10:00:00.000Z",
+    });
+
+    expect(incident.statusLabel).toBe("Escalated");
+    expect(incident.priorityLabel).toBe("Medium");
+  });
+
   it("normalizes legacy incident fields and string coordinates", () => {
     const incident = toIncidentViewModel({
       id: 10,
