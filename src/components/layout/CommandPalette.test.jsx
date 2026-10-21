@@ -127,7 +127,7 @@ describe("CommandPalette", () => {
     expect(screen.getByRole("option", { name: "Overview" })).toBeInTheDocument();
     expect(screen.queryByRole("option", { name: "Manage Users" })).not.toBeInTheDocument();
     expect(screen.queryByRole("option", { name: "Reports" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("option", { name: "SOS Screen" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "SOS Requests" })).not.toBeInTheDocument();
   });
 
   it("does not query incidents or SOS without the matching permission", async () => {

@@ -113,7 +113,7 @@ describe("ActiveSOSAlert", () => {
   it("shows a loading state instead of an all-clear banner", () => {
     renderBanner({ alert: null, loading: true });
 
-    expect(screen.queryByText(/no sos alerts requiring immediate attention/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/no sos requests need attention/i)).not.toBeInTheDocument();
   });
 
   it("shows an error with a retry instead of an all-clear banner", () => {
@@ -121,6 +121,6 @@ describe("ActiveSOSAlert", () => {
     renderBanner({ alert: null, error: new Error("queue down"), onRetry });
 
     expect(screen.getByText("queue down")).toBeInTheDocument();
-    expect(screen.queryByText(/no sos alerts requiring immediate attention/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/no sos requests need attention/i)).not.toBeInTheDocument();
   });
 });

@@ -144,7 +144,7 @@ describe("LiveSOS page", () => {
     });
   });
 
-  it("renders SOS Screen with live/dispatched/cancelled/resolved tabs", () => {
+  it("renders the SOS Requests screen with its four queues", () => {
     renderPage();
 
     expect(screen.getByRole("heading", { name: "SOS Requests" })).toBeInTheDocument();
@@ -418,7 +418,7 @@ describe("LiveSOS page", () => {
     expect(screen.getByTestId("live-sos-feed-scroll-area")).toHaveClass("min-h-[320px]");
   });
 
-  it("moves assigned open sos threads into dispatch", async () => {
+  it("moves assigned open SOS requests into dispatch", async () => {
     renderPage();
 
     expect(screen.getByRole("tab", { name: /Needs dispatch \(1\)/i })).toBeInTheDocument();

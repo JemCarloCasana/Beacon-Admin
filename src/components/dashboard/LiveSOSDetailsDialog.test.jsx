@@ -6,7 +6,7 @@ vi.mock("@/components/map/MapCanvas", () => ({
 }));
 
 describe("LiveSOSDetailsDialog", () => {
-  it("shows Mark Resolved for active or acknowledged SOS and calls handler", () => {
+  it("shows Resolve request for active or acknowledged SOS and calls handler", () => {
     const onMarkResolved = vi.fn();
 
     render(

@@ -125,10 +125,10 @@ export const severityLabel = (value) =>
 // If not specified, the item is visible to all authenticated users
 export const NAV_ITEMS = [
   {
-    category: "COMMAND",
+    category: "Operations",
     items: [
       { path: "/dashboard", label: "Overview", icon: "LayoutDashboard" },
-      { path: "/sos", label: "SOS Screen", icon: "Radio", requiredPermission: "manage_sos" },
+      { path: "/sos", label: "SOS Requests", icon: "Radio", requiredPermission: "manage_sos" },
       { path: "/incidents", label: "Incidents", icon: "AlertTriangle", requiredPermission: "view_incidents" },
       {
         path: "/broadcasts",
@@ -139,7 +139,7 @@ export const NAV_ITEMS = [
     ],
   },
   {
-    category: "ANALYSIS",
+    category: "Analysis",
     items: [
       { path: "/map", label: "Map View", icon: "Map", requiredPermissions: ["manage_sos", "view_incidents"] },
       { path: "/reports", label: "Reports", icon: "FileText", requiredPermission: "manage_reports" },
