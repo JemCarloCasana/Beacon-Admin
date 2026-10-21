@@ -107,6 +107,18 @@ export const rangeLabel = (range) => RANGE_CONFIG[range] || range;
 /** The timezone the reports are counted in, by name. */
 export const TIMEZONE_LABEL = 'Philippine Standard Time';
 
+/** Broadcast severity, with a label so severity is never carried by colour alone. */
+export const SEVERITY_OPTIONS = [
+    { value: 'announcement', label: 'Announcement' },
+    { value: 'info', label: 'Information' },
+    { value: 'warning', label: 'Warning' },
+    { value: 'danger', label: 'Danger' },
+    { value: 'all_clear', label: 'All clear' },
+];
+export const severityLabel = (value) =>
+    SEVERITY_OPTIONS.find((item) => item.value === String(value || '').toLowerCase())?.label ||
+    'Announcement';
+
 // Navigation items grouped by category
 // Each item can optionally have a requiredPermission field
 // If specified, the menu item will only show for users with that permission

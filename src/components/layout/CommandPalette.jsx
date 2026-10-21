@@ -81,7 +81,7 @@ export function CommandPalette() {
       <CommandInput
         value={search}
         onValueChange={setSearch}
-        placeholder="Search pages, incidents and SOS threads..."
+        placeholder="Search pages, incidents and SOS requests..."
       />
       <CommandList>
         <CommandEmpty>No results.</CommandEmpty>
@@ -113,14 +113,14 @@ export function CommandPalette() {
         )}
 
         {canManageSos && (
-          <CommandGroup heading="SOS threads">
+          <CommandGroup heading="SOS requests">
             {threads.map((thread) => (
               <CommandItem
                 key={thread.id}
                 value={`sos ${thread.userName} ${thread.id}`}
                 onSelect={() => go(`/sos/${thread.id}`)}
               >
-                {thread.userName} — SOS #{thread.id}
+                {thread.userName} - SOS request #{thread.id}
               </CommandItem>
             ))}
           </CommandGroup>

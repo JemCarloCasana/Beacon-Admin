@@ -171,7 +171,7 @@ describe("Dagupan map restrictions", () => {
     render(<MapCanvas markers={[inside]} />);
     await loadedMap();
 
-    expect(screen.getByRole("application", { name: /map of incidents and sos threads/i })).toBeInTheDocument();
+    expect(screen.getByRole("application", { name: /map of incidents and sos requests/i })).toBeInTheDocument();
   });
 
   it("never hands MapLibre a CSS variable for a paint property", async () => {

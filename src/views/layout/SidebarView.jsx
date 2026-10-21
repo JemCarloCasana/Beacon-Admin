@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { roleLabel } from "@/config/constants";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import beaconLogo from "../../../img/beacon_logo.png";
 import {
@@ -39,7 +40,7 @@ export default function SidebarView({ pathname, visibleNavItems, profile }) {
           />
         </div>
         <h1 className="text-xl font-bold tracking-wider text-white">
-          BEACON <span className="text-sidebar-foreground/70 font-light">OS</span>
+          BEACON
         </h1>
       </div>
 
@@ -95,7 +96,7 @@ export default function SidebarView({ pathname, visibleNavItems, profile }) {
 
           <div className="flex-1 overflow-hidden text-xs">
             <p className="font-bold text-sidebar-foreground">{profile?.fullName || "Operator"}</p>
-            <p className="text-sidebar-foreground/60">{profile?.role || ""}</p>
+            <p className="text-sidebar-foreground/60">{profile?.role ? roleLabel(profile.role) : ""}</p>
           </div>
         </div>
       </div>

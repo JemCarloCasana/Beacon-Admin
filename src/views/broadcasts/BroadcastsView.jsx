@@ -32,6 +32,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { AlertCircle, Megaphone, RefreshCw, Send } from "lucide-react";
+import { SEVERITY_OPTIONS, severityLabel } from "@/config/constants";
 
 const severityStyles = {
   announcement: "bg-info text-info-foreground",
@@ -42,24 +43,13 @@ const severityStyles = {
 };
 
 // The severity vocabulary, with a label and an icon so severity is never
-// carried by colour alone.
-const SEVERITY_OPTIONS = [
-  { value: "announcement", label: "Announcement" },
-  { value: "info", label: "Information" },
-  { value: "warning", label: "Warning" },
-  { value: "danger", label: "Danger" },
-  { value: "all_clear", label: "All clear" },
-];
-
-function severityLabel(value) {
-  const found = SEVERITY_OPTIONS.find((item) => item.value === value);
-  return found ? found.label : "Announcement";
-}
+// carried by colour alone. It lives in @/config/constants so every screen
+// names a severity the same way.
 
 function formatDateTime(value) {
-  if (!value) return "-";
+  if (!value) return "—";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
+  if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleString();
 }
 
@@ -440,10 +430,10 @@ export default function BroadcastsView({
 
               <div className="space-y-2 rounded border p-3 text-sm">
                 <p>
-                  <span className="font-medium">Title:</span> {pendingSendBroadcast?.title || "-"}
+                  <span className="font-medium">Title:</span> {pendingSendBroadcast?.title || "—"}
                 </p>
                 <p>
-                  <span className="font-medium">Severity:</span> {pendingSendBroadcast?.severity || "-"}
+                  <span className="font-medium">Severity:</span> {severityLabel(pendingSendBroadcast?.severity)}
                 </p>
                 <p>
                   <span className="font-medium">Audience:</span>{" "}

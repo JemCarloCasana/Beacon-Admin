@@ -40,6 +40,6 @@ describe("SidebarView", () => {
     renderSidebar("/dashboard");
 
     expect(screen.getByText("Admin")).toBeInTheDocument();
-    expect(screen.getByText("admin")).toBeInTheDocument();
+    expect(screen.getByText("Administrator")).toBeInTheDocument();
   });
 });

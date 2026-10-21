@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, Navigation, Radio, RefreshCw } from "lucide-react";
 import MapCanvas from "@/components/map/MapCanvas";
 import { MAP_MARKER_TYPE_STYLES } from "@/lib/mapMarkerStyles";
+import { STATUS_CONFIG, sosStatusLabel } from "@/config/constants";
 
 export default function MapViewScreen({
   markers,
@@ -77,7 +78,7 @@ export default function MapViewScreen({
         ) : null}
         {!canViewSos ? (
           <p className="text-xs text-muted-foreground">
-            You do not have permission to view SOS threads.
+            You do not have permission to view SOS requests.
           </p>
         ) : null}
 
@@ -165,8 +166,10 @@ export default function MapViewScreen({
                       <p className="text-sm text-muted-foreground">{selectedMarker.subtitle}</p>
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      <p>Type: {selectedMarker.type.toUpperCase()}</p>
-                      <p>Status: {selectedMarker.status || "-"}</p>
+                      <p>Type: {selectedMarker.type === "sos" ? "SOS request" : "Incident"}</p>
+                      <p>
+                        Status: {STATUS_CONFIG[selectedMarker.status]?.label || sosStatusLabel(selectedMarker.status)}
+                      </p>
                     </div>
 
                     <div className="flex flex-wrap gap-2">
@@ -175,10 +178,10 @@ export default function MapViewScreen({
                         variant="outline"
                         onClick={() => mapRef.current?.focusMarker(selectedMarker)}
                       >
-                        Focus
+                        Zoom to marker
                       </Button>
                       <Button size="sm" variant="ghost" onClick={actions.onClearSelection}>
-                        Clear
+                        Clear selection
                       </Button>
                     </div>
                   </>

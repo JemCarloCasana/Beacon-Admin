@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
+import { roleLabel } from '@/config/constants';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -363,7 +364,7 @@ export function Header({ onMenuClick, title }) {
                                         {me?.full_name || "Operator"}
                                     </span>
                                     <span className="block text-xs leading-tight text-muted-foreground">
-                                        {me?.role || ""}
+                                        {me?.role ? roleLabel(me.role) : ""}
                                     </span>
                                 </span>
                             </Button>

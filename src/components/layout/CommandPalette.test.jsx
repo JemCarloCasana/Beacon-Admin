@@ -95,7 +95,7 @@ describe("CommandPalette", () => {
     );
 
     fireEvent.keyDown(document, { key: "k", ctrlKey: true });
-    fireEvent.click(screen.getByText(/Maria — SOS #101/));
+    fireEvent.click(screen.getByText(/Maria - SOS request #101/));
 
     expect(mockNavigate).toHaveBeenCalledWith("/sos/101");
   });

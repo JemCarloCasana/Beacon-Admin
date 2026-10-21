@@ -232,7 +232,7 @@ export const MapCanvas = forwardRef(function MapCanvas(
       <div
         ref={containerRef}
         role="application"
-        aria-label="Map of incidents and SOS threads in Dagupan City"
+        aria-label="Map of incidents and SOS requests in Dagupan City"
         className="h-full w-full"
       />
       {(boundaryError || runtimeError || !serviceArea) && (

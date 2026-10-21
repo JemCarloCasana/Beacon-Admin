@@ -12,7 +12,7 @@ export function DataState({
   status = "live",
   error = null,
   onRetry = null,
-  emptyTitle = "Nothing to show yet",
+  emptyTitle = "Nothing here yet",
   emptyDescription = "",
   emptyAction = null,
   skeleton = null,
