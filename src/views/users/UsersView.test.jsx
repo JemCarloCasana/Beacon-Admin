@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import UsersView from "@/views/users/UsersView";
 
 vi.mock("@/components/layout", () => ({
@@ -52,11 +52,27 @@ describe("UsersView", () => {
   const baseProps = {
     canManageUsers: true,
     canCreateUsers: true,
+    canManageAdmins: true,
+    me: { id: 99, full_name: "Root Admin", email: "root@example.com", role: "admin" },
     searchQuery: "",
     statusFilter: "all",
     users: [
-      { id: 1, full_name: "Active User", email: "active@example.com", role: "personnel", status: "active" },
-      { id: 2, full_name: "Deactivated User", email: "deac@example.com", role: "personnel", status: "deactivated" },
+      {
+        id: 1,
+        full_name: "Active User",
+        email: "active@example.com",
+        role: "personnel",
+        status: "active",
+        permissions: ["manage_sos", "view_incidents"],
+      },
+      {
+        id: 2,
+        full_name: "Deactivated User",
+        email: "deac@example.com",
+        role: "personnel",
+        status: "deactivated",
+        permissions: [],
+      },
     ],
     usersLoading: false,
     usersError: null,
@@ -66,8 +82,14 @@ describe("UsersView", () => {
     editingUserId: null,
     isCreateDialogOpen: false,
     isEditDialogOpen: false,
-    createForm: { full_name: "", email: "", password: "", role: "personnel" },
-    editForm: { id: null, full_name: "", email: "" },
+    createForm: {
+      full_name: "",
+      email: "",
+      password: "",
+      role: "personnel",
+      permissions: ["manage_sos", "view_incidents"],
+    },
+    editForm: { id: null, full_name: "", email: "", permissions: [] },
     actions: {
       setSearchQuery: vi.fn(),
       setStatusFilter: vi.fn(),
@@ -162,7 +184,7 @@ describe("UsersView", () => {
       <UsersView
         {...baseProps}
         isCreateDialogOpen
-        createForm={{ full_name: "", email: "", password: "", role: "personnel" }}
+        createForm={{ full_name: "", email: "", password: "", role: "personnel", permissions: [] }}
       />
     );
 
@@ -172,5 +194,110 @@ describe("UsersView", () => {
     expect(screen.getByPlaceholderText("Enter password")).toBeInTheDocument();
     expect(screen.getByText("Personnel")).toBeInTheDocument();
     expect(screen.getByText("Admin")).toBeInTheDocument();
+  });
+
+  it("shows the permissions each account holds", () => {
+    render(<UsersView {...baseProps} />);
+
+    const row = screen.getByText("Active User").closest("tr");
+    expect(within(row).getByText("manage_sos")).toBeInTheDocument();
+    expect(within(row).getByText("view_incidents")).toBeInTheDocument();
+  });
+
+  it("says an account holds no permissions", () => {
+    render(<UsersView {...baseProps} />);
+
+    const row = screen.getByText("Deactivated User").closest("tr");
+    expect(within(row).getByText("No access")).toBeInTheDocument();
+  });
+
+  it("says the server did not report the permissions", () => {
+    render(
+      <UsersView
+        {...baseProps}
+        users={[
+          {
+            id: 3,
+            full_name: "Unreported User",
+            email: "unreported@example.com",
+            role: "personnel",
+            status: "active",
+            permissions: null,
+          },
+        ]}
+      />
+    );
+
+    const row = screen.getByText("Unreported User").closest("tr");
+    expect(within(row).getByText("Not reported")).toBeInTheDocument();
+    expect(within(row).queryByText("No access")).not.toBeInTheDocument();
+  });
+
+  it("offers the permission picker in the create dialog", () => {
+    render(<UsersView {...baseProps} isCreateDialogOpen />);
+
+    expect(screen.getByText("Permissions to grant")).toBeInTheDocument();
+    expect(screen.getByLabelText("manage_sos")).toBeChecked();
+  });
+
+  it("offers the permission picker in the edit dialog", () => {
+    render(
+      <UsersView
+        {...baseProps}
+        isEditDialogOpen
+        editForm={{ id: 1, full_name: "Active User", email: "active@example.com", permissions: ["manage_sos"] }}
+      />
+    );
+
+    expect(screen.getByText("Permissions to grant")).toBeInTheDocument();
+    expect(screen.getByLabelText("manage_sos")).toBeChecked();
+    expect(screen.getByLabelText("view_incidents")).not.toBeChecked();
+  });
+
+  it("will not let an operator change their own permissions", () => {
+    render(
+      <UsersView
+        {...baseProps}
+        isEditDialogOpen
+        me={{ id: 1, full_name: "Active User", email: "active@example.com", role: "admin" }}
+        editForm={{ id: 1, full_name: "Active User", email: "active@example.com", permissions: ["manage_sos"] }}
+      />
+    );
+
+    expect(screen.getByLabelText("manage_sos")).toBeDisabled();
+    expect(screen.getByText(/your own permissions/i)).toBeInTheDocument();
+  });
+
+  it("hides the edit action without manage_admins", () => {
+    render(<UsersView {...baseProps} canManageAdmins={false} />);
+
+    expect(screen.queryByText("Edit User")).not.toBeInTheDocument();
+  });
+
+  it("hides the admin request action without manage_admins", () => {
+    render(<UsersView {...baseProps} canManageAdmins={false} />);
+
+    expect(screen.queryByText("Send Admin Request")).not.toBeInTheDocument();
+  });
+
+  it("hides the deactivate action for an admin account", () => {
+    render(
+      <UsersView
+        {...baseProps}
+        users={[
+          {
+            id: 4,
+            full_name: "Admin Account",
+            email: "admin@example.com",
+            role: "admin",
+            status: "active",
+            permissions: ["manage_sos"],
+          },
+        ]}
+      />
+    );
+
+    const row = screen.getByText("Admin Account").closest("tr");
+    expect(within(row).queryByText("Deactivate")).not.toBeInTheDocument();
   });
 });

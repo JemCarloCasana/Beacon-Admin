@@ -19,6 +19,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import PermissionPicker from "@/components/common/PermissionPicker";
+import { PERMISSION_CATALOG } from "@/config/permissions";
 import {
   Select,
   SelectContent,
@@ -66,9 +68,39 @@ const UsersSkeleton = () => (
   </div>
 );
 
+/**
+ * What an account may do, as the server reported it.
+ *
+ * "Not reported" and "No access" are different facts: the first means
+ * the server did not tell us, the second means it told us there is
+ * nothing. Collapsing them would either accuse an account of having no
+ * powers or hide a locked-out account.
+ */
+function PermissionsCell({ permissions }) {
+  if (!Array.isArray(permissions)) {
+    return <span className="text-xs text-muted-foreground">Not reported</span>;
+  }
+
+  if (permissions.length === 0) {
+    return <span className="text-xs text-muted-foreground">No access</span>;
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1">
+      {permissions.map((permission) => (
+        <Badge key={permission} variant="outline" className="font-mono">
+          {permission}
+        </Badge>
+      ))}
+    </div>
+  );
+}
+
 export default function UsersView({
   canManageUsers,
   canCreateUsers,
+  canManageAdmins = false,
+  me,
   searchQuery,
   users,
   usersLoading,
@@ -87,6 +119,11 @@ export default function UsersView({
 }) {
   const [pendingStatusChange, setPendingStatusChange] = useState(null);
   const [page, setPage] = useState(1);
+
+  // The backend refuses a permissions key on your own row, so the
+  // control is shown disabled rather than allowed to fail.
+  const isEditingOwnAccount =
+    editForm?.id != null && String(editForm.id) === String(me?.id ?? "");
 
   const pageSize = PAGINATION.DEFAULT_PAGE_SIZE;
   const totalPages = Math.max(1, Math.ceil(users.length / pageSize));
@@ -155,6 +192,19 @@ export default function UsersView({
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Permissions to grant</p>
+                  <p className="text-xs text-muted-foreground">
+                    What this account will be able to do. An account with no permissions
+                    can sign in but cannot open any screen.
+                  </p>
+                  <PermissionPicker
+                    permissions={PERMISSION_CATALOG}
+                    value={createForm?.permissions || []}
+                    onChange={(next) => actions.onCreateFormChange?.("permissions", next)}
+                    idPrefix="create-permission"
+                  />
+                </div>
               </div>
 
               <DialogFooter>
@@ -194,6 +244,31 @@ export default function UsersView({
                     onChange={(e) => actions.onEditFormChange?.("email", e.target.value)}
                     placeholder="Enter email"
                   />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Permissions to grant</p>
+                  {isEditingOwnAccount ? (
+                    <>
+                      <p className="text-xs text-muted-foreground">
+                        You cannot change your own permissions. Ask an administrator with
+                        manage_admins to make this change.
+                      </p>
+                      <PermissionPicker
+                        permissions={PERMISSION_CATALOG}
+                        value={editForm?.permissions || []}
+                        onChange={() => {}}
+                        disabled
+                        idPrefix="edit-permission"
+                      />
+                    </>
+                  ) : (
+                    <PermissionPicker
+                      permissions={PERMISSION_CATALOG}
+                      value={editForm?.permissions || []}
+                      onChange={(next) => actions.onEditFormChange?.("permissions", next)}
+                      idPrefix="edit-permission"
+                    />
+                  )}
                 </div>
               </div>
 
@@ -299,6 +374,7 @@ export default function UsersView({
                       <TableHead>User</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Role</TableHead>
+                      <TableHead>Permissions</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -326,6 +402,9 @@ export default function UsersView({
                           {user.role || "personnel"}
                         </TableCell>
                         <TableCell>
+                          <PermissionsCell permissions={user.permissions} />
+                        </TableCell>
+                        <TableCell>
                           <Badge
                             variant="outline"
                             className={
@@ -350,7 +429,7 @@ export default function UsersView({
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              {user.role?.toLowerCase() !== "admin" && user.status !== "deactivated" && (
+                              {canManageAdmins && user.role?.toLowerCase() !== "admin" && user.status !== "deactivated" && (
                                 <DropdownMenuItem
                                   onClick={() => actions.onSendAdminRequest?.(user)}
                                   disabled={sendingAdminRequestId === user.id}
@@ -358,28 +437,32 @@ export default function UsersView({
                                   {sendingAdminRequestId === user.id ? "Sending..." : "Send Admin Request"}
                                 </DropdownMenuItem>
                               )}
-                              <DropdownMenuItem
-                                onClick={() => actions.onEditUser?.(user)}
-                                disabled={editingUserId === user.id}
-                              >
-                                {editingUserId === user.id ? "Saving..." : "Edit User"}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-destructive focus:text-destructive"
-                                onClick={() =>
-                                  setPendingStatusChange({
-                                    user,
-                                    nextStatus: user.status === "deactivated" ? "active" : "deactivated",
-                                  })
-                                }
-                                disabled={statusUpdatingUserId === user.id}
-                              >
-                                {statusUpdatingUserId === user.id
-                                  ? "Updating..."
-                                  : user.status === "deactivated"
-                                    ? "Reactivate"
-                                    : "Deactivate"}
-                              </DropdownMenuItem>
+                              {canManageAdmins && (
+                                <DropdownMenuItem
+                                  onClick={() => actions.onEditUser?.(user)}
+                                  disabled={editingUserId === user.id}
+                                >
+                                  {editingUserId === user.id ? "Saving..." : "Edit User"}
+                                </DropdownMenuItem>
+                              )}
+                              {user.role?.toLowerCase() !== "admin" && (
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={() =>
+                                    setPendingStatusChange({
+                                      user,
+                                      nextStatus: user.status === "deactivated" ? "active" : "deactivated",
+                                    })
+                                  }
+                                  disabled={statusUpdatingUserId === user.id}
+                                >
+                                  {statusUpdatingUserId === user.id
+                                    ? "Updating..."
+                                    : user.status === "deactivated"
+                                      ? "Reactivate"
+                                      : "Deactivate"}
+                                </DropdownMenuItem>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
