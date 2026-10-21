@@ -146,7 +146,7 @@ export function useUsersController() {
     if (String(user.id) === String(me?.id)) {
       toast({
         title: "Cannot deactivate your own account",
-        description: "Use another admin account to deactivate this user.",
+        description: "Use another administrator account to deactivate this user.",
         variant: "destructive",
       });
       return;
@@ -228,7 +228,7 @@ export function useUsersController() {
     if (!canCreateUsers) {
       toast({
         title: "You do not have permission",
-        description: "Only admins with manage admin access can create accounts.",
+        description: "Only administrators with the manage_admins permission can create accounts.",
         variant: "destructive",
       });
       return;
@@ -269,7 +269,7 @@ export function useUsersController() {
     if (!canCreateUsers) {
       toast({
         title: "You do not have permission",
-        description: "Only admins with manage admin access can create accounts.",
+        description: "Only administrators with the manage_admins permission can create accounts.",
         variant: "destructive",
       });
       return;
@@ -288,7 +288,7 @@ export function useUsersController() {
     if (!["personnel", "admin"].includes(normalizedRole)) {
       toast({
         title: "Invalid role",
-        description: "Please select either personnel or admin.",
+        description: "Please select either Personnel or Administrator.",
         variant: "destructive",
       });
       return;

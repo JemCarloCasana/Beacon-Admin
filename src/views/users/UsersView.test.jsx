@@ -149,8 +149,13 @@ describe("UsersView", () => {
   it("renders status filter and status column", () => {
     render(<UsersView {...baseProps} />);
     expect(screen.getByText("Status")).toBeInTheDocument();
-    expect(screen.getByText("active")).toBeInTheDocument();
-    expect(screen.getByText("deactivated")).toBeInTheDocument();
+
+    const activeRow = screen.getByText("Active User").closest("tr");
+    const deactivatedRow = screen.getByText("Deactivated User").closest("tr");
+    expect(within(activeRow).getByText("Active")).toBeInTheDocument();
+    expect(within(deactivatedRow).getByText("Deactivated")).toBeInTheDocument();
+    expect(within(activeRow).queryByText("active")).not.toBeInTheDocument();
+    expect(within(deactivatedRow).queryByText("deactivated")).not.toBeInTheDocument();
   });
 
   it("shows Deactivate action for active users", () => {
@@ -193,16 +198,33 @@ describe("UsersView", () => {
     expect(screen.getByPlaceholderText("Enter full name")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Enter email")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Enter password")).toBeInTheDocument();
-    expect(screen.getByText("Personnel")).toBeInTheDocument();
-    expect(screen.getByText("Admin")).toBeInTheDocument();
+
+    // The role picker is a Radix select: each option renders as a
+    // [data-value] element, so read the role words off those.
+    const roleOptions = Array.from(document.querySelectorAll("[data-value]"))
+      .filter((element) => ["personnel", "admin"].includes(element.getAttribute("data-value")))
+      .map((element) => element.textContent);
+    expect(roleOptions).toContain("Personnel");
+    expect(roleOptions).toContain("Administrator");
+    expect(roleOptions).not.toContain("Admin");
   });
 
   it("shows the permissions each account holds", () => {
     render(<UsersView {...baseProps} />);
 
     const row = screen.getByText("Active User").closest("tr");
-    expect(within(row).getByText("manage_sos")).toBeInTheDocument();
-    expect(within(row).getByText("view_incidents")).toBeInTheDocument();
+    expect(within(row).getByText("Respond to SOS requests")).toBeInTheDocument();
+    expect(within(row).getByText("View incidents")).toBeInTheDocument();
+    expect(within(row).queryByText("manage_sos")).not.toBeInTheDocument();
+    expect(within(row).queryByText("view_incidents")).not.toBeInTheDocument();
+  });
+
+  it("names the role in words", () => {
+    render(<UsersView {...baseProps} />);
+
+    const row = screen.getByText("Active User").closest("tr");
+    expect(within(row).getByText("Personnel")).toBeInTheDocument();
+    expect(within(row).queryByText("personnel")).not.toBeInTheDocument();
   });
 
   it("says an account holds no permissions", () => {

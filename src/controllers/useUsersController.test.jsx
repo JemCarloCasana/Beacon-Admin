@@ -314,6 +314,26 @@ describe("useUsersController", () => {
     );
   });
 
+  it("names the roles in words when the chosen role is not one of them", async () => {
+    const { result } = renderHook(() => useUsersController());
+
+    act(() => {
+      result.current.actions.onOpenCreateUser();
+      result.current.actions.onCreateFormChange("role", "superuser");
+    });
+
+    await act(async () => {
+      await result.current.actions.onCreateUser();
+    });
+
+    expect(toast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "Invalid role",
+        description: "Please select either Personnel or Administrator.",
+      })
+    );
+  });
+
   it("shows duplicate email message for 409 create failures", async () => {
     createUser.mockRejectedValueOnce({
       status: 409,

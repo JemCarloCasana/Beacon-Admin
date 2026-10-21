@@ -20,7 +20,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import PermissionPicker from "@/components/common/PermissionPicker";
-import { PERMISSION_CATALOG } from "@/config/permissions";
+import { PERMISSION_CATALOG, PERMISSION_LABELS } from "@/config/permissions";
+import { roleLabel, accountStatusLabel } from "@/config/constants";
 import {
   Select,
   SelectContent,
@@ -88,8 +89,8 @@ function PermissionsCell({ permissions }) {
   return (
     <div className="flex flex-wrap gap-1">
       {permissions.map((permission) => (
-        <Badge key={permission} variant="outline" className="font-mono">
-          {permission}
+        <Badge key={permission} variant="outline">
+          {PERMISSION_LABELS[permission] || permission}
         </Badge>
       ))}
     </div>
@@ -186,8 +187,8 @@ export default function UsersView({
                       <SelectValue placeholder="Select role" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="personnel">Personnel</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="personnel">{roleLabel("personnel")}</SelectItem>
+                      <SelectItem value="admin">{roleLabel("admin")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -375,7 +376,7 @@ export default function UsersView({
               ) : (
                 <Table>
                   <TableCaption className="sr-only">
-                    Beacon personnel, one row per account.
+                    User accounts, one row per account.
                   </TableCaption>
                   <TableHeader>
                     <TableRow>
@@ -406,8 +407,8 @@ export default function UsersView({
                           </div>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">{user.email}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground capitalize">
-                          {user.role || "personnel"}
+                        <TableCell className="text-sm text-muted-foreground">
+                          {roleLabel(user.role)}
                         </TableCell>
                         <TableCell>
                           <PermissionsCell permissions={user.permissions} />
@@ -421,7 +422,7 @@ export default function UsersView({
                                 : "border-success/40 text-success"
                             }
                           >
-                            {user.status || "active"}
+                            {accountStatusLabel(user.status)}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
