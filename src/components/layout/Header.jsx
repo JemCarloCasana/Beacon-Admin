@@ -23,12 +23,9 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { useNotifications, useMarkNotificationRead } from '@/api/useNotifications';
-import {
-    ADMIN_PERMISSION_CATALOG,
-    DEFAULT_PROMOTED_ADMIN_PERMISSIONS,
-    useAcceptAdminRequest,
-    useRejectAdminRequest,
-} from '@/api/useAdminRequests';
+import { useAcceptAdminRequest, useRejectAdminRequest } from '@/api/useAdminRequests';
+import PermissionPicker from '@/components/common/PermissionPicker';
+import { CONSOLE_FEATURE_PERMISSIONS, DEFAULT_ACCEPT_PERMISSIONS } from '@/config/permissions';
 import { useToast } from '@/hooks/use-toast';
 
 export function Header({ onMenuClick, title }) {
@@ -44,7 +41,7 @@ export function Header({ onMenuClick, title }) {
     // What the operator is about to hand over. Pre-selected with the least
     // privilege, and widened only by a deliberate click.
     const [grantedPermissions, setGrantedPermissions] = useState(
-        () => DEFAULT_PROMOTED_ADMIN_PERMISSIONS
+        () => DEFAULT_ACCEPT_PERMISSIONS
     );
     const { toast } = useToast();
 
@@ -178,9 +175,9 @@ export function Header({ onMenuClick, title }) {
                 !dismissedInviteRequestIds.includes(getActionableAdminRequestId(notification))
         );
         if (unreadInvite) {
-            // Each invite starts from the least privilege. A widened
+            // Each invite starts from the console features. A widened
             // selection from an earlier invite must not carry over.
-            setGrantedPermissions(DEFAULT_PROMOTED_ADMIN_PERMISSIONS);
+            setGrantedPermissions(DEFAULT_ACCEPT_PERMISSIONS);
             setInvitePopupNotification(unreadInvite);
         }
     }, [notifications, invitePopupNotification, dismissedInviteRequestIds]);
@@ -358,29 +355,17 @@ export function Header({ onMenuClick, title }) {
                         <div className="space-y-2">
                             <p className="text-sm font-medium">Permissions to grant</p>
                             <p className="text-xs text-muted-foreground">
-                                Choose exactly what this person needs. The default is read-only.
+                                You are accepting this request for yourself, so these are the
+                                permissions you will hold. manage_users and manage_admins are not
+                                offered here: an administrator with manage_admins grants those
+                                from Manage Users.
                             </p>
-                            <div className="max-h-48 space-y-2 overflow-y-auto rounded border p-2">
-                                {ADMIN_PERMISSION_CATALOG.map((permission) => (
-                                    <label
-                                        key={permission}
-                                        className="flex cursor-pointer items-center gap-2 text-sm"
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            checked={grantedPermissions.includes(permission)}
-                                            onChange={(event) =>
-                                                setGrantedPermissions((previous) =>
-                                                    event.target.checked
-                                                        ? [...previous, permission]
-                                                        : previous.filter((item) => item !== permission)
-                                                )
-                                            }
-                                        />
-                                        {permission}
-                                    </label>
-                                ))}
-                            </div>
+                            <PermissionPicker
+                                permissions={CONSOLE_FEATURE_PERMISSIONS}
+                                value={grantedPermissions}
+                                onChange={setGrantedPermissions}
+                                idPrefix="accept-permission"
+                            />
                         </div>
                         <DialogFooter>
                             <Button

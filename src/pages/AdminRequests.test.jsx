@@ -1,8 +1,9 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import AdminRequests from "@/pages/AdminRequests";
 import { useAdminAuth } from "@/auth/AdminAuthProvider";
 import { useAdminRequests, useAcceptAdminRequest, useRejectAdminRequest } from "@/api/useAdminRequests";
+import { DEFAULT_ACCEPT_PERMISSIONS } from "@/config/permissions";
 
 vi.mock("@/components/layout", () => ({
   DashboardLayout: ({ children }) => <div>{children}</div>,
@@ -28,7 +29,6 @@ vi.mock("@/api/useAdminRequests", () => ({
   useAdminRequests: vi.fn(),
   useAcceptAdminRequest: vi.fn(),
   useRejectAdminRequest: vi.fn(),
-  DEFAULT_PROMOTED_ADMIN_PERMISSIONS: ["manage_sos", "view_incidents", "manage_incidents", "view_broadcasts"],
 }));
 vi.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: vi.fn() }) }));
 
@@ -113,6 +113,42 @@ describe("AdminRequests", () => {
     fireEvent.click(screen.getByRole("button", { name: /reject request/i }));
     await waitFor(() => {
       expect(mockReject).toHaveBeenCalledWith({ requestId: 1, note: "" });
+    });
+  });
+
+  it("offers only console features when accepting a request", () => {
+    render(<AdminRequests />);
+
+    expect(screen.getAllByLabelText("manage_sos").length).toBeGreaterThan(0);
+    expect(screen.queryAllByLabelText("manage_admins")).toHaveLength(0);
+    expect(screen.queryAllByLabelText("manage_users")).toHaveLength(0);
+  });
+
+  it("sends the console features when a request is accepted", async () => {
+    render(<AdminRequests />);
+
+    fireEvent.click(screen.getAllByRole("button", { name: /^Accept$/ })[0]);
+
+    await waitFor(() => {
+      expect(mockAccept).toHaveBeenCalledWith(
+        expect.objectContaining({ permissions: DEFAULT_ACCEPT_PERMISSIONS })
+      );
+    });
+  });
+
+  it("sends the permissions the operator narrowed the grant to", async () => {
+    render(<AdminRequests />);
+
+    const firstRow = screen.getByText("Ana Requester").closest("tr");
+    fireEvent.click(within(firstRow).getByLabelText("manage_broadcasts"));
+    fireEvent.click(within(firstRow).getByRole("button", { name: /^Accept$/ }));
+
+    await waitFor(() => {
+      expect(mockAccept).toHaveBeenCalledWith(
+        expect.objectContaining({
+          permissions: DEFAULT_ACCEPT_PERMISSIONS.filter((item) => item !== "manage_broadcasts"),
+        })
+      );
     });
   });
 });

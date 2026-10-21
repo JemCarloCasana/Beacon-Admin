@@ -27,12 +27,9 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useAdminAuth } from "@/auth/AdminAuthProvider";
-import {
-  DEFAULT_PROMOTED_ADMIN_PERMISSIONS,
-  useAcceptAdminRequest,
-  useAdminRequests,
-  useRejectAdminRequest,
-} from "@/api/useAdminRequests";
+import { useAcceptAdminRequest, useAdminRequests, useRejectAdminRequest } from "@/api/useAdminRequests";
+import PermissionPicker from "@/components/common/PermissionPicker";
+import { CONSOLE_FEATURE_PERMISSIONS, DEFAULT_ACCEPT_PERMISSIONS } from "@/config/permissions";
 import { AlertCircle, Check, Search, X } from "lucide-react";
 
 const statusClasses = {
@@ -60,6 +57,7 @@ export default function AdminRequests() {
   const { me, refreshMe } = useAdminAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [notesById, setNotesById] = useState({});
+  const [grantsById, setGrantsById] = useState({});
   const [workingId, setWorkingId] = useState(null);
   const [pendingReject, setPendingReject] = useState(null);
 
@@ -112,7 +110,7 @@ export default function AdminRequests() {
           requestId,
           note: decisionNote,
           role: "admin",
-          permissions: DEFAULT_PROMOTED_ADMIN_PERMISSIONS,
+          permissions: grantsById[requestId] ?? DEFAULT_ACCEPT_PERMISSIONS,
         });
         await refreshMe();
         toast({
@@ -222,40 +220,53 @@ export default function AdminRequests() {
                       </TableCell>
                       <TableCell className="text-right">
                         {isPending ? (
-                          <div className="flex items-center justify-end gap-2">
-                            <span className="text-xs text-muted-foreground">
-                              Grants: {DEFAULT_PROMOTED_ADMIN_PERMISSIONS.join(", ")}
-                            </span>
-                            <Input
-                              aria-label={`Decision note for request ${item.id}`}
-                              placeholder="Decision note (optional)"
-                              className="h-8 w-48 text-xs"
-                              value={notesById[item.id] || ""}
-                              onChange={(event) =>
-                                setNotesById((previous) => ({
-                                  ...previous,
-                                  [item.id]: event.target.value,
-                                }))
-                              }
-                              disabled={loading}
-                            />
-                            <Button
-                              size="sm"
-                              onClick={() => handleDecision("accept", item.id)}
-                              disabled={loading}
-                            >
-                              <Check className="mr-1 h-4 w-4" />
-                              {loading ? "Processing..." : "Accept"}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setPendingReject(item)}
-                              disabled={loading}
-                            >
-                              <X className="mr-1 h-4 w-4" />
-                              Reject
-                            </Button>
+                          <div className="flex flex-col items-end gap-2">
+                            <div className="w-full max-w-xs space-y-1">
+                              <p className="text-xs text-muted-foreground">
+                                Permissions to grant. You are accepting this request for
+                                yourself, so these are the permissions you will hold.
+                              </p>
+                              <PermissionPicker
+                                permissions={CONSOLE_FEATURE_PERMISSIONS}
+                                value={grantsById[item.id] ?? DEFAULT_ACCEPT_PERMISSIONS}
+                                onChange={(next) =>
+                                  setGrantsById((previous) => ({ ...previous, [item.id]: next }))
+                                }
+                                idPrefix={`grant-${item.id}`}
+                              />
+                            </div>
+                            <div className="flex items-center justify-end gap-2">
+                              <Input
+                                aria-label={`Decision note for request ${item.id}`}
+                                placeholder="Decision note (optional)"
+                                className="h-8 w-48 text-xs"
+                                value={notesById[item.id] || ""}
+                                onChange={(event) =>
+                                  setNotesById((previous) => ({
+                                    ...previous,
+                                    [item.id]: event.target.value,
+                                  }))
+                                }
+                                disabled={loading}
+                              />
+                              <Button
+                                size="sm"
+                                onClick={() => handleDecision("accept", item.id)}
+                                disabled={loading}
+                              >
+                                <Check className="mr-1 h-4 w-4" />
+                                {loading ? "Processing..." : "Accept"}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setPendingReject(item)}
+                                disabled={loading}
+                              >
+                                <X className="mr-1 h-4 w-4" />
+                                Reject
+                              </Button>
+                            </div>
                           </div>
                         ) : (
                           <span className="text-xs text-muted-foreground">Decided</span>

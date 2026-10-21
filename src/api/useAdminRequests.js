@@ -1,30 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiPatch } from "@/services/api";
 
-export const ADMIN_PERMISSION_CATALOG = [
-  "manage_users",
-  "manage_admins",
-  "manage_broadcasts",
-  "view_broadcasts",
-  "view_incidents",
-  "manage_incidents",
-  "manage_sos",
-  "manage_reports",
-];
-
-// The least privilege that still lets a promoted admin work the emergency
-// path. The backend's own OPS_SUITE_PERMISSIONS is what a directly-created
-// admin gets, but it includes manage_reports and manage_broadcasts, which are
-// supervisory rather than operational. This set opens the SOS screen, the
-// incidents list and the map - and nothing more. The accept dialog starts
-// here and the operator can narrow or widen it.
-export const DEFAULT_PROMOTED_ADMIN_PERMISSIONS = [
-  "manage_sos",
-  "view_incidents",
-  "manage_incidents",
-  "view_broadcasts",
-];
-
 function normalizeAdminRequestsPayload(payload) {
   if (Array.isArray(payload)) return payload;
   if (Array.isArray(payload?.data)) return payload.data;
@@ -55,7 +31,10 @@ export function useAcceptAdminRequest(options = {}) {
       };
 
       if (role) payload.role = role;
-      if (Array.isArray(permissions) && permissions.length > 0) {
+      // Send the grant the operator chose, including an empty one. Leaving
+      // it off lets the server substitute a default grant of its own, and
+      // the account would end up with powers nobody picked.
+      if (Array.isArray(permissions)) {
         payload.permissions = permissions;
       }
 
@@ -63,11 +42,13 @@ export function useAcceptAdminRequest(options = {}) {
         return await apiPatch(`/admin/admin-requests/${requestId}/accept`, payload);
       } catch (error) {
         const status = error?.status;
-        const hasExtendedPayload =
-          Boolean(payload?.role) || Array.isArray(payload?.permissions);
+        // Only fall back to the note-only payload for a backend that
+        // cannot take the extended one. When an explicit grant was sent,
+        // a rejection must surface: retrying without it would grant
+        // something the operator did not choose.
+        const sentExplicitGrant = Array.isArray(payload.permissions);
 
-        // Backward compatibility: retry with note-only payload for older backends.
-        if (hasExtendedPayload && (status === 400 || status === 422)) {
+        if (!sentExplicitGrant && Boolean(payload?.role) && (status === 400 || status === 422)) {
           return apiPatch(`/admin/admin-requests/${requestId}/accept`, {
             note: note || null,
           });

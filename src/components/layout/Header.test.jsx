@@ -4,6 +4,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { Header } from "@/components/layout/Header";
 import { useNotifications, useMarkNotificationRead } from "@/api/useNotifications";
 import { useAcceptAdminRequest, useRejectAdminRequest } from "@/api/useAdminRequests";
+import { DEFAULT_ACCEPT_PERMISSIONS } from "@/config/permissions";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
@@ -27,17 +28,6 @@ vi.mock("@/api/useNotifications", () => ({
 }));
 
 vi.mock("@/api/useAdminRequests", () => ({
-  ADMIN_PERMISSION_CATALOG: [
-    "manage_users",
-    "manage_admins",
-    "manage_broadcasts",
-    "view_broadcasts",
-    "view_incidents",
-    "manage_incidents",
-    "manage_sos",
-    "manage_reports",
-  ],
-  DEFAULT_PROMOTED_ADMIN_PERMISSIONS: ["manage_sos", "view_incidents", "manage_incidents", "view_broadcasts"],
   useAcceptAdminRequest: vi.fn(),
   useRejectAdminRequest: vi.fn(),
 }));
@@ -163,12 +153,75 @@ describe("Header notifications", () => {
       expect(screen.getByText("Permissions to grant")).toBeInTheDocument();
     });
 
-    // The operational default is pre-selected; the supervisory and
-    // admin-management grants are not.
+    // The console features are pre-selected; the account-management
+    // grants are not offered at all on this surface.
     expect(screen.getByLabelText("view_incidents")).toBeChecked();
     expect(screen.getByLabelText("manage_sos")).toBeChecked();
-    expect(screen.getByLabelText("manage_reports")).not.toBeChecked();
-    expect(screen.getByLabelText("manage_admins")).not.toBeChecked();
+    expect(screen.getByLabelText("manage_reports")).toBeChecked();
+    expect(screen.queryByLabelText("manage_admins")).not.toBeInTheDocument();
+  });
+
+  it("says why the account-management permissions are not offered", async () => {
+    useNotifications.mockReturnValue({
+      data: [
+        {
+          id: 1,
+          type: "admin_request",
+          title: "Admin Access Request",
+          metadata: { admin_request_id: "60" },
+          reference_id: "60",
+          is_read: false,
+          created_at: "2026-03-07T00:00:00.000Z",
+        },
+      ],
+      isLoading: false,
+      isError: false,
+      isFetching: false,
+      refetch: vi.fn(),
+    });
+
+    renderWithQueryClient(<Header onMenuClick={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Permissions to grant")).toBeInTheDocument();
+    });
+
+    expect(screen.getByText(/not offered here/i)).toBeInTheDocument();
+    expect(screen.getByText(/manage_admins/)).toBeInTheDocument();
+  });
+
+  it("grants the console features when the operator accepts", async () => {
+    useNotifications.mockReturnValue({
+      data: [
+        {
+          id: 1,
+          type: "admin_request",
+          title: "Admin Access Request",
+          metadata: { admin_request_id: "60" },
+          reference_id: "60",
+          is_read: false,
+          created_at: "2026-03-07T00:00:00.000Z",
+        },
+      ],
+      isLoading: false,
+      isError: false,
+      isFetching: false,
+      refetch: vi.fn(),
+    });
+
+    renderWithQueryClient(<Header onMenuClick={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Permissions to grant")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("Accept"));
+
+    await waitFor(() => {
+      expect(mockAccept).toHaveBeenCalledWith(
+        expect.objectContaining({ permissions: DEFAULT_ACCEPT_PERMISSIONS })
+      );
+    });
   });
 
   it("grants only the permissions the operator chose", async () => {
@@ -196,7 +249,8 @@ describe("Header notifications", () => {
       expect(screen.getByText("Permissions to grant")).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByLabelText("manage_reports"));
+    // manage_broadcasts comes pre-selected; the operator takes it back.
+    fireEvent.click(screen.getByLabelText("manage_broadcasts"));
     fireEvent.click(screen.getByText("Accept"));
 
     await waitFor(() => {
@@ -305,7 +359,7 @@ describe("Header notifications", () => {
       expect(mockAccept).toHaveBeenCalledWith({
         requestId: "56",
         role: "admin",
-        permissions: ["manage_sos", "view_incidents", "manage_incidents", "view_broadcasts"],
+        permissions: DEFAULT_ACCEPT_PERMISSIONS,
       });
       expect(mockMarkRead).toHaveBeenCalledWith(8);
     });
