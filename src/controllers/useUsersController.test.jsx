@@ -30,10 +30,6 @@ vi.mock("@/hooks/use-toast", () => ({
   useToast: vi.fn(),
 }));
 
-vi.mock("@/api/adminRequests", () => ({
-  sendAdminRequest: vi.fn(),
-}));
-
 describe("useUsersController", () => {
   let confirmSpy;
 

@@ -9,7 +9,6 @@ import Incidents from "./pages/Incidents";
 import LiveSOS from "./pages/LiveSOS";
 import MapView from "./pages/MapView";
 import Users from "./pages/Users";
-import AdminRequests from "./pages/AdminRequests";
 import Reports from "./pages/Reports";
 import Broadcasts from "./pages/Broadcasts";
 import NotFound from "./pages/NotFound";
@@ -85,15 +84,6 @@ const App = () => {
             element={
               <ProtectedRoute requiredPermission="manage_reports">
                 <Reports />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/admin-requests"
-            element={
-              <ProtectedRoute requiredPermission="manage_admins">
-                <AdminRequests />
               </ProtectedRoute>
             }
           />

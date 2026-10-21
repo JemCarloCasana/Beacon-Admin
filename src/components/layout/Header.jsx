@@ -14,43 +14,27 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
 import { useNotifications, useMarkNotificationRead } from '@/api/useNotifications';
-import { useAcceptAdminRequest, useRejectAdminRequest } from '@/api/useAdminRequests';
-import PermissionPicker from '@/components/common/PermissionPicker';
-import { CONSOLE_FEATURE_PERMISSIONS, DEFAULT_ACCEPT_PERMISSIONS } from '@/config/permissions';
 import { useToast } from '@/hooks/use-toast';
 
 export function Header({ onMenuClick, title }) {
     const [isNotifOpen, setIsNotifOpen] = useState(false);
     const [showAllNotifications, setShowAllNotifications] = useState(false);
-    const [invitePopupNotification, setInvitePopupNotification] = useState(null);
-    const [dismissedInviteRequestIds, setDismissedInviteRequestIds] = useState([]);
-    const [inviteActionLoading, setInviteActionLoading] = useState(false);
     const navigate = useNavigate();
     const queryClient = useQueryClient();
-    const { me, logout, refreshMe } = useAuth();
+    const { me, logout } = useAuth();
     const { theme, setTheme, resolvedTheme } = useTheme();
-    // What the operator is about to hand over. Pre-selected with the least
-    // privilege, and widened only by a deliberate click.
-    const [grantedPermissions, setGrantedPermissions] = useState(
-        () => DEFAULT_ACCEPT_PERMISSIONS
-    );
     const { toast } = useToast();
 
     const notificationsQuery = useNotifications();
     const markReadMutation = useMarkNotificationRead();
-    const acceptAdminRequestMutation = useAcceptAdminRequest();
-    const rejectAdminRequestMutation = useRejectAdminRequest();
 
-    const notifications = notificationsQuery.data || [];
+    // An admin request is an invitation the console no longer acts on, so
+    // it is not listed. A list entry that leads nowhere is a dead end.
+    const notifications = useMemo(
+        () => (notificationsQuery.data || []).filter((item) => item?.type !== 'admin_request'),
+        [notificationsQuery.data]
+    );
     const unreadNotifications = useMemo(
         () => notifications.filter((notification) => !notification?.is_read),
         [notifications]
@@ -77,20 +61,6 @@ export function Header({ onMenuClick, title }) {
         console.debug('[notifications] mapped count by type:', typeCounts);
         console.debug('[notifications] rendered count:', notifications.length);
     }, [me?.id, notifications]);
-
-    const getActionableAdminRequestId = (notification) => {
-        if (notification?.type !== 'admin_request') return null;
-        const candidate = notification?.reference_id ?? notification?.metadata?.admin_request_id;
-        return candidate == null || candidate === '' ? null : String(candidate);
-    };
-
-    const dismissInviteNotification = (notification) => {
-        const requestId = getActionableAdminRequestId(notification);
-        if (requestId === null) return;
-        setDismissedInviteRequestIds((prev) =>
-            prev.includes(requestId) ? prev : [...prev, requestId]
-        );
-    };
 
     const getRouteableId = (value) => {
         return value == null || value === '' ? null : String(value);
@@ -166,22 +136,6 @@ export function Header({ onMenuClick, title }) {
         return null;
     };
 
-    useEffect(() => {
-        if (invitePopupNotification) return;
-        const unreadInvite = notifications.find(
-            (notification) =>
-                getActionableAdminRequestId(notification) !== null &&
-                !notification?.is_read &&
-                !dismissedInviteRequestIds.includes(getActionableAdminRequestId(notification))
-        );
-        if (unreadInvite) {
-            // Each invite starts from the console features. A widened
-            // selection from an earlier invite must not carry over.
-            setGrantedPermissions(DEFAULT_ACCEPT_PERMISSIONS);
-            setInvitePopupNotification(unreadInvite);
-        }
-    }, [notifications, invitePopupNotification, dismissedInviteRequestIds]);
-
     const handleNotificationOpenChange = (open) => {
         setIsNotifOpen(open);
         if (open) {
@@ -210,15 +164,6 @@ export function Header({ onMenuClick, title }) {
     };
 
     const handleNotificationClick = async (notification) => {
-        const requestId = getActionableAdminRequestId(notification);
-        if (requestId !== null) {
-            setInvitePopupNotification({
-                ...notification,
-                reference_id: requestId,
-            });
-            return;
-        }
-
         const targetRoute = resolveNotificationRoute(notification);
         if (targetRoute) {
             void handleMarkAsRead(notification);
@@ -253,58 +198,6 @@ export function Header({ onMenuClick, title }) {
         }
     };
 
-    const handleInviteDecision = async (decision) => {
-        const current = invitePopupNotification;
-        if (!current) return;
-
-        const requestId = getActionableAdminRequestId(current);
-        if (requestId === null) {
-            toast({
-                title: 'Unable to process request',
-                description: 'Notification is missing a valid admin request id.',
-                variant: 'destructive',
-            });
-            return;
-        }
-
-        try {
-            setInviteActionLoading(true);
-
-            if (decision === 'accept') {
-                await acceptAdminRequestMutation.mutateAsync({
-                    requestId,
-                    role: 'admin',
-                    permissions: grantedPermissions,
-                });
-                await refreshMe?.();
-                toast({
-                    title: 'Request accepted',
-                    description: `Admin permissions granted: ${grantedPermissions.join(', ') || 'none'}.`,
-                });
-            } else {
-                await rejectAdminRequestMutation.mutateAsync({ requestId });
-                toast({
-                    title: 'Request rejected',
-                    description: 'Admin request was rejected.',
-                });
-            }
-
-            dismissInviteNotification(current);
-            await handleMarkAsRead(current);
-            setInvitePopupNotification(null);
-            await queryClient.invalidateQueries({ queryKey: ['notifications'] });
-            await queryClient.invalidateQueries({ queryKey: ['admin-requests'] });
-        } catch (error) {
-            toast({
-                title: `Failed to ${decision} request`,
-                description: error?.message || 'Please try again.',
-                variant: 'destructive',
-            });
-        } finally {
-            setInviteActionLoading(false);
-        }
-    };
-
     const formatNotificationDate = (value) => {
         if (!value) return '';
         const date = new Date(value);
@@ -333,58 +226,6 @@ export function Header({ onMenuClick, title }) {
     return (
         <>
             <CommandPalette />
-            <Dialog
-                open={!!invitePopupNotification}
-                onOpenChange={(open) => {
-                    if (!open && invitePopupNotification) {
-                        dismissInviteNotification(invitePopupNotification);
-                    }
-                    if (!open) setInvitePopupNotification(null);
-                }}
-            >
-                {invitePopupNotification && (
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>
-                                {invitePopupNotification.title || 'Admin Invite Received'}
-                            </DialogTitle>
-                            <DialogDescription>
-                                {invitePopupNotification.message || 'An admin access request is awaiting your review. Accept or reject it below.'}
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-2">
-                            <p className="text-sm font-medium">Permissions to grant</p>
-                            <p className="text-xs text-muted-foreground">
-                                You are accepting this request for yourself, so these are the
-                                permissions you will hold. manage_users and manage_admins are not
-                                offered here: an administrator with manage_admins grants those
-                                from Manage Users.
-                            </p>
-                            <PermissionPicker
-                                permissions={CONSOLE_FEATURE_PERMISSIONS}
-                                value={grantedPermissions}
-                                onChange={setGrantedPermissions}
-                                idPrefix="accept-permission"
-                            />
-                        </div>
-                        <DialogFooter>
-                            <Button
-                                variant="outline"
-                                onClick={() => handleInviteDecision('reject')}
-                                disabled={inviteActionLoading}
-                            >
-                                Reject
-                            </Button>
-                            <Button
-                                onClick={() => handleInviteDecision('accept')}
-                                disabled={inviteActionLoading}
-                            >
-                                {inviteActionLoading ? 'Processing...' : 'Accept'}
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                )}
-            </Dialog>
 
             <header className="flex h-16 items-center justify-between gap-4 border-b bg-card px-4 md:px-6">
                 <div className="flex min-w-0 items-center gap-3">

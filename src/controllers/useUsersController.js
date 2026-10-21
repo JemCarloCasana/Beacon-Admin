@@ -4,7 +4,6 @@ import { useAdminAuth } from "@/auth/AdminAuthProvider";
 import { toAdminModel } from "@/models/admin.model";
 import { toUserListModel } from "@/models/user.model";
 import { useToast } from "@/hooks/use-toast";
-import { sendAdminRequest } from "@/api/adminRequests";
 import { apiPatch } from "@/services/api";
 import { createUser, updateUserStatus } from "@/api/useUsers";
 import { normalizeEmail, normalizeName, validateSignup } from "@/auth/validation";
@@ -98,7 +97,6 @@ export function useUsersController() {
   };
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [sendingAdminRequestId, setSendingAdminRequestId] = useState(null);
   const [statusUpdatingUserId, setStatusUpdatingUserId] = useState(null);
   const [creatingUser, setCreatingUser] = useState(false);
   const [editingUserId, setEditingUserId] = useState(null);
@@ -133,43 +131,6 @@ export function useUsersController() {
         user.email.toLowerCase().includes(query) || user.full_name.toLowerCase().includes(query)
     );
   }, [searchQuery, users]);
-
-  const onSendAdminRequest = async (user) => {
-    if (!user?.id) return;
-    if (user?.status === "deactivated") {
-      toast({
-        title: "User is deactivated",
-        description: "Reactivate this account first before sending an admin request.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (user?.role?.toLowerCase() === "admin") {
-      toast({
-        title: "Already an admin",
-        description: `${user.full_name} already has admin access.`,
-      });
-      return;
-    }
-
-    try {
-      setSendingAdminRequestId(user.id);
-      await sendAdminRequest({ personnelId: user.id });
-      toast({
-        title: "Admin request sent",
-        description: `An admin invitation was sent to ${user.full_name}.`,
-      });
-      usersQuery.refetch();
-    } catch (error) {
-      toast({
-        title: "Failed to send request",
-        description: error?.message || "Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setSendingAdminRequestId(null);
-    }
-  };
 
   const onDeactivateUser = async (user) => {
     const targetId = getStatusTargetId(user);
@@ -466,7 +427,6 @@ export function useUsersController() {
     usersTotal: users.length,
     usersLoading: usersQuery.isLoading,
     usersError: usersQuery.isError ? usersQuery.error : null,
-    sendingAdminRequestId,
     statusUpdatingUserId,
     creatingUser,
     editingUserId,
@@ -478,7 +438,6 @@ export function useUsersController() {
       setSearchQuery,
       setStatusFilter,
       refresh: usersQuery.refetch,
-      onSendAdminRequest,
       onOpenCreateUser,
       onCreateDialogOpenChange,
       onCreateFormChange,

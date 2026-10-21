@@ -76,7 +76,6 @@ describe("UsersView", () => {
     ],
     usersLoading: false,
     usersError: null,
-    sendingAdminRequestId: null,
     statusUpdatingUserId: null,
     creatingUser: false,
     editingUserId: null,
@@ -93,7 +92,6 @@ describe("UsersView", () => {
     actions: {
       setSearchQuery: vi.fn(),
       setStatusFilter: vi.fn(),
-      onSendAdminRequest: vi.fn(),
       onOpenCreateUser: vi.fn(),
       onCreateDialogOpenChange: vi.fn(),
       onCreateFormChange: vi.fn(),
@@ -158,15 +156,18 @@ describe("UsersView", () => {
   it("shows Deactivate action for active users", () => {
     render(<UsersView {...baseProps} />);
     expect(screen.getByText("Deactivate")).toBeInTheDocument();
-    expect(screen.getByText("Send Admin Request")).toBeInTheDocument();
   });
 
-  it("shows Reactivate action and hides admin request for deactivated users", () => {
+  it("shows Reactivate action for deactivated users", () => {
     render(<UsersView {...baseProps} />);
     expect(screen.getByText("Reactivate")).toBeInTheDocument();
     const deactivatedRow = screen.getByText("Deactivated User").closest("tr");
     expect(deactivatedRow).toBeInTheDocument();
-    expect(deactivatedRow).not.toHaveTextContent("Send Admin Request");
+  });
+
+  it("offers no admin request action", () => {
+    render(<UsersView {...baseProps} />);
+    expect(screen.queryByText("Send Admin Request")).not.toBeInTheDocument();
   });
 
   it("renders add user button for managers", () => {
@@ -285,12 +286,6 @@ describe("UsersView", () => {
     render(<UsersView {...baseProps} canManageAdmins={false} />);
 
     expect(screen.queryByText("Edit User")).not.toBeInTheDocument();
-  });
-
-  it("hides the admin request action without manage_admins", () => {
-    render(<UsersView {...baseProps} canManageAdmins={false} />);
-
-    expect(screen.queryByText("Send Admin Request")).not.toBeInTheDocument();
   });
 
   it("hides the deactivate action for an admin account", () => {

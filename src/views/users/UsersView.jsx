@@ -106,7 +106,6 @@ export default function UsersView({
   usersLoading,
   usersError,
   usersTotal,
-  sendingAdminRequestId,
   statusFilter,
   statusUpdatingUserId,
   creatingUser,
@@ -438,14 +437,6 @@ export default function UsersView({
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              {canManageAdmins && user.role?.toLowerCase() !== "admin" && user.status !== "deactivated" && (
-                                <DropdownMenuItem
-                                  onClick={() => actions.onSendAdminRequest?.(user)}
-                                  disabled={sendingAdminRequestId === user.id}
-                                >
-                                  {sendingAdminRequestId === user.id ? "Sending..." : "Send Admin Request"}
-                                </DropdownMenuItem>
-                              )}
                               {canManageAdmins && (
                                 <DropdownMenuItem
                                   onClick={() => actions.onEditUser?.(user)}

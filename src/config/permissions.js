@@ -68,16 +68,3 @@ export function rolePermissionPreset(role) {
   }
   return [...CONSOLE_FEATURE_PERMISSIONS];
 }
-
-/**
- * What accepting an admin request grants.
- *
- * The accept route lets the request target accept their own request
- * (adminAdminsRoutes.js), and the notification that opens the invite
- * popup goes to the account being promoted - so the person clicking
- * "Accept" is the person being promoted. That surface is a
- * self-service grant, and it must not hand out the account-management
- * levers: manage_users and manage_admins are granted deliberately, by
- * an administrator who already holds them, from Manage Users.
- */
-export const DEFAULT_ACCEPT_PERMISSIONS = [...CONSOLE_FEATURE_PERMISSIONS];

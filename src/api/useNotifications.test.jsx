@@ -32,12 +32,13 @@ describe("useNotifications", () => {
     vi.clearAllMocks();
   });
 
-  it("maps reference_id from a string metadata.admin_request_id", async () => {
+  it("keeps the reference_id the server sent", async () => {
     apiGet.mockResolvedValueOnce([
       {
         id: 1,
-        type: "admin_request",
-        metadata: { admin_request_id: "42" },
+        type: "incident",
+        reference_id: "42",
+        metadata: { incident_id: "42" },
         is_read: false,
       },
     ]);
@@ -49,12 +50,12 @@ describe("useNotifications", () => {
     expect(result.current.data?.[0]?.reference_id).toBe("42");
   });
 
-  it("leaves reference_id null when no admin request id is present", async () => {
+  it("leaves reference_id null when the server sent none", async () => {
     apiGet.mockResolvedValueOnce([
       {
         id: 2,
-        type: "admin_request",
-        metadata: {},
+        type: "incident",
+        metadata: { incident_id: "7" },
         is_read: false,
       },
     ]);
@@ -72,8 +73,9 @@ describe("useNotifications", () => {
         notifications: [
           {
             id: 3,
-            type: "admin_request",
-            metadata: { admin_request_id: "77" },
+            type: "incident",
+            reference_id: "77",
+            metadata: { incident_id: "77" },
             is_read: false,
           },
         ],
@@ -96,8 +98,9 @@ describe("useNotifications", () => {
           notifications: [
             {
               id: 4,
-              type: "admin_request",
-              metadata: { admin_request_id: "88" },
+              type: "incident",
+              reference_id: "88",
+              metadata: { incident_id: "88" },
               is_read: false,
             },
           ],

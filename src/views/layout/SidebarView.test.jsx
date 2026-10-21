@@ -9,7 +9,7 @@ const visibleNavItems = [
     items: [
       { path: "/dashboard", label: "Overview", icon: "LayoutDashboard" },
       { path: "/incidents", label: "Incidents", icon: "AlertTriangle" },
-      { path: "/admin-requests", label: "Admin Requests", icon: "UserCog" },
+      { path: "/personnel", label: "Manage Users", icon: "Users" },
     ],
   },
 ];

@@ -4,7 +4,6 @@ import {
   CONSOLE_FEATURE_PERMISSIONS,
   ACCOUNT_MANAGEMENT_PERMISSIONS,
   rolePermissionPreset,
-  DEFAULT_ACCEPT_PERMISSIONS,
 } from "@/config/permissions";
 
 describe("permissions config", () => {
@@ -47,12 +46,6 @@ describe("permissions config", () => {
   it("treats an unknown role as personnel", () => {
     expect(rolePermissionPreset("superuser")).toEqual(rolePermissionPreset("personnel"));
     expect(rolePermissionPreset(undefined)).toEqual(rolePermissionPreset("personnel"));
-  });
-
-  it("grants only console features when an admin request is accepted", () => {
-    expect(DEFAULT_ACCEPT_PERMISSIONS).toEqual(CONSOLE_FEATURE_PERMISSIONS);
-    expect(DEFAULT_ACCEPT_PERMISSIONS).not.toContain("manage_users");
-    expect(DEFAULT_ACCEPT_PERMISSIONS).not.toContain("manage_admins");
   });
 
   it("splits the catalogue into console features and account management", () => {

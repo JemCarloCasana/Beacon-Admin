@@ -3,15 +3,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { Header } from "@/components/layout/Header";
 import { useNotifications, useMarkNotificationRead } from "@/api/useNotifications";
-import { useAcceptAdminRequest, useRejectAdminRequest } from "@/api/useAdminRequests";
-import { DEFAULT_ACCEPT_PERMISSIONS } from "@/config/permissions";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
 const mockNavigate = vi.fn();
 const mockMarkRead = vi.fn();
-const mockAccept = vi.fn();
-const mockReject = vi.fn();
 const mockToast = vi.fn();
 
 vi.mock("react-router-dom", async () => {
@@ -25,11 +21,6 @@ vi.mock("react-router-dom", async () => {
 vi.mock("@/api/useNotifications", () => ({
   useNotifications: vi.fn(),
   useMarkNotificationRead: vi.fn(),
-}));
-
-vi.mock("@/api/useAdminRequests", () => ({
-  useAcceptAdminRequest: vi.fn(),
-  useRejectAdminRequest: vi.fn(),
 }));
 
 vi.mock("@/hooks/useAuth", () => ({
@@ -92,12 +83,6 @@ describe("Header notifications", () => {
     useMarkNotificationRead.mockReturnValue({
       mutateAsync: mockMarkRead.mockResolvedValue({}),
     });
-    useAcceptAdminRequest.mockReturnValue({
-      mutateAsync: mockAccept.mockResolvedValue({}),
-    });
-    useRejectAdminRequest.mockReturnValue({
-      mutateAsync: mockReject.mockResolvedValue({}),
-    });
   });
 
   it("renders a menu button that calls onMenuClick", () => {
@@ -128,13 +113,14 @@ describe("Header notifications", () => {
     expect(screen.getByRole("button", { name: /theme/i })).toBeInTheDocument();
   });
 
-  it("shows which permissions accepting an invite will grant", async () => {
+  it("does not list an admin request notification the console can no longer act on", () => {
     useNotifications.mockReturnValue({
       data: [
         {
           id: 1,
           type: "admin_request",
           title: "Admin Access Request",
+          message: "You have received an admin access request.",
           metadata: { admin_request_id: "60" },
           reference_id: "60",
           is_read: false,
@@ -149,317 +135,8 @@ describe("Header notifications", () => {
 
     renderWithQueryClient(<Header onMenuClick={vi.fn()} />);
 
-    await waitFor(() => {
-      expect(screen.getByText("Permissions to grant")).toBeInTheDocument();
-    });
-
-    // The console features are pre-selected; the account-management
-    // grants are not offered at all on this surface.
-    expect(screen.getByLabelText("view_incidents")).toBeChecked();
-    expect(screen.getByLabelText("manage_sos")).toBeChecked();
-    expect(screen.getByLabelText("manage_reports")).toBeChecked();
-    expect(screen.queryByLabelText("manage_admins")).not.toBeInTheDocument();
-  });
-
-  it("says why the account-management permissions are not offered", async () => {
-    useNotifications.mockReturnValue({
-      data: [
-        {
-          id: 1,
-          type: "admin_request",
-          title: "Admin Access Request",
-          metadata: { admin_request_id: "60" },
-          reference_id: "60",
-          is_read: false,
-          created_at: "2026-03-07T00:00:00.000Z",
-        },
-      ],
-      isLoading: false,
-      isError: false,
-      isFetching: false,
-      refetch: vi.fn(),
-    });
-
-    renderWithQueryClient(<Header onMenuClick={vi.fn()} />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Permissions to grant")).toBeInTheDocument();
-    });
-
-    expect(screen.getByText(/not offered here/i)).toBeInTheDocument();
-    expect(screen.getByText(/manage_admins/)).toBeInTheDocument();
-  });
-
-  it("grants the console features when the operator accepts", async () => {
-    useNotifications.mockReturnValue({
-      data: [
-        {
-          id: 1,
-          type: "admin_request",
-          title: "Admin Access Request",
-          metadata: { admin_request_id: "60" },
-          reference_id: "60",
-          is_read: false,
-          created_at: "2026-03-07T00:00:00.000Z",
-        },
-      ],
-      isLoading: false,
-      isError: false,
-      isFetching: false,
-      refetch: vi.fn(),
-    });
-
-    renderWithQueryClient(<Header onMenuClick={vi.fn()} />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Permissions to grant")).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByText("Accept"));
-
-    await waitFor(() => {
-      expect(mockAccept).toHaveBeenCalledWith(
-        expect.objectContaining({ permissions: DEFAULT_ACCEPT_PERMISSIONS })
-      );
-    });
-  });
-
-  it("grants only the permissions the operator chose", async () => {
-    useNotifications.mockReturnValue({
-      data: [
-        {
-          id: 1,
-          type: "admin_request",
-          title: "Admin Access Request",
-          metadata: { admin_request_id: "61" },
-          reference_id: "61",
-          is_read: false,
-          created_at: "2026-03-07T00:00:00.000Z",
-        },
-      ],
-      isLoading: false,
-      isError: false,
-      isFetching: false,
-      refetch: vi.fn(),
-    });
-
-    renderWithQueryClient(<Header onMenuClick={vi.fn()} />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Permissions to grant")).toBeInTheDocument();
-    });
-
-    // manage_broadcasts comes pre-selected; the operator takes it back.
-    fireEvent.click(screen.getByLabelText("manage_broadcasts"));
-    fireEvent.click(screen.getByText("Accept"));
-
-    await waitFor(() => {
-      expect(mockAccept).toHaveBeenCalledWith({
-        requestId: "61",
-        role: "admin",
-        permissions: [
-          "manage_sos",
-          "view_incidents",
-          "manage_incidents",
-          "view_broadcasts",
-          "manage_reports",
-        ],
-      });
-    });
-  });
-
-  it("opens decision modal only for actionable admin_request notification", async () => {
-    useNotifications.mockReturnValue({
-      data: [
-        {
-          id: 1,
-          type: "admin_request",
-          title: "Admin Access Request",
-          metadata: { admin_request_id: "55" },
-          reference_id: "55",
-          is_read: false,
-          created_at: "2026-03-07T00:00:00.000Z",
-        },
-      ],
-      isLoading: false,
-      isError: false,
-      isFetching: false,
-      refetch: vi.fn(),
-    });
-
-    renderWithQueryClient(<Header />);
-    fireEvent.click(screen.getAllByText("Admin Access Request").at(-1));
-
-    expect(screen.getByText("Accept")).toBeInTheDocument();
-    expect(
-      screen.getByText("An admin access request is awaiting your review. Accept or reject it below.")
-    ).toBeInTheDocument();
-    expect(screen.queryByText("Request type: Admin access request")).not.toBeInTheDocument();
-    expect(screen.queryByText("Type: admin_request")).not.toBeInTheDocument();
-    expect(mockMarkRead).not.toHaveBeenCalled();
-  });
-
-  it("renders backend-provided admin_request message when available", () => {
-    useNotifications.mockReturnValue({
-      data: [
-        {
-          id: 10,
-          type: "admin_request",
-          title: "Admin Access Request",
-          message: "Please review this elevated access request.",
-          metadata: { admin_request_id: "58" },
-          reference_id: "58",
-          is_read: false,
-          created_at: "2026-03-07T00:00:00.000Z",
-        },
-      ],
-      isLoading: false,
-      isError: false,
-      isFetching: false,
-      refetch: vi.fn(),
-    });
-
-    renderWithQueryClient(<Header />);
-
-    expect(screen.getAllByText("Please review this elevated access request.").length).toBeGreaterThan(0);
-    expect(
-      screen.queryByText("An admin access request is awaiting your review. Accept or reject it below.")
-    ).not.toBeInTheDocument();
-  });
-
-  it("keeps accepted admin_request modal closed after notifications refresh", async () => {
-    const notifications = [
-      {
-        id: 8,
-        type: "admin_request",
-        title: "Admin Access Request",
-        message: "Please review",
-        metadata: { admin_request_id: "56" },
-        reference_id: "56",
-        is_read: false,
-        created_at: "2026-03-07T00:00:00.000Z",
-      },
-    ];
-
-    useNotifications.mockImplementation(() => ({
-      data: notifications,
-      isLoading: false,
-      isError: false,
-      isFetching: false,
-      refetch: vi.fn(),
-    }));
-
-    const view = renderWithQueryClient(<Header />);
-
-    expect(screen.getByText("Accept")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByText("Accept"));
-
-    await waitFor(() => {
-      expect(mockAccept).toHaveBeenCalledWith({
-        requestId: "56",
-        role: "admin",
-        permissions: DEFAULT_ACCEPT_PERMISSIONS,
-      });
-      expect(mockMarkRead).toHaveBeenCalledWith(8);
-    });
-
-    expect(screen.queryByText("Accept")).not.toBeInTheDocument();
-
-    view.rerender(
-      <QueryClientProvider
-        client={new QueryClient({
-          defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-        })}
-      >
-        <Header />
-      </QueryClientProvider>
-    );
-
-    expect(screen.queryByText("Accept")).not.toBeInTheDocument();
-  });
-
-  it("keeps rejected admin_request modal closed after notifications refresh", async () => {
-    const notifications = [
-      {
-        id: 9,
-        type: "admin_request",
-        title: "Admin Access Request",
-        message: "Please review",
-        metadata: { admin_request_id: "57" },
-        reference_id: "57",
-        is_read: false,
-        created_at: "2026-03-07T00:00:00.000Z",
-      },
-    ];
-
-    useNotifications.mockImplementation(() => ({
-      data: notifications,
-      isLoading: false,
-      isError: false,
-      isFetching: false,
-      refetch: vi.fn(),
-    }));
-
-    const view = renderWithQueryClient(<Header />);
-
-    expect(screen.getByText("Reject")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByText("Reject"));
-
-    await waitFor(() => {
-      expect(mockReject).toHaveBeenCalledWith({ requestId: "57" });
-      expect(mockMarkRead).toHaveBeenCalledWith(9);
-    });
-
-    expect(screen.queryByText("Reject")).not.toBeInTheDocument();
-
-    notifications[0] = {
-      ...notifications[0],
-      id: 99,
-      is_read: false,
-    };
-
-    view.rerender(
-      <QueryClientProvider
-        client={new QueryClient({
-          defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-        })}
-      >
-        <Header />
-      </QueryClientProvider>
-    );
-
-    expect(screen.queryByText("Reject")).not.toBeInTheDocument();
-  });
-
-  it("treats non-actionable admin_request notification as general and marks read", async () => {
-    useNotifications.mockReturnValue({
-      data: [
-        {
-          id: 2,
-          type: "admin_request",
-          title: "Old Notification",
-          message: "Missing request id",
-          metadata: {},
-          reference_id: null,
-          is_read: false,
-          created_at: "2026-03-07T00:00:00.000Z",
-        },
-      ],
-      isLoading: false,
-      isError: false,
-      isFetching: false,
-      refetch: vi.fn(),
-    });
-
-    renderWithQueryClient(<Header />);
-    fireEvent.click(screen.getByText("Old Notification"));
-
-    await waitFor(() => {
-      expect(mockMarkRead).toHaveBeenCalledWith(2);
-    });
-    expect(screen.queryByText("Accept")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /notifications/i })).toBeInTheDocument();
+    expect(screen.queryByText("Admin Access Request")).not.toBeInTheDocument();
   });
 
   it("routes SOS notification to /sos/:id using sos_id priority and marks read", async () => {

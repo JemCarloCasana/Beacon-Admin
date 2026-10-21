@@ -224,7 +224,6 @@ export function useDashboardController() {
       },
       onCloseReporterDialog: () => setIsReporterDialogOpen(false),
       onGoToPersonnel: () => navigate("/personnel"),
-      onGoToAdmins: () => navigate("/admin-requests"),
     },
   };
 }
