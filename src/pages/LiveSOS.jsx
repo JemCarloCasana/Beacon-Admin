@@ -2,9 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout';
 import { LiveSOSDetailsDialog, LiveSOSFeed } from '@/components/dashboard';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAcknowledgeSOS, useResolveSOS, SOS_ASSIGNED_UNITS, useSOSDetail, useSOSLiveQueue } from '@/api/useSosAPI';
 import { toSosFeedAlert } from '@/models/sos-live.model';
 import { Button } from '@/components/ui/button';
@@ -25,8 +24,10 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
 import { Radio, Wifi, WifiOff } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 const ASSIGNED_UNIT_BY_EMERGENCY_TYPE = {
     medical: "Emergency Medical Unit",
@@ -81,6 +82,7 @@ function dedupeAlertsById(alerts) {
 export default function LiveSOS() {
     const navigate = useNavigate();
     const location = useLocation();
+    const { toast } = useToast();
     const { sosId: routeSosId } = useParams();
     const [searchParams] = useSearchParams();
     const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -91,6 +93,7 @@ export default function LiveSOS() {
     const [ackAssignedUnit, setAckAssignedUnit] = useState("");
     const [resolveTarget, setResolveTarget] = useState(null);
     const [resolveNote, setResolveNote] = useState("");
+    const [resolveOutcome, setResolveOutcome] = useState("safe");
     const [activeTab, setActiveTab] = useState(() => getValidTab(searchParams.get('tab')));
 
     const liveQueueQuery = useSOSLiveQueue({ status: 'open', limit: 100 });
@@ -108,9 +111,10 @@ export default function LiveSOS() {
     }, [searchParams]);
 
     useEffect(() => {
-        if (!routeSosId) return;
-        setSelectedSosId(routeSosId);
-        setIsDetailOpen(true);
+        // The route is the single source of truth for which thread is open, so
+        // the browser's back button closes the detail dialog.
+        setSelectedSosId(routeSosId ?? null);
+        setIsDetailOpen(Boolean(routeSosId));
     }, [routeSosId]);
 
     useEffect(() => {
@@ -249,8 +253,12 @@ export default function LiveSOS() {
             }));
             setAckTargetId(null);
             setAckAssignedUnit("");
-        } catch (_error) {
-            // Keep existing server-driven state on mutation failure.
+        } catch (error) {
+            toast({
+                title: "Failed to acknowledge SOS",
+                description: error?.message || "Please try again.",
+                variant: "destructive",
+            });
         }
     };
 
@@ -261,15 +269,20 @@ export default function LiveSOS() {
         try {
             await resolveMutation.mutateAsync({
                 sosId,
-                terminalOutcome: "safe",
+                terminalOutcome: resolveOutcome,
                 note: resolveNote,
             });
             setResolveTarget(null);
             setResolveNote("");
+            setResolveOutcome("safe");
             setIsDetailOpen(false);
             setSelectedSosId(null);
-        } catch (_error) {
-            // Keep current UI state so the admin can retry or adjust the note.
+        } catch (error) {
+            toast({
+                title: "Failed to resolve SOS",
+                description: error?.message || "Please try again.",
+                variant: "destructive",
+            });
         }
     };
 
@@ -289,8 +302,15 @@ export default function LiveSOS() {
                         <div>
                             <p className="font-medium">Backend SOS Queue Connection</p>
                             <p className="text-sm text-muted-foreground">
-                                Polling SOS queues every 5 seconds
+                                {isQueueLoading
+                                    ? "Connecting to the SOS queues..."
+                                    : "Polling SOS queues every 5 seconds"}
                             </p>
+                            {queueError && (
+                                <p className="text-xs text-destructive">
+                                    {queueError?.message || "Failed to load SOS queues."}
+                                </p>
+                            )}
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -313,113 +333,6 @@ export default function LiveSOS() {
                 </CardContent>
             </Card>
 
-            <div className="mb-5 grid shrink-0 gap-4 md:grid-cols-4">
-                <button
-                    type="button"
-                    onClick={() => updateTabRoute('live')}
-                    className="text-left"
-                    aria-pressed={activeTab === 'live'}
-                >
-                    <Card className={cn(
-                        "border-emergency/20 bg-emergency/5 transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                        activeTab === 'live' && "ring-2 ring-emergency/30 shadow-md"
-                    )}>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">
-                            Live SOS
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-bold text-emergency">
-                            {liveAlerts.length}
-                        </div>
-                        <p className="text-sm text-muted-foreground">Unassigned open SOS threads</p>
-                    </CardContent>
-                    </Card>
-                </button>
-                <button
-                    type="button"
-                    onClick={() => updateTabRoute('dispatched')}
-                    className="text-left"
-                    aria-pressed={activeTab === 'dispatched'}
-                >
-                    <Card className={cn(
-                        "transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                        activeTab === 'dispatched' && "ring-2 ring-primary/30 shadow-md"
-                    )}>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">
-                            Dispatch
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-bold text-primary">
-                            {dispatchedAlerts.length}
-                        </div>
-                        <p className="text-sm text-muted-foreground">Assigned SOS threads</p>
-                    </CardContent>
-                    </Card>
-                </button>
-                <button
-                    type="button"
-                    onClick={() => updateTabRoute('cancelled')}
-                    className="text-left"
-                    aria-pressed={activeTab === 'cancelled'}
-                >
-                    <Card className={cn(
-                        "transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                        activeTab === 'cancelled' && "ring-2 ring-warning/30 shadow-md"
-                    )}>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">
-                            Cancelled SOS
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-bold text-warning">
-                            {cancelledAlerts.length}
-                        </div>
-                        <p className="text-sm text-muted-foreground">Cancelled outcomes</p>
-                    </CardContent>
-                    </Card>
-                </button>
-                <button
-                    type="button"
-                    onClick={() => updateTabRoute('resolved')}
-                    className="text-left"
-                    aria-pressed={activeTab === 'resolved'}
-                >
-                    <Card className={cn(
-                        "transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                        activeTab === 'resolved' && "ring-2 ring-success/30 shadow-md"
-                    )}>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">
-                            Resolved SOS
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-bold text-success">{resolvedAlerts.length}</div>
-                        <p className="text-sm text-muted-foreground">Resolved outcomes</p>
-                    </CardContent>
-                    </Card>
-                </button>
-            </div>
-
-            {isQueueLoading && (
-                <Alert className="mb-5 shrink-0">
-                    <AlertDescription>Loading SOS queues...</AlertDescription>
-                </Alert>
-            )}
-
-            {queueError && (
-                <Alert variant="destructive" className="mb-5 shrink-0">
-                    <AlertDescription>
-                        {queueError?.message || 'Failed to load SOS queues.'}
-                    </AlertDescription>
-                </Alert>
-            )}
-
             <Tabs value={activeTab} onValueChange={updateTabRoute} className="flex flex-col">
                 <TabsList className="mb-4 w-full shrink-0 justify-start">
                     <TabsTrigger value="live">Live SOS ({liveAlerts.length})</TabsTrigger>
@@ -431,13 +344,16 @@ export default function LiveSOS() {
                 <TabsContent value="live" className="mt-0 flex flex-col">
                     <LiveSOSFeed
                         alerts={liveAlerts}
+                        loading={liveQueueQuery.isLoading}
+                        error={liveQueueQuery.error || null}
+                        onRetry={() => liveQueueQuery.refetch()}
                         title="Live SOS Feed"
                         emptyTitle="No live SOS alerts"
                         emptySubtitle="Monitoring for emergencies..."
                         onAcknowledge={handleAcknowledge}
                         onViewDetails={handleOpenDetails}
                         actionMode="live"
-                        contentHeightClassName="h-[40rem] max-h-[calc(100vh-24rem)] min-h-[34rem]"
+                        contentHeightClassName="h-[calc(100vh-18rem)] min-h-[320px] max-h-[calc(100vh-18rem)]"
                     />
                     {attentionAlerts.length === 0 && liveAlerts.length > 0 && (
                         <p className="mt-3 shrink-0 text-xs text-muted-foreground">All visible live SOS threads are acknowledged and waiting for assignment.</p>
@@ -447,37 +363,46 @@ export default function LiveSOS() {
                 <TabsContent value="dispatched" className="mt-0 flex flex-col">
                     <LiveSOSFeed
                         alerts={dispatchedAlerts}
+                        loading={liveQueueQuery.isLoading}
+                        error={liveQueueQuery.error || null}
+                        onRetry={() => liveQueueQuery.refetch()}
                         title="Dispatch Queue"
                         emptyTitle="No dispatched SOS"
                         emptySubtitle="Assigned SOS threads will appear here."
                         onResolve={handleOpenResolveDialog}
                         onViewDetails={handleOpenDetails}
                         actionMode="dispatch"
-                        contentHeightClassName="h-[40rem] max-h-[calc(100vh-24rem)] min-h-[34rem]"
+                        contentHeightClassName="h-[calc(100vh-18rem)] min-h-[320px] max-h-[calc(100vh-18rem)]"
                     />
                 </TabsContent>
 
                 <TabsContent value="cancelled" className="mt-0 flex flex-col">
                     <LiveSOSFeed
                         alerts={cancelledAlerts}
+                        loading={cancelledQueueQuery.isLoading}
+                        error={cancelledQueueQuery.error || null}
+                        onRetry={() => cancelledQueueQuery.refetch()}
                         title="Cancelled SOS"
                         emptyTitle="No cancelled SOS"
                         emptySubtitle="Cancelled outcomes will appear here."
                         actionMode="readonly"
                         onViewDetails={handleOpenDetails}
-                        contentHeightClassName="h-[calc(100vh-22rem)] min-h-[420px]"
+                        contentHeightClassName="h-[calc(100vh-18rem)] min-h-[320px] max-h-[calc(100vh-18rem)]"
                     />
                 </TabsContent>
 
                 <TabsContent value="resolved" className="mt-0 flex flex-col">
                     <LiveSOSFeed
                         alerts={resolvedAlerts}
+                        loading={resolvedQueueQuery.isLoading}
+                        error={resolvedQueueQuery.error || null}
+                        onRetry={() => resolvedQueueQuery.refetch()}
                         title="Resolved SOS"
                         emptyTitle="No resolved SOS"
                         emptySubtitle="Resolved outcomes will appear here."
                         actionMode="readonly"
                         onViewDetails={handleOpenDetails}
-                        contentHeightClassName="h-[calc(100vh-22rem)] min-h-[420px]"
+                        contentHeightClassName="h-[calc(100vh-18rem)] min-h-[320px] max-h-[calc(100vh-18rem)]"
                     />
                 </TabsContent>
             </Tabs>
@@ -553,6 +478,7 @@ export default function LiveSOS() {
                     if (!open && !resolveMutation.isPending) {
                         setResolveTarget(null);
                         setResolveNote("");
+                        setResolveOutcome("safe");
                     }
                 }}
             >
@@ -572,6 +498,23 @@ export default function LiveSOS() {
                         </p>
                     )}
                     <div className="space-y-2">
+                        <p className="text-sm font-medium">Outcome</p>
+                        <RadioGroup value={resolveOutcome} onValueChange={setResolveOutcome}>
+                            <div className="flex items-center gap-2">
+                                <RadioGroupItem value="safe" id="resolve-outcome-safe" />
+                                <Label htmlFor="resolve-outcome-safe">Safe</Label>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <RadioGroupItem value="cancelled" id="resolve-outcome-cancelled" />
+                                <Label htmlFor="resolve-outcome-cancelled">Caller cancelled</Label>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <RadioGroupItem value="false_alarm" id="resolve-outcome-false-alarm" />
+                                <Label htmlFor="resolve-outcome-false-alarm">False alarm</Label>
+                            </div>
+                        </RadioGroup>
+                    </div>
+                    <div className="space-y-2">
                         <p className="text-sm font-medium">Resolution note (optional)</p>
                         <Textarea
                             value={resolveNote}
@@ -586,6 +529,7 @@ export default function LiveSOS() {
                             onClick={() => {
                                 setResolveTarget(null);
                                 setResolveNote("");
+                                setResolveOutcome("safe");
                             }}
                             disabled={resolveMutation.isPending}
                         >

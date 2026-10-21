@@ -4,12 +4,33 @@ import { useAdminAuth } from "@/auth/AdminAuthProvider";
 import { toAdminModel } from "@/models/admin.model";
 import { toUserListModel } from "@/models/user.model";
 import { useToast } from "@/hooks/use-toast";
-import { sendAdminRequest } from "@/api/adminRequests";
 import { apiPatch } from "@/services/api";
 import { createUser, updateUserStatus } from "@/api/useUsers";
 import { normalizeEmail, normalizeName, validateSignup } from "@/auth/validation";
+import { rolePermissionPreset } from "@/config/permissions";
 
-async function updateUserById(userId, { full_name, email }) {
+/**
+ * Do two permission lists describe the same grant? Order does not
+ * matter - a grant is a set.
+ */
+function samePermissionSet(left, right) {
+  if (!Array.isArray(left) || !Array.isArray(right)) return false;
+  if (left.length !== right.length) return false;
+  const a = left.map((item) => String(item)).sort();
+  const b = right.map((item) => String(item)).sort();
+  return a.every((item, index) => item === b[index]);
+}
+
+async function updateUserById(userId, { full_name, email, permissions }) {
+  // PATCH /admin/admins/:id is the only route that can write an admin
+  // account's name, email or permissions: the other two candidates
+  // reject the permissions field, and their name-and-email branch
+  // writes the public user profiles collection rather than the account.
+  // So a permissions-bearing save goes there and nowhere else.
+  if (Array.isArray(permissions)) {
+    return apiPatch(`/admin/admins/${userId}`, { full_name, email, permissions });
+  }
+
   const candidateEndpoints = [
     `/admin/admins/${userId}`,
     `/admin/users/${userId}`,
@@ -72,10 +93,10 @@ export function useUsersController() {
     email: "",
     password: "",
     role: "personnel",
+    permissions: rolePermissionPreset("personnel"),
   };
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [sendingAdminRequestId, setSendingAdminRequestId] = useState(null);
   const [statusUpdatingUserId, setStatusUpdatingUserId] = useState(null);
   const [creatingUser, setCreatingUser] = useState(false);
   const [editingUserId, setEditingUserId] = useState(null);
@@ -86,11 +107,13 @@ export function useUsersController() {
     id: null,
     full_name: "",
     email: "",
+    permissions: [],
   });
   const { me, loading, hasPermission } = useAdminAuth();
   const { toast } = useToast();
   const canManageUsers = hasPermission("manage_users");
   const canCreateUsers = hasPermission("manage_admins");
+  const canManageAdmins = hasPermission("manage_admins");
 
   const usersQuery = useUsers({
     status: statusFilter,
@@ -108,43 +131,6 @@ export function useUsersController() {
         user.email.toLowerCase().includes(query) || user.full_name.toLowerCase().includes(query)
     );
   }, [searchQuery, users]);
-
-  const onSendAdminRequest = async (user) => {
-    if (!user?.id) return;
-    if (user?.status === "deactivated") {
-      toast({
-        title: "User is deactivated",
-        description: "Reactivate this account first before sending an admin request.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (user?.role?.toLowerCase() === "admin") {
-      toast({
-        title: "Already an admin",
-        description: `${user.full_name} already has admin access.`,
-      });
-      return;
-    }
-
-    try {
-      setSendingAdminRequestId(user.id);
-      await sendAdminRequest({ personnelId: user.id });
-      toast({
-        title: "Admin request sent",
-        description: `An admin invitation was sent to ${user.full_name}.`,
-      });
-      usersQuery.refetch();
-    } catch (error) {
-      toast({
-        title: "Failed to send request",
-        description: error?.message || "Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setSendingAdminRequestId(null);
-    }
-  };
 
   const onDeactivateUser = async (user) => {
     const targetId = getStatusTargetId(user);
@@ -167,8 +153,6 @@ export function useUsersController() {
     }
 
     const userLabel = user.full_name || user.email || `User #${user.id}`;
-    const isConfirmed = window.confirm(`Deactivate ${userLabel}?`);
-    if (!isConfirmed) return;
 
     try {
       setStatusUpdatingUserId(user.id ?? targetId);
@@ -202,8 +186,6 @@ export function useUsersController() {
     if (user?.status !== "deactivated") return;
 
     const userLabel = user.full_name || user.email || `User #${user.id}`;
-    const isConfirmed = window.confirm(`Reactivate ${userLabel}?`);
-    if (!isConfirmed) return;
 
     try {
       setStatusUpdatingUserId(user.id ?? targetId);
@@ -230,6 +212,9 @@ export function useUsersController() {
       id: user.id,
       full_name: String(user.full_name || ""),
       email: String(user.email || ""),
+      // null when the server did not report a grant, so the dialog can
+      // say "not reported" instead of showing an empty selection.
+      permissions: Array.isArray(user.permissions) ? [...user.permissions] : null,
     });
     setIsEditDialogOpen(true);
   };
@@ -260,11 +245,18 @@ export function useUsersController() {
   };
 
   const onCreateFormChange = (field, value) => {
-    if (!["full_name", "email", "password", "role"].includes(field)) return;
-    setCreateForm((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    if (!["full_name", "email", "password", "role", "permissions"].includes(field)) return;
+    setCreateForm((prev) => {
+      // A new role means a new grant: re-grant the preset for it, so
+      // the account cannot inherit the previous role's permissions.
+      if (field === "role") {
+        return { ...prev, role: value, permissions: rolePermissionPreset(value) };
+      }
+      return {
+        ...prev,
+        [field]: value,
+      };
+    });
   };
 
   const onCancelCreateUser = () => {
@@ -319,6 +311,7 @@ export function useUsersController() {
         email: normalizedEmail,
         password: normalizedPassword,
         role: normalizedRole,
+        permissions: Array.isArray(createForm.permissions) ? createForm.permissions : [],
       });
       toast({
         title: "User created",
@@ -339,7 +332,7 @@ export function useUsersController() {
   };
 
   const onEditFormChange = (field, value) => {
-    if (field !== "full_name" && field !== "email") return;
+    if (!["full_name", "email", "permissions"].includes(field)) return;
     setEditForm((prev) => ({
       ...prev,
       [field]: value,
@@ -359,6 +352,17 @@ export function useUsersController() {
     const currentEmail = String(originalUser?.email || "").trim();
     const nextName = String(editForm.full_name || "").trim();
     const nextEmail = String(editForm.email || "").trim();
+    const originalPermissions = Array.isArray(originalUser?.permissions)
+      ? originalUser.permissions
+      : null;
+    const nextPermissions = Array.isArray(editForm.permissions) ? editForm.permissions : null;
+    // A grant the server never reported cannot be compared against one
+    // that was, so it is never sent: replacing an unknown grant with a
+    // half-ticked box would silently take powers away.
+    const permissionsChanged =
+      originalPermissions !== null &&
+      nextPermissions !== null &&
+      !samePermissionSet(originalPermissions, nextPermissions);
 
     if (!nextName) {
       toast({
@@ -379,11 +383,21 @@ export function useUsersController() {
       return;
     }
 
-    if (nextName === currentName && nextEmail === currentEmail) return;
+    if (nextName === currentName && nextEmail === currentEmail && !permissionsChanged) return;
+
+    // The backend refuses a permissions key on your own account even
+    // when the value is unchanged, which would fail the whole save. So
+    // the grant is sent only when it actually changed, and never for
+    // the signed-in operator's own row.
+    const isSelf = String(editForm.id) === String(me?.id);
+    const payload = { full_name: nextName, email: nextEmail };
+    if (permissionsChanged && !isSelf) {
+      payload.permissions = nextPermissions;
+    }
 
     try {
       setEditingUserId(editForm.id);
-      await updateUserById(editForm.id, { full_name: nextName, email: nextEmail });
+      await updateUserById(editForm.id, payload);
       toast({
         title: "User updated",
         description: `${nextName} was updated successfully.`,
@@ -406,12 +420,13 @@ export function useUsersController() {
     loading,
     canManageUsers,
     canCreateUsers,
+    canManageAdmins,
     searchQuery,
     statusFilter,
     users: filteredUsers,
+    usersTotal: users.length,
     usersLoading: usersQuery.isLoading,
     usersError: usersQuery.isError ? usersQuery.error : null,
-    sendingAdminRequestId,
     statusUpdatingUserId,
     creatingUser,
     editingUserId,
@@ -423,7 +438,6 @@ export function useUsersController() {
       setSearchQuery,
       setStatusFilter,
       refresh: usersQuery.refetch,
-      onSendAdminRequest,
       onOpenCreateUser,
       onCreateDialogOpenChange,
       onCreateFormChange,

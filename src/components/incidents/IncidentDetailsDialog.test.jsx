@@ -189,7 +189,7 @@ open
     expect(screen.queryByText("Resolved")).not.toBeInTheDocument();
   });
 
-  it("auto-assigns priority based on incident type", () => {
+  it("keeps the server's priority instead of the incident type's", () => {
     const mutateAsync = vi.fn().mockResolvedValue({ ok: true });
     useUpdateIncident.mockReturnValue({
       mutateAsync,
@@ -222,7 +222,7 @@ open
     expect(mutateAsync).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 11,
-        priority: "critical",
+        priority: "medium",
       })
     );
   });
@@ -267,7 +267,7 @@ open
     );
   });
 
-  it("auto-assigns department based on incident type", () => {
+  it("suggests an assigned department from the incident type when the server has none", () => {
     const mutateAsync = vi.fn().mockResolvedValue({ ok: true });
     useUpdateIncident.mockReturnValue({
       mutateAsync,
@@ -295,7 +295,7 @@ open
       />
     );
 
-    expect(screen.getByText("Auto-assigned from incident type: Fire Station Unit.")).toBeInTheDocument();
+    expect(screen.getByText("Suggested from incident type: Fire Station Unit.")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
 
     expect(mutateAsync).toHaveBeenCalledWith(
@@ -305,6 +305,26 @@ open
       })
     );
   });
+
+  it("does not suggest a department the server already assigned", () => {
+    useIncidentDetail.mockReturnValue({
+      data: {
+        id: 19,
+        title: "Fire Report",
+        category: "fire",
+        priority: "medium",
+        assigned_department: "Police Personnel",
+        status: "pending",
+      },
+      isLoading: false,
+      isError: false,
+      error: null,
+    });
+
+    render(<IncidentDetailsDialog canManage open onOpenChange={() => {}} incidentId={19} />);
+
+    expect(screen.queryByText(/Suggested from incident type/i)).not.toBeInTheDocument();
+  });
 });
 
 it("view-only personnel cannot edit an incident",()=>{
@@ -312,4 +332,106 @@ it("view-only personnel cannot edit an incident",()=>{
   useUpdateIncident.mockReturnValue({mutateAsync:vi.fn(),isPending:false});
   render(<IncidentDetailsDialog open incidentId="case" onOpenChange={()=>{}} />);
   expect(screen.queryByRole("button",{name:"Save Changes"})).not.toBeInTheDocument();
+});
+
+it("sends the server's priority, not the category proposal", () => {
+  const mutateAsync = vi.fn().mockResolvedValue({ ok: true });
+  useUpdateIncident.mockReturnValue({ mutateAsync, isPending: false });
+  useIncidentDetail.mockReturnValue({
+    data: {
+      id: 15,
+      title: "Medical Emergency",
+      description: "Chest pain reported.",
+      category: "medical_emergency",
+      priority: "low",
+      status: "pending",
+    },
+    isLoading: false,
+    isError: false,
+    error: null,
+  });
+
+  render(<IncidentDetailsDialog canManage open onOpenChange={() => {}} incidentId={15} />);
+
+  fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
+
+  expect(mutateAsync).toHaveBeenCalledWith(
+    expect.objectContaining({ id: 15, priority: "low" })
+  );
+});
+
+it("lets the operator change the priority away from the category proposal", () => {
+  const mutateAsync = vi.fn().mockResolvedValue({ ok: true });
+  useUpdateIncident.mockReturnValue({ mutateAsync, isPending: false });
+  useIncidentDetail.mockReturnValue({
+    data: {
+      id: 18,
+      title: "Medical Emergency",
+      description: "Chest pain reported.",
+      category: "medical_emergency",
+      priority: "critical",
+      status: "pending",
+    },
+    isLoading: false,
+    isError: false,
+    error: null,
+  });
+
+  render(<IncidentDetailsDialog canManage open onOpenChange={() => {}} incidentId={18} />);
+
+  fireEvent.click(screen.getByLabelText("Priority"));
+  fireEvent.click(screen.getAllByText("Low").at(-1));
+  fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
+
+  expect(mutateAsync).toHaveBeenCalledWith(
+    expect.objectContaining({ id: 18, priority: "low" })
+  );
+});
+
+it("does not wipe a typed resolution note when the incident refetches", () => {
+  useUpdateIncident.mockReturnValue({ mutateAsync: vi.fn().mockResolvedValue({ ok: true }), isPending: false });
+
+  let detailData = {
+    id: 16,
+    title: "Note Incident",
+    status: "pending",
+    resolution_notes: "Original note",
+  };
+  useIncidentDetail.mockImplementation(() => ({
+    data: detailData,
+    isLoading: false,
+    isError: false,
+    error: null,
+  }));
+
+  const { rerender } = render(
+    <IncidentDetailsDialog canManage open onOpenChange={() => {}} incidentId={16} />
+  );
+
+  fireEvent.change(screen.getByLabelText("Resolution Notes"), {
+    target: { value: "Patient transported" },
+  });
+
+  detailData = {
+    id: 16,
+    title: "Note Incident",
+    status: "dispatched",
+    resolution_notes: "Server rewrote",
+  };
+  rerender(<IncidentDetailsDialog canManage open onOpenChange={() => {}} incidentId={16} />);
+
+  expect(screen.getByLabelText("Resolution Notes")).toHaveValue("Patient transported");
+});
+
+it("tells a read-only operator why they cannot edit", () => {
+  useIncidentDetail.mockReturnValue({
+    data: { id: 17, title: "Read Only Incident", status: "pending" },
+    isLoading: false,
+    isError: false,
+    error: null,
+  });
+
+  render(<IncidentDetailsDialog open onOpenChange={() => {}} incidentId={17} />);
+
+  expect(screen.getByText(/read-only access to incidents/i)).toBeInTheDocument();
 });

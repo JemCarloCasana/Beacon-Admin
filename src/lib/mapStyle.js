@@ -24,5 +24,28 @@ export const MAP_HQ_COORDINATES = {
   lng: 120.3354064229617,
 };
 
+/**
+ * Resolve a theme token to a literal colour MapLibre can parse.
+ *
+ * MapLibre parses paint properties with its own colour parser, in a worker
+ * that has no access to the document's CSS custom properties. Passing
+ * "hsl(var(--primary))" to it fails with `color expected`, so the token is
+ * resolved here, in the page, and the literal value is handed over.
+ */
+export function resolveThemeColor(variable, fallback) {
+  if (typeof window === "undefined" || typeof document === "undefined") return fallback;
+
+  const raw = window
+    .getComputedStyle(document.documentElement)
+    .getPropertyValue(variable)
+    .trim();
+
+  if (!raw) return fallback;
+
+  // The tokens hold HSL components ("221 83% 53%"), which need the hsl()
+  // wrapper. A value that is already a colour is used as it is.
+  return raw.includes("(") || raw.startsWith("#") ? raw : `hsl(${raw})`;
+}
+
 export const MAP_DEFAULT_CENTER = MAP_HQ_COORDINATES;
 export const MAP_DEFAULT_ZOOM = 13;

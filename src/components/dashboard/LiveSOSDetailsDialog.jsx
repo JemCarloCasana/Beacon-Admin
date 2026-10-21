@@ -53,7 +53,8 @@ function formatShortDate(value) {
 
 function formatEmergencyLabel(value) {
   const normalized = String(value || "").trim().toLowerCase();
-  if (!normalized || normalized === "unknown") return "Emergency Alert";
+  if (!normalized) return "Emergency type not reported";
+  if (normalized === "unknown") return "Emergency type not reported";
   return `${normalized.charAt(0).toUpperCase()}${normalized.slice(1)} Emergency`;
 }
 
@@ -113,7 +114,7 @@ export function LiveSOSDetailsDialog({
     }
     return "Friend-side SOS notifications are best-effort and do not change the admin result shown here.";
   })();
-  const summaryTitle = detail?.assigned_unit || formatEmergencyLabel(detail?.emergencyType);
+  const summaryTitle = detail?.assigned_unit || "No responder assigned yet";
   const coordinatesLabel = Number.isFinite(detail?.location?.latitude) && Number.isFinite(detail?.location?.longitude)
     ? `${formatCoordinate(detail.location.latitude, detail.location.latitude >= 0 ? "N" : "S")} | ${formatCoordinate(detail.location.longitude, detail.location.longitude >= 0 ? "E" : "W")}`
     : "Coordinates unavailable";
@@ -181,7 +182,7 @@ export function LiveSOSDetailsDialog({
                         <Badge className={statusStyles[detailBadge.key] || statusStyles.active}>
                           {detailBadge.label}
                         </Badge>
-                        <Badge variant="outline" className="border-primary/20 bg-primary/5 text-[11px] uppercase tracking-[0.18em] text-primary">
+                        <Badge variant="outline" className="border-primary/20 bg-primary/5 text-xs uppercase tracking-[0.18em] text-primary">
                           ID: SOS-{detail.id || "-"}
                         </Badge>
                       </div>
@@ -195,7 +196,7 @@ export function LiveSOSDetailsDialog({
                       </div>
                     </div>
                     <div className="rounded-2xl border border-border/70 bg-muted/40 px-4 py-3 text-right">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                         Incident Time
                       </p>
                       <p className="mt-2 text-sm font-semibold text-foreground">{formatEventDate(detail.timestamp)}</p>
@@ -253,6 +254,13 @@ export function LiveSOSDetailsDialog({
                         <div>
                           <p className="text-xs font-medium uppercase tracking-[0.15em] text-muted-foreground">Type</p>
                           <p className="mt-1 font-semibold text-foreground">{formatEmergencyLabel(detail.emergencyType)}</p>
+                          {!detail.emergencyType && detail.emergencyTypeFromMessage && (
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              The message appears to describe a{" "}
+                              {formatEmergencyLabel(detail.emergencyTypeFromMessage).replace(" Emergency", "")}{" "}
+                              emergency, but the person did not report a type.
+                            </p>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-start gap-3 rounded-2xl bg-muted/35 p-3">
@@ -278,7 +286,7 @@ export function LiveSOSDetailsDialog({
                       <p className="mt-1 text-sm text-muted-foreground">Latest map position and GPS context for this SOS thread.</p>
                     </div>
                     <Badge variant="outline" className={cn(
-                      "rounded-full border text-[11px] uppercase tracking-[0.18em]",
+                      "rounded-full border text-xs uppercase tracking-[0.18em]",
                       mapMarker ? "border-primary/20 bg-primary/5 text-primary" : "border-border bg-muted/40 text-muted-foreground"
                     )}>
                       {trackingLabel}

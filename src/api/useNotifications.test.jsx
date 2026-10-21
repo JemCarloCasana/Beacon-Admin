@@ -32,12 +32,13 @@ describe("useNotifications", () => {
     vi.clearAllMocks();
   });
 
-  it("maps reference_id from numeric metadata.admin_request_id", async () => {
+  it("keeps the reference_id the server sent", async () => {
     apiGet.mockResolvedValueOnce([
       {
         id: 1,
-        type: "admin_request",
-        metadata: { admin_request_id: "42" },
+        type: "incident",
+        reference_id: "42",
+        metadata: { incident_id: "42" },
         is_read: false,
       },
     ]);
@@ -46,15 +47,15 @@ describe("useNotifications", () => {
     const { result } = renderHook(() => useNotifications(), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data?.[0]?.reference_id).toBe(42);
+    expect(result.current.data?.[0]?.reference_id).toBe("42");
   });
 
-  it("keeps non-numeric admin_request_id non-actionable", async () => {
+  it("leaves reference_id null when the server sent none", async () => {
     apiGet.mockResolvedValueOnce([
       {
         id: 2,
-        type: "admin_request",
-        metadata: { admin_request_id: "abc" },
+        type: "incident",
+        metadata: { incident_id: "7" },
         is_read: false,
       },
     ]);
@@ -72,8 +73,9 @@ describe("useNotifications", () => {
         notifications: [
           {
             id: 3,
-            type: "admin_request",
-            metadata: { admin_request_id: 77 },
+            type: "incident",
+            reference_id: "77",
+            metadata: { incident_id: "77" },
             is_read: false,
           },
         ],
@@ -86,7 +88,7 @@ describe("useNotifications", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toHaveLength(1);
     expect(result.current.data?.[0]?.id).toBe(3);
-    expect(result.current.data?.[0]?.reference_id).toBe(77);
+    expect(result.current.data?.[0]?.reference_id).toBe("77");
   });
 
   it("reads notifications from deeper wrapper payload", async () => {
@@ -96,8 +98,9 @@ describe("useNotifications", () => {
           notifications: [
             {
               id: 4,
-              type: "admin_request",
-              metadata: { admin_request_id: "88" },
+              type: "incident",
+              reference_id: "88",
+              metadata: { incident_id: "88" },
               is_read: false,
             },
           ],
@@ -111,7 +114,7 @@ describe("useNotifications", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toHaveLength(1);
     expect(result.current.data?.[0]?.id).toBe(4);
-    expect(result.current.data?.[0]?.reference_id).toBe(88);
+    expect(result.current.data?.[0]?.reference_id).toBe("88");
   });
 
   it("configures polling and focus behavior on the notifications query", () => {

@@ -1,85 +1,79 @@
-import { render, screen, within } from "@testing-library/react";
-import { forwardRef } from "react";
+import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
 import MapViewScreen from "@/views/map/MapViewScreen";
-import { MAP_MARKER_TYPE_STYLES } from "@/lib/mapMarkerStyles";
 
 vi.mock("@/components/layout", () => ({
   DashboardLayout: ({ children }) => <div>{children}</div>,
 }));
 
 vi.mock("@/components/map/MapCanvas", () => ({
-  default: forwardRef(function MockMapCanvas(_props, _ref) {
-    return <div data-testid="map-canvas">map</div>;
-  }),
+  default: () => <div data-testid="map">map</div>,
 }));
 
-function createProps(overrides = {}) {
-  return {
-    markers: [],
-    selectedMarker: null,
-    legendItems: [{ type: "sos" }, { type: "incident" }],
-    filters: {
-      showSos: true,
-      showIncidents: true,
-    },
-    stats: {
-      sosCount: 1,
-      incidentCount: 2,
-      isRefetching: false,
-      isLive: true,
-    },
-    isLoading: false,
-    error: null,
-    hasMapData: true,
-    actions: {
-      onToggleSos: vi.fn(),
-      onToggleIncidents: vi.fn(),
-      onSelectMarker: vi.fn(),
-      onCenterChanged: vi.fn(),
-      onClearSelection: vi.fn(),
-      onRefresh: vi.fn(),
-    },
-    ...overrides,
-  };
-}
+const baseProps = {
+  markers: [],
+  selectedMarker: null,
+  legendItems: [],
+  filters: { showSos: true, showIncidents: true },
+  stats: { sosCount: 3, incidentCount: 12, isLive: true, isRefetching: false },
+  isLoading: false,
+  error: null,
+  hasMapData: true,
+  permissions: { canViewSos: true, canViewIncidents: true },
+  actions: {
+    onToggleSos: vi.fn(),
+    onToggleIncidents: vi.fn(),
+    onRefresh: vi.fn(),
+    onSelectMarker: vi.fn(),
+    onCenterChanged: vi.fn(),
+  },
+};
 
-describe("MapViewScreen", () => {
-  it("renders map legend with marker type labels", () => {
-    render(<MapViewScreen {...createProps()} />);
+describe("MapViewScreen permissions", () => {
+  it("hides the incidents switch when the operator cannot view incidents", () => {
+    render(
+      <MapViewScreen
+        {...baseProps}
+        permissions={{ canViewSos: true, canViewIncidents: false }}
+      />
+    );
 
-    const legendHeading = screen.getByRole("heading", { name: "Map Legend" });
-    const legendCard = legendHeading.closest(".rounded-lg");
-    expect(legendHeading).toBeInTheDocument();
-    expect(legendCard).not.toBeNull();
-    expect(within(legendCard).getByText("SOS")).toBeInTheDocument();
-    expect(within(legendCard).getByText("Incidents")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("switch", { name: /incident layer/i })
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("switch", { name: /sos layer/i })).toBeInTheDocument();
   });
 
-  it("uses configured marker colors for legend swatches", () => {
-    render(<MapViewScreen {...createProps()} />);
+  it("shows the incidents count only when incidents are visible", () => {
+    render(
+      <MapViewScreen
+        {...baseProps}
+        permissions={{ canViewSos: true, canViewIncidents: false }}
+      />
+    );
 
-    expect(screen.getByTestId("map-legend-swatch-sos")).toHaveStyle({
-      backgroundColor: MAP_MARKER_TYPE_STYLES.sos.color,
-    });
-    expect(screen.getByTestId("map-legend-swatch-incident")).toHaveStyle({
-      backgroundColor: MAP_MARKER_TYPE_STYLES.incident.color,
-    });
+    expect(screen.queryByText(/Incidents 12/)).not.toBeInTheDocument();
+    expect(screen.getByText(/SOS 3/)).toBeInTheDocument();
   });
 
-  it("renders only visible marker types in the legend", () => {
-    render(<MapViewScreen {...createProps({ legendItems: [{ type: "sos" }] })} />);
+  it("explains why a layer is missing", () => {
+    render(
+      <MapViewScreen
+        {...baseProps}
+        permissions={{ canViewSos: true, canViewIncidents: false }}
+      />
+    );
 
-    const legendHeading = screen.getByRole("heading", { name: "Map Legend" });
-    const legendCard = legendHeading.closest(".rounded-lg");
-
-    expect(within(legendCard).getByText("SOS")).toBeInTheDocument();
-    expect(within(legendCard).queryByText("Incidents")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("map-legend-swatch-incident")).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/do not have permission to view incidents/i)
+    ).toBeInTheDocument();
   });
 
-  it("shows an empty-state message when no marker types are visible", () => {
-    render(<MapViewScreen {...createProps({ legendItems: [] })} />);
+  it("shows both layers when the operator can see both", () => {
+    render(<MapViewScreen {...baseProps} />);
 
-    expect(screen.getByText("No visible marker types.")).toBeInTheDocument();
+    expect(screen.getByRole("switch", { name: /incident layer/i })).toBeInTheDocument();
+    expect(screen.getByRole("switch", { name: /sos layer/i })).toBeInTheDocument();
+    expect(screen.getByText(/Incidents 12/)).toBeInTheDocument();
   });
 });

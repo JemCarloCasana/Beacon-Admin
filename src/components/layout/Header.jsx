@@ -1,5 +1,7 @@
+import { CommandPalette } from './CommandPalette';
 import { useEffect, useMemo, useState } from 'react';
-import { Bell, LogOut } from 'lucide-react';
+import { Bell, LogOut, Menu, SunMoon } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -12,39 +14,27 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
 import { useNotifications, useMarkNotificationRead } from '@/api/useNotifications';
-import {
-    DEFAULT_PROMOTED_ADMIN_PERMISSIONS,
-    useAcceptAdminRequest,
-    useRejectAdminRequest,
-} from '@/api/useAdminRequests';
 import { useToast } from '@/hooks/use-toast';
 
-export function Header({ onMenuClick }) {
+export function Header({ onMenuClick, title }) {
     const [isNotifOpen, setIsNotifOpen] = useState(false);
     const [showAllNotifications, setShowAllNotifications] = useState(false);
-    const [invitePopupNotification, setInvitePopupNotification] = useState(null);
-    const [dismissedInviteRequestIds, setDismissedInviteRequestIds] = useState([]);
-    const [inviteActionLoading, setInviteActionLoading] = useState(false);
     const navigate = useNavigate();
     const queryClient = useQueryClient();
-    const { me, logout, refreshMe } = useAuth();
+    const { me, logout } = useAuth();
+    const { theme, setTheme, resolvedTheme } = useTheme();
     const { toast } = useToast();
 
     const notificationsQuery = useNotifications();
     const markReadMutation = useMarkNotificationRead();
-    const acceptAdminRequestMutation = useAcceptAdminRequest();
-    const rejectAdminRequestMutation = useRejectAdminRequest();
 
-    const notifications = notificationsQuery.data || [];
+    // An admin request is an invitation the console no longer acts on, so
+    // it is not listed. A list entry that leads nowhere is a dead end.
+    const notifications = useMemo(
+        () => (notificationsQuery.data || []).filter((item) => item?.type !== 'admin_request'),
+        [notificationsQuery.data]
+    );
     const unreadNotifications = useMemo(
         () => notifications.filter((notification) => !notification?.is_read),
         [notifications]
@@ -71,20 +61,6 @@ export function Header({ onMenuClick }) {
         console.debug('[notifications] mapped count by type:', typeCounts);
         console.debug('[notifications] rendered count:', notifications.length);
     }, [me?.id, notifications]);
-
-    const getActionableAdminRequestId = (notification) => {
-        if (notification?.type !== 'admin_request') return null;
-        const candidate = notification?.reference_id ?? notification?.metadata?.admin_request_id;
-        return candidate == null || candidate === '' ? null : String(candidate);
-    };
-
-    const dismissInviteNotification = (notification) => {
-        const requestId = getActionableAdminRequestId(notification);
-        if (requestId === null) return;
-        setDismissedInviteRequestIds((prev) =>
-            prev.includes(requestId) ? prev : [...prev, requestId]
-        );
-    };
 
     const getRouteableId = (value) => {
         return value == null || value === '' ? null : String(value);
@@ -160,19 +136,6 @@ export function Header({ onMenuClick }) {
         return null;
     };
 
-    useEffect(() => {
-        if (invitePopupNotification) return;
-        const unreadInvite = notifications.find(
-            (notification) =>
-                getActionableAdminRequestId(notification) !== null &&
-                !notification?.is_read &&
-                !dismissedInviteRequestIds.includes(getActionableAdminRequestId(notification))
-        );
-        if (unreadInvite) {
-            setInvitePopupNotification(unreadInvite);
-        }
-    }, [notifications, invitePopupNotification, dismissedInviteRequestIds]);
-
     const handleNotificationOpenChange = (open) => {
         setIsNotifOpen(open);
         if (open) {
@@ -201,15 +164,6 @@ export function Header({ onMenuClick }) {
     };
 
     const handleNotificationClick = async (notification) => {
-        const requestId = getActionableAdminRequestId(notification);
-        if (requestId !== null) {
-            setInvitePopupNotification({
-                ...notification,
-                reference_id: requestId,
-            });
-            return;
-        }
-
         const targetRoute = resolveNotificationRoute(notification);
         if (targetRoute) {
             void handleMarkAsRead(notification);
@@ -244,58 +198,6 @@ export function Header({ onMenuClick }) {
         }
     };
 
-    const handleInviteDecision = async (decision) => {
-        const current = invitePopupNotification;
-        if (!current) return;
-
-        const requestId = getActionableAdminRequestId(current);
-        if (requestId === null) {
-            toast({
-                title: 'Unable to process request',
-                description: 'Notification is missing a valid admin request id.',
-                variant: 'destructive',
-            });
-            return;
-        }
-
-        try {
-            setInviteActionLoading(true);
-
-            if (decision === 'accept') {
-                await acceptAdminRequestMutation.mutateAsync({
-                    requestId,
-                    role: 'admin',
-                    permissions: DEFAULT_PROMOTED_ADMIN_PERMISSIONS,
-                });
-                await refreshMe?.();
-                toast({
-                    title: 'Request accepted',
-                    description: 'Admin permissions granted.',
-                });
-            } else {
-                await rejectAdminRequestMutation.mutateAsync({ requestId });
-                toast({
-                    title: 'Request rejected',
-                    description: 'Admin request was rejected.',
-                });
-            }
-
-            dismissInviteNotification(current);
-            await handleMarkAsRead(current);
-            setInvitePopupNotification(null);
-            await queryClient.invalidateQueries({ queryKey: ['notifications'] });
-            await queryClient.invalidateQueries({ queryKey: ['admin-requests'] });
-        } catch (error) {
-            toast({
-                title: `Failed to ${decision} request`,
-                description: error?.message || 'Please try again.',
-                variant: 'destructive',
-            });
-        } finally {
-            setInviteActionLoading(false);
-        }
-    };
-
     const formatNotificationDate = (value) => {
         if (!value) return '';
         const date = new Date(value);
@@ -304,62 +206,57 @@ export function Header({ onMenuClick }) {
     };
 
     const handleLogout = async () => {
+        // logout() calls the backend, then clears the local session and
+        // navigates to /login. Clearing the token here as well would race it.
         await logout();
-        localStorage.removeItem('admin_token');
-        // admin_me is never stored in localStorage, only token
-        navigate('/login');
+    };
+
+    const initials = String(me?.full_name || "")
+        .split(" ")
+        .filter(Boolean)
+        .map((part) => part[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase();
+
+    const toggleTheme = () => {
+        setTheme(resolvedTheme === "dark" ? "light" : "dark");
     };
 
     return (
         <>
-            <Dialog
-                open={!!invitePopupNotification}
-                onOpenChange={(open) => {
-                    if (!open && invitePopupNotification) {
-                        dismissInviteNotification(invitePopupNotification);
-                    }
-                    if (!open) setInvitePopupNotification(null);
-                }}
-            >
-                {invitePopupNotification && (
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>
-                                {invitePopupNotification.title || 'Admin Invite Received'}
-                            </DialogTitle>
-                            <DialogDescription>
-                                {invitePopupNotification.message || 'An admin access request is awaiting your review. Accept or reject it below.'}
-                            </DialogDescription>
-                        </DialogHeader>
-                        <DialogFooter>
-                            <Button
-                                variant="outline"
-                                onClick={() => handleInviteDecision('reject')}
-                                disabled={inviteActionLoading}
-                            >
-                                Reject
-                            </Button>
-                            <Button
-                                onClick={() => handleInviteDecision('accept')}
-                                disabled={inviteActionLoading}
-                            >
-                                {inviteActionLoading ? 'Processing...' : 'Accept'}
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                )}
-            </Dialog>
+            <CommandPalette />
 
-            <header className="flex h-16 items-center justify-end border-b bg-white px-6">
+            <header className="flex h-16 items-center justify-between gap-4 border-b bg-card px-4 md:px-6">
+                <div className="flex min-w-0 items-center gap-3">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={onMenuClick}
+                        aria-label="Open menu"
+                        className="h-9 w-9 lg:hidden"
+                    >
+                        <Menu className="h-5 w-5" />
+                    </Button>
+                    {title ? (
+                        <span className="truncate text-sm font-semibold text-foreground lg:hidden">
+                            {title}
+                        </span>
+                    ) : null}
+                </div>
+
                 <div className="flex items-center gap-4">
                     {/* Notifications */}
                     <div className="relative">
                         <DropdownMenu open={isNotifOpen} onOpenChange={handleNotificationOpenChange}>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="relative h-9 w-9 text-slate-500">
+                                <Button variant="ghost" size="icon" aria-label="Notifications" className="relative h-9 w-9 text-muted-foreground">
                                     <Bell className="h-5 w-5" />
                                     {hasUnread && (
-                                        <span className="absolute right-0.5 top-0.5 inline-flex min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-4 text-white">
+                                        <span
+                                            aria-label={`${unreadCount} unread notifications`}
+                                            className="absolute right-0.5 top-0.5 inline-flex min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-xs font-bold leading-4 text-white"
+                                        >
                                             {unreadCount > 9 ? '9+' : unreadCount}
                                         </span>
                                     )}
@@ -400,7 +297,7 @@ export function Header({ onMenuClick }) {
                                                         type="button"
                                                         onClick={handleMarkAllAsRead}
                                                         disabled={markReadMutation.isPending}
-                                                        className="font-medium text-blue-600 transition hover:text-blue-700 disabled:cursor-not-allowed disabled:text-muted-foreground"
+                                                        className="font-medium text-primary transition hover:text-primary/80 disabled:cursor-not-allowed disabled:text-muted-foreground"
                                                     >
                                                         {markReadMutation.isPending ? 'Marking...' : 'Mark all as read'}
                                                     </button>
@@ -409,7 +306,7 @@ export function Header({ onMenuClick }) {
                                                     <button
                                                         type="button"
                                                         onClick={() => setShowAllNotifications(false)}
-                                                        className="font-medium text-slate-700 transition hover:text-slate-900"
+                                                        className="font-medium text-foreground transition hover:text-foreground"
                                                     >
                                                         Show less
                                                     </button>
@@ -417,7 +314,7 @@ export function Header({ onMenuClick }) {
                                                     <button
                                                         type="button"
                                                         onClick={() => setShowAllNotifications(true)}
-                                                        className="font-medium text-slate-700 transition hover:text-slate-900"
+                                                        className="font-medium text-foreground transition hover:text-foreground"
                                                     >
                                                         Show all
                                                     </button>
@@ -436,13 +333,13 @@ export function Header({ onMenuClick }) {
                                                         {notification.title || 'Notification'}
                                                     </p>
                                                     {!notification.is_read && (
-                                                        <span className="h-2 w-2 rounded-full bg-blue-600" />
+                                                        <span className="h-2 w-2 rounded-full bg-primary" />
                                                     )}
                                                 </div>
                                                 <p className="line-clamp-2 w-full text-xs text-muted-foreground">
                                                     {notification.message || notification.body || 'No message provided.'}
                                                 </p>
-                                                <p className="text-[10px] text-muted-foreground">
+                                                <p className="text-xs text-muted-foreground">
                                                     {formatNotificationDate(notification.created_at)}
                                                 </p>
                                             </DropdownMenuItem>
@@ -454,16 +351,36 @@ export function Header({ onMenuClick }) {
                         </DropdownMenu>
                     </div>
 
-                    {/* Logout Button */}
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleLogout}
-                        className="ml-2 flex items-center gap-2"
-                    >
-                        <LogOut className="h-4 w-4" />
-                        Logout
-                    </Button>
+                    {/* Admin menu */}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="flex items-center gap-2">
+                                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground">
+                                    {initials}
+                                </span>
+                                <span className="hidden text-left sm:block">
+                                    <span className="block text-sm font-medium leading-tight text-foreground">
+                                        {me?.full_name || "Operator"}
+                                    </span>
+                                    <span className="block text-xs leading-tight text-muted-foreground">
+                                        {me?.role || ""}
+                                    </span>
+                                </span>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>{me?.full_name || "Operator"}</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={toggleTheme}>
+                                <SunMoon className="mr-2 h-4 w-4" />
+                                {resolvedTheme === "dark" ? "Use light theme" : "Use dark theme"}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={handleLogout}>
+                                <LogOut className="mr-2 h-4 w-4" />
+                                Logout
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
             </header>
         </>

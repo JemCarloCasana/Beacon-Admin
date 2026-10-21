@@ -69,4 +69,46 @@ describe("useUsers", () => {
       role: "admin",
     });
   });
+
+  it("sends the permissions when creating an account", async () => {
+    apiPost.mockResolvedValueOnce({ id: 10 });
+    await createUser({
+      full_name: "New User",
+      email: "new@example.com",
+      password: "Passcode12!",
+      role: "personnel",
+      permissions: ["manage_sos", "view_incidents"],
+    });
+    expect(apiPost).toHaveBeenCalledWith("/admin/admins", {
+      full_name: "New User",
+      email: "new@example.com",
+      password: "Passcode12!",
+      role: "personnel",
+      permissions: ["manage_sos", "view_incidents"],
+    });
+  });
+
+  it("omits permissions when none were chosen", async () => {
+    apiPost.mockResolvedValueOnce({ id: 10 });
+    await createUser({
+      full_name: "New User",
+      email: "new@example.com",
+      password: "Passcode12!",
+      role: "personnel",
+    });
+    const body = apiPost.mock.calls[0][1];
+    expect(body).not.toHaveProperty("permissions");
+  });
+
+  it("sends an empty permissions list rather than dropping it", async () => {
+    apiPost.mockResolvedValueOnce({ id: 10 });
+    await createUser({
+      full_name: "New User",
+      email: "new@example.com",
+      password: "Passcode12!",
+      role: "personnel",
+      permissions: [],
+    });
+    expect(apiPost.mock.calls[0][1]).toHaveProperty("permissions", []);
+  });
 });

@@ -17,13 +17,11 @@ function parseObjectLike(value) {
 
 function normalizeNotification(item) {
   const metadata = parseObjectLike(item?.metadata);
-  const adminRequestId = metadata?.admin_request_id;
-  const reference_id = adminRequestId == null || adminRequestId === '' ? null : String(adminRequestId);
 
   return {
     ...item,
     metadata,
-    reference_id,
+    reference_id: item?.reference_id ?? null,
   };
 }
 

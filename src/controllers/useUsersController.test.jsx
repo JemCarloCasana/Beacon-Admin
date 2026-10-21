@@ -4,6 +4,8 @@ import { useUsers } from "@/api";
 import { createUser, updateUserStatus } from "@/api/useUsers";
 import { useAdminAuth } from "@/auth/AdminAuthProvider";
 import { useToast } from "@/hooks/use-toast";
+import { apiPatch } from "@/services/api";
+import { rolePermissionPreset } from "@/config/permissions";
 
 const toast = vi.fn();
 
@@ -16,16 +18,16 @@ vi.mock("@/api/useUsers", () => ({
   updateUserStatus: vi.fn(),
 }));
 
+vi.mock("@/services/api", () => ({
+  apiPatch: vi.fn(),
+}));
+
 vi.mock("@/auth/AdminAuthProvider", () => ({
   useAdminAuth: vi.fn(),
 }));
 
 vi.mock("@/hooks/use-toast", () => ({
   useToast: vi.fn(),
-}));
-
-vi.mock("@/api/adminRequests", () => ({
-  sendAdminRequest: vi.fn(),
 }));
 
 describe("useUsersController", () => {
@@ -239,6 +241,7 @@ describe("useUsersController", () => {
       email: "new@example.com",
       password: "Passcode12!",
       role: "admin",
+      permissions: rolePermissionPreset("admin"),
     });
     await waitFor(() => expect(refetch).toHaveBeenCalled());
     expect(result.current.isCreateDialogOpen).toBe(false);
@@ -247,6 +250,7 @@ describe("useUsersController", () => {
       email: "",
       password: "",
       role: "personnel",
+      permissions: rolePermissionPreset("personnel"),
     });
     expect(toast).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -300,6 +304,7 @@ describe("useUsersController", () => {
       email: "new@example.com",
       password: "Passcode12!",
       role: "personnel",
+      permissions: rolePermissionPreset("personnel"),
     });
     expect(toast).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -387,5 +392,244 @@ describe("useUsersController", () => {
         title: "You do not have permission",
       })
     );
+  });
+
+  it("starts the create form with the personnel preset", () => {
+    const { result } = renderHook(() => useUsersController());
+
+    act(() => {
+      result.current.actions.onOpenCreateUser();
+    });
+
+    expect(result.current.createForm.permissions).toEqual(rolePermissionPreset("personnel"));
+  });
+
+  it("re-grants the preset when the role changes", () => {
+    const { result } = renderHook(() => useUsersController());
+
+    act(() => {
+      result.current.actions.onOpenCreateUser();
+      result.current.actions.onCreateFormChange("role", "admin");
+    });
+
+    expect(result.current.createForm.permissions).toEqual(rolePermissionPreset("admin"));
+  });
+
+  it("keeps a hand-picked grant when an unrelated field changes", () => {
+    const { result } = renderHook(() => useUsersController());
+
+    act(() => {
+      result.current.actions.onOpenCreateUser();
+      result.current.actions.onCreateFormChange("permissions", ["manage_sos"]);
+      result.current.actions.onCreateFormChange("full_name", "Someone Else");
+    });
+
+    expect(result.current.createForm.permissions).toEqual(["manage_sos"]);
+  });
+
+  it("sends the chosen permissions when creating an account", async () => {
+    const { result } = renderHook(() => useUsersController());
+
+    act(() => {
+      result.current.actions.onOpenCreateUser();
+      result.current.actions.onCreateFormChange("full_name", "New User");
+      result.current.actions.onCreateFormChange("email", "new@example.com");
+      result.current.actions.onCreateFormChange("password", "Passcode12!");
+      result.current.actions.onCreateFormChange("permissions", ["manage_sos", "view_incidents"]);
+    });
+
+    await act(async () => {
+      await result.current.actions.onCreateUser();
+    });
+
+    expect(createUser).toHaveBeenCalledWith(
+      expect.objectContaining({ permissions: ["manage_sos", "view_incidents"] })
+    );
+  });
+
+  it("opens the edit form with the account's current permissions", async () => {
+    useUsers.mockReturnValue({
+      data: [
+        {
+          id: 11,
+          full_name: "Personnel A",
+          email: "a@example.com",
+          role: "personnel",
+          status: "active",
+          permissions: ["manage_sos"],
+        },
+      ],
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn().mockResolvedValue({}),
+    });
+    const { result } = renderHook(() => useUsersController());
+
+    await act(async () => {
+      await result.current.actions.onEditUser(result.current.users[0]);
+    });
+
+    expect(result.current.editForm.permissions).toEqual(["manage_sos"]);
+  });
+
+  it("sends the changed permissions when saving an edit", async () => {
+    useUsers.mockReturnValue({
+      data: [
+        {
+          id: 11,
+          full_name: "Personnel A",
+          email: "a@example.com",
+          role: "personnel",
+          status: "active",
+          permissions: ["manage_sos"],
+        },
+      ],
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn().mockResolvedValue({}),
+    });
+    const { result } = renderHook(() => useUsersController());
+
+    await act(async () => {
+      await result.current.actions.onEditUser(result.current.users[0]);
+    });
+
+    act(() => {
+      result.current.actions.onEditFormChange("permissions", ["manage_sos", "view_incidents"]);
+    });
+
+    await act(async () => {
+      await result.current.actions.onSaveEditedUser();
+    });
+
+    expect(apiPatch).toHaveBeenCalledWith(
+      "/admin/admins/11",
+      expect.objectContaining({ permissions: ["manage_sos", "view_incidents"] })
+    );
+  });
+
+  it("does not send permissions when the grant is unchanged", async () => {
+    useUsers.mockReturnValue({
+      data: [
+        {
+          id: 11,
+          full_name: "Personnel A",
+          email: "a@example.com",
+          role: "personnel",
+          status: "active",
+          permissions: ["manage_sos"],
+        },
+      ],
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn().mockResolvedValue({}),
+    });
+    const { result } = renderHook(() => useUsersController());
+
+    await act(async () => {
+      await result.current.actions.onEditUser(result.current.users[0]);
+    });
+
+    act(() => {
+      result.current.actions.onEditFormChange("full_name", "Renamed Person");
+    });
+
+    await act(async () => {
+      await result.current.actions.onSaveEditedUser();
+    });
+
+    expect(apiPatch).toHaveBeenCalled();
+    expect(apiPatch.mock.calls[0][1]).not.toHaveProperty("permissions");
+  });
+
+  it("never sends permissions for the signed-in operator's own account", async () => {
+    useUsers.mockReturnValue({
+      data: [
+        {
+          id: 77,
+          full_name: "Root Admin",
+          email: "root@example.com",
+          role: "admin",
+          status: "active",
+          permissions: ["manage_sos"],
+        },
+      ],
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn().mockResolvedValue({}),
+    });
+    const { result } = renderHook(() => useUsersController());
+
+    await act(async () => {
+      await result.current.actions.onEditUser(result.current.users[0]);
+    });
+
+    act(() => {
+      result.current.actions.onEditFormChange("permissions", ["manage_sos", "view_incidents"]);
+    });
+
+    await act(async () => {
+      await result.current.actions.onSaveEditedUser();
+    });
+
+    expect(apiPatch.mock.calls[0][1]).not.toHaveProperty("permissions");
+  });
+
+  it("does not send permissions for an account whose grant the server did not report", async () => {
+    useUsers.mockReturnValue({
+      data: [
+        {
+          id: 11,
+          full_name: "Personnel A",
+          email: "a@example.com",
+          role: "personnel",
+          status: "active",
+          permissions: null,
+        },
+      ],
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn().mockResolvedValue({}),
+    });
+    const { result } = renderHook(() => useUsersController());
+
+    await act(async () => {
+      await result.current.actions.onEditUser(result.current.users[0]);
+    });
+
+    // The grant was never told to us, so an edit must not replace it.
+    act(() => {
+      result.current.actions.onEditFormChange("full_name", "Renamed Person");
+      result.current.actions.onEditFormChange("permissions", ["manage_sos"]);
+    });
+
+    await act(async () => {
+      await result.current.actions.onSaveEditedUser();
+    });
+
+    expect(apiPatch).toHaveBeenCalled();
+    expect(apiPatch.mock.calls[0][1]).not.toHaveProperty("permissions");
+  });
+
+  it("reports whether the operator can administer accounts", () => {
+    const { result } = renderHook(() => useUsersController());
+
+    expect(result.current.canManageAdmins).toBe(true);
+
+    useAdminAuth.mockReturnValue({
+      me: { id: 77, full_name: "Root Admin", email: "root@example.com", role: "staff" },
+      loading: false,
+      hasPermission: vi.fn((permission) => permission === "manage_users"),
+    });
+
+    const withoutManageAdmins = renderHook(() => useUsersController());
+
+    expect(withoutManageAdmins.result.current.canManageAdmins).toBe(false);
+    expect(withoutManageAdmins.result.current.canManageUsers).toBe(true);
   });
 });

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MapPin } from "lucide-react";
 import { useIncidentDetail, useUpdateIncident } from "@/api/useIncidentsAPI";
 import MapCanvas from "@/components/map/MapCanvas";
@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { PRIORITY_CONFIG, STATUS_CONFIG, CATEGORY_CONFIG } from "@/config/constants";
+import { INCIDENT_CATEGORY_PROPOSALS } from "@/config/emergency";
 import { useToast } from "@/hooks/use-toast";
 import { toIncidentMapMarker, toIncidentViewModel } from "@/models/incident.model";
 import { ProtectedIncidentImage } from "@/components/ProtectedIncidentImage";
@@ -35,22 +36,6 @@ const ASSIGN_DEPARTMENT_OPTIONS = [
   "Traffic Enforcement Unit",
 ];
 const UNASSIGNED_DEPARTMENT_VALUE = "__unassigned__";
-const AUTO_PRIORITY_BY_INCIDENT_TYPE = {
-  medical_emergency: "critical",
-  fire: "critical",
-  accident: "high",
-  suspicious_activity: "medium",
-  harassment: "medium",
-  theft: "medium",
-};
-const AUTO_ASSIGNED_DEPARTMENT_BY_INCIDENT_TYPE = {
-  medical_emergency: "Emergency Medical Unit",
-  fire: "Fire Station Unit",
-  accident: "Traffic Enforcement Unit",
-  suspicious_activity: "Police Personnel",
-  harassment: "Police Personnel",
-  theft: "Police Personnel",
-};
 
 function formatCoordinates(location) {
   if (!Number.isFinite(location?.latitude) || !Number.isFinite(location?.longitude)) return "-";
@@ -125,32 +110,33 @@ export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incident
   }, [normalizedCurrentStatus, nextAllowedStatus]);
   const fixedIncidentType = String(incident?.incidentType || incident?.category || "other").trim();
   const normalizedIncidentType = normalizeIncidentType(fixedIncidentType);
-  const typeBasedPriority = AUTO_PRIORITY_BY_INCIDENT_TYPE[normalizedIncidentType] || null;
-  const typeBasedAssignedDepartment =
-    AUTO_ASSIGNED_DEPARTMENT_BY_INCIDENT_TYPE[normalizedIncidentType] || null;
-  const isManualPriorityType =
-    !typeBasedPriority && (normalizedIncidentType === "other" || normalizedIncidentType === "others");
-  const isManualAssignedDepartmentType =
-    !typeBasedAssignedDepartment &&
-    (normalizedIncidentType === "other" || normalizedIncidentType === "others");
+  // The server owns priority and assigned department. The incident type only
+  // PROPOSES a value, used when the server has not set one yet.
+  const priorityProposal = incident?.priorityProposal || null;
+  const departmentProposal = incident?.departmentProposal || null;
+  const serverPriority = incident?.serverPriority || null;
+  const serverDepartment = incident?.serverDepartment || null;
   const currentImageUrl = incident?.imageUrls?.[imageIndex] || incident?.imageUrl || "";
+
+  const seededIncidentIdRef = useRef(null);
+  useEffect(() => {
+    if (!open) seededIncidentIdRef.current = null;
+  }, [open]);
 
   useEffect(() => {
     if (!open || !incident) return;
+    if (seededIncidentIdRef.current === incident.id) return;
+    seededIncidentIdRef.current = incident.id;
     setStatus(normalizedCurrentStatus || "pending");
-    setPriority(typeBasedPriority || incident.priority || "medium");
-    setAssignedDepartment(typeBasedAssignedDepartment || incident.assignedDepartment || "");
+    setPriority(incident.priority || priorityProposal || "medium");
+    setAssignedDepartment(incident.assignedDepartment || departmentProposal || "");
     setResolutionNotes(incident.resolutionNotes || "");
   }, [
-    incident?.id,
-    incident?.status,
-    incident?.priority,
-    incident?.assignedDepartment,
-    incident?.resolutionNotes,
-    normalizedCurrentStatus,
-    typeBasedPriority,
-    typeBasedAssignedDepartment,
     open,
+    incident,
+    normalizedCurrentStatus,
+    priorityProposal,
+    departmentProposal,
   ]);
 
   useEffect(() => {
@@ -160,8 +146,8 @@ export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incident
   const onSave = async () => {
     if (!canManage) return;
     if (!incident?.id) return;
-    const effectivePriority = typeBasedPriority || priority;
-    const effectiveAssignedDepartment = typeBasedAssignedDepartment || assignedDepartment || null;
+    const effectivePriority = priority;
+    const effectiveAssignedDepartment = assignedDepartment || null;
 
     if (!PRIORITY_FLOW.includes(effectivePriority)) {
       toast({
@@ -315,8 +301,9 @@ export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incident
 
             <TimelineLog incident={incident} />
 
-            {canManage && <div className="rounded-lg border p-4">
-              <div className="mb-3 text-sm font-medium">Update Incident</div>
+            {canManage ? (
+              <div className="rounded-lg border p-4">
+                <div className="mb-3 text-sm font-medium">Update Incident</div>
               <div className="mb-3 rounded-md bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
                 Reporter notifications are sent only when status changes to Dispatched, In Progress, or Resolved.
                 Editing assignment, priority, or notes alone does not notify the reporter.
@@ -344,7 +331,7 @@ export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incident
 
                 <div className="space-y-2">
                   <Label htmlFor="incident-priority">Priority</Label>
-                  <Select value={priority} onValueChange={setPriority} disabled={!isManualPriorityType}>
+                  <Select value={priority} onValueChange={setPriority}>
                     <SelectTrigger id="incident-priority">
                       <SelectValue placeholder="Select priority" />
                     </SelectTrigger>
@@ -356,19 +343,16 @@ export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incident
                       ))}
                     </SelectContent>
                   </Select>
-                  {!isManualPriorityType && typeBasedPriority && (
+                  {!serverPriority && priorityProposal && (
                     <p className="text-xs text-muted-foreground">
-                      Auto-assigned from incident type: {getPriorityLabel(typeBasedPriority)}.
+                      Suggested from incident type: {getPriorityLabel(priorityProposal)}.
                     </p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="incident-type">Incident Type</Label>
-                  <div
-                    id="incident-type"
-                    className="flex h-10 items-center rounded-md border bg-muted/40 px-3 text-sm text-muted-foreground"
-                  >
+                  <p className="text-sm font-medium">Incident Type</p>
+                  <div className="flex h-10 items-center rounded-md border bg-muted/40 px-3 text-sm text-muted-foreground">
                     {getIncidentTypeLabel(fixedIncidentType)}
                   </div>
                 </div>
@@ -377,7 +361,7 @@ export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incident
                   <Label htmlFor="incident-assigned-department">Assign Department</Label>
                   <Select
                     value={assignedDepartment || UNASSIGNED_DEPARTMENT_VALUE}
-                    disabled={!isManualAssignedDepartmentType}
+                    disabled={false}
                     onValueChange={(value) =>
                       setAssignedDepartment(
                         value === UNASSIGNED_DEPARTMENT_VALUE ? "" : value
@@ -396,9 +380,9 @@ export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incident
                       ))}
                     </SelectContent>
                   </Select>
-                  {!isManualAssignedDepartmentType && typeBasedAssignedDepartment && (
+                  {!serverDepartment && departmentProposal && (
                     <p className="text-xs text-muted-foreground">
-                      Auto-assigned from incident type: {typeBasedAssignedDepartment}.
+                      Suggested from incident type: {departmentProposal}.
                     </p>
                   )}
                 </div>
@@ -418,7 +402,13 @@ export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incident
                   {updateIncidentMutation.isPending ? "Saving..." : "Save Changes"}
                 </Button>
               </div>
-            </div>}
+              </div>
+            ) : (
+              <div className="rounded-lg border p-4 text-sm text-muted-foreground">
+                You have read-only access to incidents. Ask an administrator with the
+                manage_incidents permission to change assignment, priority, or notes.
+              </div>
+            )}
           </div>
         )}
         </div>

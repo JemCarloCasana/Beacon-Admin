@@ -18,13 +18,13 @@ function useChart() {
     return context;
 }
 
-const ChartContainer = React.forwardRef(({ id, className, children, config, ...props }, ref) => {
+const ChartContainer = React.forwardRef(({ id, className, children, config, title, description, ...props }, ref) => {
     const uniqueId = React.useId();
     const chartId = `chart-${id || uniqueId.replace(/:/g, "")}`;
 
     return (
         <ChartContext.Provider value={{ config }}>
-            <div
+            <figure
                 data-chart={chartId}
                 ref={ref}
                 className={cn(
@@ -34,8 +34,14 @@ const ChartContainer = React.forwardRef(({ id, className, children, config, ...p
                 {...props}
             >
                 <ChartStyle id={chartId} config={config} />
+                {title ? (
+                    <figcaption className="sr-only">
+                        {title}
+                        {description ? `. ${description}` : ""}
+                    </figcaption>
+                ) : null}
                 <RechartsPrimitive.ResponsiveContainer>{children}</RechartsPrimitive.ResponsiveContainer>
-            </div>
+            </figure>
         </ChartContext.Provider>
     );
 });

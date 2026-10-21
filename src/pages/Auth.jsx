@@ -88,30 +88,30 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#F8FAFC] relative overflow-hidden font-sans">
+    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-background relative overflow-hidden font-sans">
       <div
         className="absolute inset-0 z-0 opacity-[0.03]"
         style={{
           backgroundImage:
-            "linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px)",
+            "linear-gradient(hsl(var(--foreground)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground)) 1px, transparent 1px)",
           backgroundSize: "40px 40px",
         }}
       />
 
       <div className="z-10 w-full max-w-md px-6 flex flex-col items-center">
         <div className="mb-8 flex flex-col items-center transform transition-all duration-700 hover:scale-105">
-          <div className="flex h-[80px] w-[80px] items-center justify-center overflow-hidden rounded-xl bg-blue-600 shadow-lg mb-4">
+          <div className="flex h-[80px] w-[80px] items-center justify-center overflow-hidden rounded-xl bg-primary shadow-lg mb-4">
             <img
               src={beaconLogo}
               alt="Beacon logo"
               className="h-full w-full scale-[1.5] object-cover object-[center_66%]"
             />
           </div>
-          <h1 className="text-3xl font-extrabold text-[#0F172A] tracking-tight">Beacon Command</h1>
-          <p className="text-sm font-bold text-[#64748B] mt-1 uppercase tracking-wide">
+          <h1 className="text-3xl font-extrabold text-foreground tracking-tight">Beacon Command</h1>
+          <p className="text-sm font-bold text-muted-foreground mt-1 uppercase tracking-wide">
             Public Safety & Emergency Management
           </p>
-          <p className="text-[10px] font-black text-[#2563EB] mt-0.5 uppercase tracking-[0.2em]">
+          <p className="text-xs font-black text-primary mt-0.5 uppercase tracking-[0.2em]">
             Dagupan City Government
           </p>
         </div>
@@ -119,13 +119,13 @@ export default function Auth() {
         <Card className="w-full border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-2xl overflow-hidden bg-white">
           <CardContent className="p-8">
             {loginError && (
-              <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3">
-                <p className="text-[11px] font-semibold text-red-600">{loginError}</p>
+              <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 p-3">
+                <p className="text-xs font-semibold text-destructive">{loginError}</p>
               </div>
             )}
 
-            <div className="mb-6 rounded-xl border border-blue-100 bg-blue-50/40 p-3">
-              <p className="text-[10px] font-semibold text-blue-700">
+            <div className="mb-6 rounded-xl border border-primary/20 bg-primary/5 p-3">
+              <p className="text-xs font-semibold text-primary">
                 Contact your administrator for access.
               </p>
             </div>
@@ -133,16 +133,19 @@ export default function Auth() {
             <form onSubmit={handleLogin} className="space-y-6">
               <div className="space-y-2">
                 <div className="flex justify-between items-center px-1">
-                  <label className="text-[10px] font-black text-[#2563EB] uppercase tracking-widest">
+                  <label className="text-xs font-black text-primary uppercase tracking-widest">
                     Email Address
                   </label>
                 </div>
                 <div className="relative group">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#2563EB] transition-colors" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                   <Input
+                    id="login-email"
+                    name="email"
                     type="email"
+                    autoComplete="email"
                     placeholder="name@dagupan.gov"
-                    className="pl-10 h-11 bg-slate-50/50 border-slate-200 focus-visible:ring-[#2563EB] rounded-lg text-sm transition-all"
+                    className="pl-10 h-11 bg-muted/40/50 border-border focus-visible:ring-ring rounded-lg text-sm transition-all"
                     value={loginEmail}
                     onChange={(e) => handleLoginFieldChange("email", e.target.value)}
                     onBlur={() => handleLoginFieldBlur("email")}
@@ -151,7 +154,7 @@ export default function Auth() {
                   />
                 </div>
                 {loginErrors.email && (
-                  <p className="text-[10px] text-red-600 px-1" role="alert">
+                  <p className="text-xs text-destructive px-1" role="alert">
                     {loginErrors.email}
                   </p>
                 )}
@@ -159,16 +162,19 @@ export default function Auth() {
 
               <div className="space-y-2">
                 <div className="flex items-center px-1">
-                  <label className="text-[10px] font-black text-[#2563EB] uppercase tracking-widest">
+                  <label className="text-xs font-black text-primary uppercase tracking-widest">
                     Password
                   </label>
                 </div>
                 <div className="relative group">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#2563EB] transition-colors" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                   <Input
+                    id="login-password"
+                    name="password"
                     type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
                     placeholder="********"
-                    className="pl-10 pr-11 h-11 bg-slate-50/50 border-slate-200 focus-visible:ring-[#2563EB] rounded-lg text-sm font-mono transition-all"
+                    className="pl-10 pr-11 h-11 bg-muted/40/50 border-border focus-visible:ring-ring rounded-lg text-sm font-mono transition-all"
                     value={loginPassword}
                     onChange={(e) => handleLoginFieldChange("password", e.target.value)}
                     onBlur={() => handleLoginFieldBlur("password")}
@@ -178,14 +184,14 @@ export default function Auth() {
                   <button
                     type="button"
                     onClick={() => setShowPassword((prev) => !prev)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-[#2563EB] focus:outline-none focus:text-[#2563EB]"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-primary focus:outline-none focus:text-primary"
                     aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
                 {loginErrors.password && (
-                  <p className="text-[10px] text-red-600 px-1" role="alert">
+                  <p className="text-xs text-destructive px-1" role="alert">
                     {loginErrors.password}
                   </p>
                 )}
@@ -194,7 +200,7 @@ export default function Auth() {
               <Button
                 type="submit"
                 disabled={isLoginDisabled}
-                className="w-full h-12 bg-gradient-to-r from-[#1E40AF] to-[#1E3A8A] hover:from-[#1D4ED8] hover:to-[#1E40AF] text-white font-bold rounded-xl shadow-[0_10px_20px_rgba(30,64,175,0.2)] flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
               >
                 {loginLoading ? (
                   "Accessing..."
@@ -207,9 +213,9 @@ export default function Auth() {
               </Button>
             </form>
 
-            <div className="mt-8 p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-3">
-              <CheckCircle2 className="h-4 w-4 text-[#2563EB] mt-0.5 shrink-0" />
-              <p className="text-[10px] text-slate-500 leading-normal font-medium">
+            <div className="mt-8 p-3 bg-muted/40 rounded-xl border border-border flex items-start gap-3">
+              <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+              <p className="text-xs text-muted-foreground leading-normal font-medium">
                 Authorized access only. All sessions are logged and monitored by the City Information Technology Office.
               </p>
             </div>
@@ -217,7 +223,7 @@ export default function Auth() {
         </Card>
 
         <div className="mt-12 text-center space-y-1 opacity-50">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Powered by CITO Dagupan - V2.4.0</p>
+          <p className="text-xs font-black text-muted-foreground uppercase tracking-[0.2em]">Powered by CITO Dagupan - V2.4.0</p>
         </div>
       </div>
     </div>

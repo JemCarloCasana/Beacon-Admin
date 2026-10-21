@@ -1,17 +1,34 @@
-export const MAP_MARKER_TYPE_STYLES = {
+/**
+ * The map's marker vocabulary.
+ *
+ * A marker's SHAPE carries the meaning as much as its colour does: a
+ * red/amber colour-vision deficiency must not be required to tell an SOS
+ * from an incident. SOS markers are triangles, incident markers are circles.
+ */
+export const MARKER_TYPES = {
   sos: {
     label: "SOS",
-    color: "#ef4444",
-    radius: 8,
+    color: "hsl(var(--emergency))",
+    shape: "triangle",
+    radius: 11,
   },
   incident: {
     label: "Incidents",
-    color: "#f59e0b",
-    radius: 7,
+    color: "hsl(var(--warning))",
+    shape: "circle",
+    radius: 9,
   },
 };
 
+// Kept under the previous name for existing importers.
+export const MAP_MARKER_TYPE_STYLES = MARKER_TYPES;
+
 export const MAP_MARKER_LEGEND_ITEMS = [
-  { type: "sos", ...MAP_MARKER_TYPE_STYLES.sos },
-  { type: "incident", ...MAP_MARKER_TYPE_STYLES.incident },
+  { type: "sos", ...MARKER_TYPES.sos },
+  { type: "incident", ...MARKER_TYPES.incident },
 ];
+
+export function markerLabel(type, title) {
+  const base = MARKER_TYPES[type]?.label || "Marker";
+  return title ? `${base}, ${title}` : base;
+}

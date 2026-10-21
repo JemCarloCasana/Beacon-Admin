@@ -1,13 +1,17 @@
-import { formatDistanceToNow } from "date-fns";
+import { useState } from "react";
 import { Siren, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-function formatTimestamp(timestamp) {
-  if (!timestamp) return "-";
-  const date = new Date(timestamp);
-  if (Number.isNaN(date.getTime())) return "-";
-  return formatDistanceToNow(date, { addSuffix: true });
-}
+import { DataState } from "@/components/common/DataState";
+import { ElapsedTimer } from "@/components/common/ElapsedTimer";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { RESPONSE_UNITS, UNKNOWN_EMERGENCY_LABEL, emergencyLabel, unitForEmergencyCategory } from "@/config/emergency";
 
 function resolveLocation(alert) {
   if (typeof alert?.location === "string") return alert.location;
@@ -21,80 +25,119 @@ export function ActiveSOSAlert({
   error = null,
   onRetry,
   onDispatch,
-  onAcknowledge,
+  onAssignUnit,
+  onOpenDetails,
   onClose,
-  onGoToSosWorkspace,
 }) {
-  if (loading) {
-    return <div className="border-l-4 border-l-slate-300 bg-slate-50 p-4 text-xs text-slate-600">Loading live SOS data...</div>;
-  }
+  const [isChoosingUnit, setIsChoosingUnit] = useState(false);
+  const [selectedUnit, setSelectedUnit] = useState("");
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-between border-l-4 border-l-red-500 bg-red-50 p-4">
-        <p className="text-xs text-red-700">{error?.message || "Failed to load live SOS alerts."}</p>
-        <Button size="sm" variant="outline" onClick={onRetry}>
-          Retry
-        </Button>
-      </div>
-    );
-  }
+  const status = loading ? "loading" : error ? "error" : alert ? "live" : "empty";
+  const assignedUnit = unitForEmergencyCategory(alert?.emergencyType);
+  const reportedLabel = alert?.emergencyType
+    ? emergencyLabel(alert.emergencyType)
+    : UNKNOWN_EMERGENCY_LABEL;
 
-  if (!alert) {
-    return (
-      <div className="flex items-center justify-between border-l-4 border-l-emerald-500 bg-emerald-50 p-4">
-        <p className="text-xs font-medium text-emerald-800">No SOS alerts requiring immediate attention.</p>
-        <Button size="sm" variant="outline" onClick={onGoToSosWorkspace}>
-          Open Live SOS
-        </Button>
-      </div>
-    );
-  }
+  const handleAssign = () => {
+    if (!selectedUnit || !alert) return;
+    onAssignUnit?.(alert.id, selectedUnit);
+    setSelectedUnit("");
+    setIsChoosingUnit(false);
+  };
 
   return (
-    <div className="flex items-center justify-between border-l-4 border-l-red-500 bg-red-50 p-4 shadow-sm">
-      <div className="flex items-center gap-4">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 text-red-600">
-          <Siren className="h-6 w-6" />
-        </div>
-        <div>
-          <div className="flex items-center gap-2 text-[10px] font-bold tracking-wider text-red-600">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-red-600" />
-            </span>
-            ACTIVE SOS - {formatTimestamp(alert.timestamp)}
+    <DataState
+      status={status}
+      error={error}
+      onRetry={onRetry}
+      emptyTitle="No SOS alerts requiring immediate attention."
+      emptyDescription="The live queue is empty. New emergencies appear here as soon as they are sent."
+      skeleton={<div className="h-24 animate-pulse rounded-md bg-muted" />}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-4 border-l-4 border-l-emergency bg-emergency/10 p-4 shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emergency/20 text-emergency">
+            <Siren className="h-6 w-6" />
           </div>
-          <h3 className="text-base font-semibold leading-tight text-slate-900">{alert.name || "Unknown User"}</h3>
-          <p className="text-xs font-medium text-slate-500">{resolveLocation(alert)}</p>
-          {alert.description && (
-            <p className="mt-1 text-xs italic font-medium tracking-tight text-orange-700">"{alert.description}"</p>
+          <div>
+            <div className="flex items-center gap-2 text-xs font-bold tracking-wider text-emergency">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emergency opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emergency" />
+              </span>
+              ACTIVE SOS
+              <ElapsedTimer since={alert?.timestamp} className="text-emergency" />
+            </div>
+            <h3 className="text-base font-semibold leading-tight text-foreground">
+              {alert?.name || "Unknown User"}
+            </h3>
+            <p className="text-xs font-medium text-muted-foreground">{reportedLabel}</p>
+            <p className="text-xs font-medium text-muted-foreground">{resolveLocation(alert)}</p>
+            {alert?.description && (
+              <p className="mt-1 text-sm italic font-medium text-foreground">"{alert.description}"</p>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {assignedUnit ? (
+            <Button
+              onClick={() => onDispatch?.(alert.id)}
+              className="h-9 bg-emergency px-5 font-semibold text-emergency-foreground hover:bg-emergency/90"
+            >
+              Assign {assignedUnit}
+            </Button>
+          ) : (
+            <Button
+              onClick={() => setIsChoosingUnit((previous) => !previous)}
+              className="h-9 bg-emergency px-5 font-semibold text-emergency-foreground hover:bg-emergency/90"
+            >
+              Choose unit
+            </Button>
           )}
+
+          {isChoosingUnit && !assignedUnit && (
+            <div className="flex items-center gap-2">
+              <Label htmlFor="sos-assign-unit" className="sr-only">
+                Responding unit
+              </Label>
+              <Select value={selectedUnit} onValueChange={setSelectedUnit}>
+                <SelectTrigger id="sos-assign-unit" className="h-9 w-56">
+                  <SelectValue placeholder="Select unit" />
+                </SelectTrigger>
+                <SelectContent>
+                  {RESPONSE_UNITS.map((unit) => (
+                    <SelectItem key={unit} value={unit}>
+                      {unit}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button onClick={handleAssign} disabled={!selectedUnit} className="h-9">
+                Assign
+              </Button>
+            </div>
+          )}
+
+          <Button
+            variant="outline"
+            onClick={() => onOpenDetails?.(alert.id)}
+            className="h-9 border-border font-semibold text-muted-foreground hover:bg-accent"
+          >
+            Open details
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            aria-label="Dismiss alert"
+            className="h-9 w-9 text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-5 w-5" />
+          </Button>
         </div>
       </div>
-
-      <div className="flex items-center gap-2">
-        <Button onClick={() => onDispatch(alert.id)} className="h-9 bg-red-600 px-5 font-semibold text-white hover:bg-red-700">
-          Dispatch Unit
-        </Button>
-        <Button
-          variant="outline"
-          disabled
-          className="h-9 border-red-200 font-semibold text-red-700 hover:bg-red-50"
-        >
-          Acknowledge (Live SOS)
-        </Button>
-        <Button
-          variant="outline"
-          onClick={onGoToSosWorkspace}
-          className="h-9 border-slate-200 font-semibold text-slate-700 hover:bg-slate-50"
-        >
-          Open Live SOS
-        </Button>
-        <Button variant="ghost" size="icon" onClick={onClose} className="text-slate-400 hover:text-slate-600">
-          <X className="h-5 w-5" />
-        </Button>
-      </div>
-    </div>
+    </DataState>
   );
 }

@@ -58,4 +58,52 @@ describe("user.model", () => {
     expect(byUserIdCamel.statusTargetId).toBe(102);
     expect(byUnderscoreId.statusTargetId).toBe(103);
   });
+
+  it("exposes the permissions the server reported", () => {
+    const result = toUserModel({
+      id: 1,
+      full_name: "A",
+      email: "a@example.com",
+      role: "personnel",
+      permissions: ["manage_sos"],
+    });
+
+    expect(result.permissions).toEqual(["manage_sos"]);
+  });
+
+  it("reports no permissions as an empty list", () => {
+    const result = toUserModel({
+      id: 1,
+      full_name: "A",
+      email: "a@example.com",
+      role: "personnel",
+      permissions: [],
+    });
+
+    expect(result.permissions).toEqual([]);
+  });
+
+  it("reports permissions the server did not send as null", () => {
+    const result = toUserModel({
+      id: 1,
+      full_name: "A",
+      email: "a@example.com",
+      role: "personnel",
+    });
+
+    // "not reported" and "no access" are different facts.
+    expect(result.permissions).toBeNull();
+  });
+
+  it("keeps the role the server reported", () => {
+    const result = toUserModel({
+      id: 1,
+      full_name: "A",
+      email: "a@example.com",
+      role: "personnel",
+      permissions: ["manage_users"],
+    });
+
+    expect(result.role).toBe("personnel");
+  });
 });

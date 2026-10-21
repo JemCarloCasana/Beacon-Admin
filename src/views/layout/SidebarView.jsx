@@ -29,9 +29,9 @@ const iconMap = {
 
 export default function SidebarView({ pathname, visibleNavItems, profile }) {
   return (
-    <aside className="flex h-screen w-64 flex-col bg-[#0B1221] text-slate-300">
+    <aside className="flex h-screen w-64 flex-col bg-sidebar text-sidebar-foreground/80">
       <div className="flex h-16 items-center gap-3 px-6">
-        <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded bg-blue-600">
+        <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded bg-sidebar-primary">
           <img
             src={beaconLogo}
             alt="Beacon logo"
@@ -39,7 +39,7 @@ export default function SidebarView({ pathname, visibleNavItems, profile }) {
           />
         </div>
         <h1 className="text-xl font-bold tracking-wider text-white">
-          BEACON <span className="text-slate-400 font-light">OS</span>
+          BEACON <span className="text-sidebar-foreground/70 font-light">OS</span>
         </h1>
       </div>
 
@@ -48,7 +48,7 @@ export default function SidebarView({ pathname, visibleNavItems, profile }) {
           {(visibleNavItems || []).map((group) => (
             <div key={group.category} className="space-y-1">
               {group.category && (
-                <h2 className="mb-2 px-6 text-[10px] font-semibold tracking-[0.2em] text-slate-500">
+                <h2 className="mb-2 px-6 text-xs font-semibold tracking-[0.2em] text-sidebar-foreground/60">
                   {group.category}
                 </h2>
               )}
@@ -56,24 +56,25 @@ export default function SidebarView({ pathname, visibleNavItems, profile }) {
               <div className="space-y-[2px]">
                 {(group.items || []).map((item) => {
                   const Icon = iconMap[item.icon] || Shield;
-                  const isActive = pathname === item.path;
+                  const isActive = pathname === item.path || pathname.startsWith(`${item.path}/`);
 
                   return (
                     <Link
                       key={item.path}
                       to={item.path}
+                      aria-current={isActive ? "page" : undefined}
                       className={cn(
                         "relative flex items-center gap-3 px-6 py-2.5 text-sm font-medium transition-all group",
                         isActive
-                          ? "bg-blue-600/10 text-white"
-                          : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
+                          ? "bg-sidebar-primary/10 text-white"
+                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                       )}
                     >
-                      {isActive && <div className="absolute left-0 top-0 h-full w-[3px] bg-blue-500" />}
+                      {isActive && <div className="absolute left-0 top-0 h-full w-[3px] bg-sidebar-primary" />}
                       <Icon
                         className={cn(
                           "h-4 w-4",
-                          isActive ? "text-blue-400" : "text-slate-500 group-hover:text-slate-400"
+                          isActive ? "text-sidebar-primary" : "text-sidebar-foreground/60 group-hover:text-sidebar-foreground/80"
                         )}
                       />
                       {item.label}
@@ -86,15 +87,15 @@ export default function SidebarView({ pathname, visibleNavItems, profile }) {
         </nav>
       </ScrollArea>
 
-      <div className="mt-auto border-t border-slate-800 bg-[#080E1A] p-4">
+      <div className="mt-auto border-t border-sidebar-border bg-sidebar-accent/40 p-4">
         <div className="mb-4 flex items-center gap-3 px-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded bg-slate-800 text-xs font-bold text-slate-300">
+          <div className="flex h-10 w-10 items-center justify-center rounded bg-sidebar-accent text-xs font-bold text-sidebar-foreground/80">
             {profile?.initials || "OP"}
           </div>
 
           <div className="flex-1 overflow-hidden text-xs">
-            <p className="font-bold text-slate-200">{profile?.fullName || "Operator"}</p>
-            <p className="text-slate-500">{profile?.role || ""}</p>
+            <p className="font-bold text-sidebar-foreground">{profile?.fullName || "Operator"}</p>
+            <p className="text-sidebar-foreground/60">{profile?.role || ""}</p>
           </div>
         </div>
       </div>

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { DashboardLayout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ import {
 import {
   Table,
   TableBody,
+  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -32,10 +34,27 @@ import {
 import { AlertCircle, Megaphone, RefreshCw, Send } from "lucide-react";
 
 const severityStyles = {
-  announcement: "bg-blue-100 text-blue-800",
-  warning: "bg-amber-100 text-amber-800",
-  danger: "bg-red-100 text-red-800",
+  announcement: "bg-info text-info-foreground",
+  info: "bg-info text-info-foreground",
+  warning: "bg-warning text-warning-foreground",
+  danger: "bg-destructive text-destructive-foreground",
+  all_clear: "bg-success text-success-foreground",
 };
+
+// The severity vocabulary, with a label and an icon so severity is never
+// carried by colour alone.
+const SEVERITY_OPTIONS = [
+  { value: "announcement", label: "Announcement" },
+  { value: "info", label: "Information" },
+  { value: "warning", label: "Warning" },
+  { value: "danger", label: "Danger" },
+  { value: "all_clear", label: "All clear" },
+];
+
+function severityLabel(value) {
+  const found = SEVERITY_OPTIONS.find((item) => item.value === value);
+  return found ? found.label : "Announcement";
+}
 
 function formatDateTime(value) {
   if (!value) return "-";
@@ -56,17 +75,27 @@ function toAudienceLabel(item) {
   return `Roles: ${labels.join(", ")}`;
 }
 
-function BroadcastTable({ items, isDraft, sending, canDeleteBroadcasts, actions }) {
+function BroadcastTable({ items, isDraft, sending, canManageBroadcasts, canDeleteBroadcasts, actions }) {
   if (items.length === 0) {
     return (
       <div className="py-8 text-center text-sm text-muted-foreground">
-        {isDraft ? "No draft broadcasts." : "No sent broadcasts."}
+        <p>{isDraft ? "No draft broadcasts." : "No sent broadcasts."}</p>
+        {isDraft && (
+          <p className="mt-1">
+            Use "New broadcast" above to compose one. It will be a draft until you send it.
+          </p>
+        )}
       </div>
     );
   }
 
   return (
     <Table>
+      <TableCaption className="sr-only">
+        {isDraft
+          ? "Broadcast drafts, one row per draft. Nothing here has been sent."
+          : "Broadcasts that have been sent, one row per broadcast."}
+      </TableCaption>
       <TableHeader>
         <TableRow>
           <TableHead>Title</TableHead>
@@ -86,8 +115,8 @@ function BroadcastTable({ items, isDraft, sending, canDeleteBroadcasts, actions 
               </div>
             </TableCell>
             <TableCell>
-              <Badge className={severityStyles[item.severity] || "bg-slate-100 text-slate-700"}>
-                {item.severity || "announcement"}
+              <Badge className={severityStyles[item.severity] || "bg-muted text-foreground"}>
+                {severityLabel(item.severity)}
               </Badge>
             </TableCell>
             <TableCell className="text-sm text-muted-foreground">{toAudienceLabel(item)}</TableCell>
@@ -96,20 +125,24 @@ function BroadcastTable({ items, isDraft, sending, canDeleteBroadcasts, actions 
             </TableCell>
             <TableCell className="text-right">
               {isDraft ? (
-                <div className="flex flex-wrap justify-end gap-2">
-                <Button size="sm" variant="outline" disabled={sending} onClick={() => actions.onOpenEditDialog(item)}>Edit</Button>
-                {canDeleteBroadcasts && <Button size="sm" variant="destructive" disabled={sending} onClick={() => actions.onOpenDeleteDialog(item)}>Delete</Button>}
-                <Button
-                  size="sm"
-                  onClick={() => actions.onOpenSendDialog(item)}
-                  disabled={sending}
-                >
-                  <Send className="mr-2 h-4 w-4" />
-                  Send
-                </Button>
-                </div>
+                canManageBroadcasts ? (
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <Button size="sm" variant="outline" disabled={sending} onClick={() => actions.onOpenEditDialog(item)}>Edit</Button>
+                    {canDeleteBroadcasts && <Button size="sm" variant="destructive" disabled={sending} onClick={() => actions.onOpenDeleteDialog(item)}>Delete</Button>}
+                    <Button
+                      size="sm"
+                      onClick={() => actions.onOpenSendDialog(item)}
+                      disabled={sending}
+                    >
+                      <Send className="mr-2 h-4 w-4" />
+                      Send
+                    </Button>
+                  </div>
+                ) : (
+                  <span className="text-sm text-muted-foreground">Read-only</span>
+                )
               ) : (
-                <span className="text-xs text-muted-foreground">Sent</span>
+                <span className="text-sm text-muted-foreground">Sent</span>
               )}
             </TableCell>
           </TableRow>
@@ -134,6 +167,7 @@ function BroadcastsSkeleton() {
 
 export default function BroadcastsView({
   canManageBroadcasts,
+  canViewBroadcasts = canManageBroadcasts,
   canDeleteBroadcasts = false,
   editingBroadcast, editForm, pendingDeleteBroadcast, mutationError, updating, deleting, busy,
   form,
@@ -147,23 +181,34 @@ export default function BroadcastsView({
   sending,
   actions,
 }) {
+  const [showCreateForm, setShowCreateForm] = useState(false);
+
   return (
     <DashboardLayout>
-      {!canManageBroadcasts ? (
+      {!canViewBroadcasts ? (
         <Card>
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            You do not have permission to manage broadcasts.
+            You do not have permission to view broadcasts.
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-6 p-4 md:p-6">
+          {canManageBroadcasts ? (
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <Megaphone className="h-5 w-5" />
                 Create Broadcast Draft
               </CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCreateForm((previous) => !previous)}
+              >
+                {showCreateForm ? "Hide composer" : "New broadcast"}
+              </Button>
             </CardHeader>
+            {showCreateForm && (
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
@@ -182,13 +227,15 @@ export default function BroadcastsView({
                     value={form.severity}
                     onValueChange={(value) => actions.onFormChange("severity", value)}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="broadcast-severity" aria-label="Severity">
                       <SelectValue placeholder="Select severity" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="announcement">Announcement</SelectItem>
+                      <SelectItem value="info">Information</SelectItem>
                       <SelectItem value="warning">Warning</SelectItem>
                       <SelectItem value="danger">Danger</SelectItem>
+                      <SelectItem value="all_clear">All clear</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -197,6 +244,7 @@ export default function BroadcastsView({
               <div className="space-y-2">
                 <p className="text-sm font-medium">Body</p>
                 <Textarea
+                  id="broadcast-body"
                   value={form.body}
                   aria-label="Body"
                   maxLength={5000}
@@ -204,6 +252,9 @@ export default function BroadcastsView({
                   placeholder="Classes are suspended due to weather conditions."
                   onChange={(e) => actions.onFormChange("body", e.target.value)}
                 />
+                <p className="text-xs text-muted-foreground">
+                  {(form.body || "").length} of 5000 characters used.
+                </p>
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
@@ -213,7 +264,7 @@ export default function BroadcastsView({
                     value={form.audience_type}
                     onValueChange={(value) => actions.onFormChange("audience_type", value)}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="broadcast-audience-type" aria-label="Audience type">
                       <SelectValue placeholder="Select audience" />
                     </SelectTrigger>
                     <SelectContent>
@@ -229,7 +280,7 @@ export default function BroadcastsView({
                       value={form.audience_role}
                       onValueChange={(value) => actions.onFormChange("audience_role", value)}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="broadcast-audience-role" aria-label="Audience role">
                         <SelectValue placeholder="Select role" />
                       </SelectTrigger>
                       <SelectContent>
@@ -250,7 +301,16 @@ export default function BroadcastsView({
                 </Button>
               </div>
             </CardContent>
+            )}
           </Card>
+          ) : (
+            <Card>
+              <CardContent className="py-8 text-center text-sm text-muted-foreground">
+                You have read-only access to broadcasts. Composing, editing and sending
+                require the manage_broadcasts permission.
+              </CardContent>
+            </Card>
+          )}
 
           {lastSendResult?.ok && (
             <Card>
@@ -267,9 +327,10 @@ export default function BroadcastsView({
                   <p className="font-medium">{lastSendResult.delivered_count}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">FCM Success/Failure</p>
+                  <p className="text-muted-foreground">Push delivered / failed</p>
                   <p className="font-medium">
-                    {lastSendResult.push?.successCount ?? 0}/{lastSendResult.push?.failureCount ?? 0}
+                    {lastSendResult.push?.successCount ?? 0} delivered /{" "}
+                    {lastSendResult.push?.failureCount ?? 0} failed
                   </p>
                 </div>
                 <div>
@@ -312,7 +373,8 @@ export default function BroadcastsView({
                   items={drafts}
                   isDraft
                   sending={busy || sending}
-                  canDeleteBroadcasts={canDeleteBroadcasts}
+                  canManageBroadcasts={canManageBroadcasts}
+                canDeleteBroadcasts={canDeleteBroadcasts}
                   actions={actions}
                 />
               )}
@@ -331,7 +393,8 @@ export default function BroadcastsView({
                   items={sent}
                   isDraft={false}
                   sending={busy || sending}
-                  canDeleteBroadcasts={canDeleteBroadcasts}
+                  canManageBroadcasts={canManageBroadcasts}
+                canDeleteBroadcasts={canDeleteBroadcasts}
                   actions={actions}
                 />
               )}
@@ -348,7 +411,7 @@ export default function BroadcastsView({
               <label htmlFor="edit-broadcast-severity">Severity</label>
               <Select value={editForm?.severity || "announcement"} disabled={updating} onValueChange={(value) => actions.onEditFormChange("severity", value)}>
                 <SelectTrigger id="edit-broadcast-severity"><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="announcement">Announcement</SelectItem><SelectItem value="warning">Warning</SelectItem><SelectItem value="danger">Danger</SelectItem></SelectContent>
+                <SelectContent><SelectItem value="announcement">Announcement</SelectItem><SelectItem value="info">Information</SelectItem><SelectItem value="warning">Warning</SelectItem><SelectItem value="danger">Danger</SelectItem><SelectItem value="all_clear">All clear</SelectItem></SelectContent>
               </Select>
               {mutationError && <p role="alert" className="text-sm text-destructive">{mutationError}</p>}
               <DialogFooter><Button variant="outline" disabled={updating} onClick={actions.onCloseEditDialog}>Cancel</Button><Button disabled={updating} onClick={actions.onSaveDraft}>{updating ? "Saving..." : "Save Changes"}</Button></DialogFooter>
@@ -386,6 +449,10 @@ export default function BroadcastsView({
                   <span className="font-medium">Audience:</span>{" "}
                   {toAudienceLabel(pendingSendBroadcast)}
                 </p>
+                <div className="border-t pt-2">
+                  <p className="font-medium">Message:</p>
+                  <p className="whitespace-pre-wrap">{pendingSendBroadcast?.body || "-"}</p>
+                </div>
               </div>
 
               <DialogFooter>

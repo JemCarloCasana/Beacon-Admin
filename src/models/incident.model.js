@@ -1,22 +1,7 @@
 import { formatDistanceToNow } from "date-fns";
+import { INCIDENT_CATEGORY_PROPOSALS } from "@/config/emergency";
 
 const API_BASE_URL = String(import.meta.env.VITE_API_BASE_URL || "http://localhost:3000").replace(/\/+$/, "");
-const AUTO_PRIORITY_BY_INCIDENT_TYPE = {
-  medical_emergency: "critical",
-  fire: "critical",
-  accident: "high",
-  suspicious_activity: "medium",
-  harassment: "medium",
-  theft: "medium",
-};
-const AUTO_ASSIGNED_DEPARTMENT_BY_INCIDENT_TYPE = {
-  medical_emergency: "Emergency Medical Unit",
-  fire: "Fire Station Unit",
-  accident: "Traffic Enforcement Unit",
-  suspicious_activity: "Police Personnel",
-  harassment: "Police Personnel",
-  theft: "Police Personnel",
-};
 
 function toFiniteNumber(value) {
   if (value === null || value === undefined || value === "") return null;
@@ -349,15 +334,13 @@ export function toIncidentViewModel(input) {
   const imageUrls = pickIncidentImageUrls(incident);
   const incidentType = incident?.incident_type || incident?.category || "other";
   const normalizedIncidentType = normalizeIncidentType(incidentType);
-  const typeBasedPriority = AUTO_PRIORITY_BY_INCIDENT_TYPE[normalizedIncidentType] || null;
-  const effectivePriority = typeBasedPriority || incident?.priority || null;
-  const typeBasedAssignedDepartment =
-    AUTO_ASSIGNED_DEPARTMENT_BY_INCIDENT_TYPE[normalizedIncidentType] || null;
-  const effectiveAssignedDepartment =
-    typeBasedAssignedDepartment ||
-    incident?.assignedDepartment ||
-    incident?.assigned_department ||
-    null;
+  const proposal = INCIDENT_CATEGORY_PROPOSALS[normalizedIncidentType] || null;
+  const priorityProposal = proposal?.priority || null;
+  const departmentProposal = proposal?.unit || null;
+  const serverPriority = incident?.priority || null;
+  const serverDepartment = incident?.assigned_department || incident?.assignedDepartment || null;
+  const effectivePriority = serverPriority || priorityProposal || null;
+  const effectiveAssignedDepartment = serverDepartment || departmentProposal || null;
   const location = {
     latitude: coords?.latitude ?? null,
     longitude: coords?.longitude ?? null,
@@ -383,6 +366,10 @@ export function toIncidentViewModel(input) {
     reportedByUserId: incident?.reportedByUserId ?? incident?.reported_by_user_id ?? null,
     reporter,
     assignedDepartment: effectiveAssignedDepartment,
+    priorityProposal,
+    departmentProposal,
+    serverPriority,
+    serverDepartment,
     assignedAdminId: incident?.assignedAdminId ?? incident?.assigned_admin_id ?? null,
     resolutionNotes: incident?.resolutionNotes || incident?.resolution_notes || "",
     raw: incident,

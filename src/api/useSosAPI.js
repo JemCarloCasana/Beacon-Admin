@@ -140,6 +140,10 @@ export const useResolveSOS = (options = {}) => {
         payloadNote = normalizedNote ? `CANCELLED: ${normalizedNote}` : "CANCELLED:";
       } else if (normalizedOutcome === "safe") {
         payloadNote = normalizedNote ? `SAFE: ${normalizedNote}` : "SAFE:";
+      } else if (normalizedOutcome === "false_alarm") {
+        // The backend only understands CANCELLED: and SAFE:, so a false alarm
+        // resolves plainly - but the note must still say so.
+        payloadNote = normalizedNote ? `FALSE ALARM: ${normalizedNote}` : "FALSE ALARM:";
       }
 
       return apiPost(`/admin/sos/${sosId}/resolve`, payloadNote ? { note: payloadNote } : {});

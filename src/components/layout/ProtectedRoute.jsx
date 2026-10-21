@@ -58,12 +58,12 @@ export function ProtectedRoute({
     // This prevents privilege flash - sensitive content won't show until permissions are verified
     if (isLoading) {
         return (
-            <div className="flex h-screen items-center justify-center bg-slate-50">
+            <div className="flex h-screen items-center justify-center bg-muted/40">
                 <div className="space-y-4 w-full max-w-2xl px-4">
                     <Skeleton className="h-12 w-full" />
                     <Skeleton className="h-12 w-full" />
                     <Skeleton className="h-12 w-3/4" />
-                    <p className="text-sm text-slate-500 text-center mt-8">
+                    <p className="text-sm text-muted-foreground text-center mt-8">
                         Loading permissions...
                     </p>
                 </div>

@@ -73,8 +73,63 @@ describe("useIncidentsAPI", () => {
     });
   });
 
-  it("useUpdateIncident throws for invalid assigned department", async () => {
+  it("useUpdateIncident sends exactly the keys the admin incident route reads", async () => {
+    apiPatch.mockResolvedValueOnce({ ok: true });
     const wrapper = createWrapper();
+    const { result } = renderHook(() => useUpdateIncident(), { wrapper });
+
+    result.current.mutate({
+      id: 123,
+      status: "resolved",
+      priority: "high",
+      incidentType: "fire",
+      assignedDepartment: "Fire Station Unit",
+      resolutionNotes: "Handled",
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    const [, body] = apiPatch.mock.calls[0];
+    // The admin route reads status, priority, incident_type,
+    // assigned_department and resolutionNotes (camelCase, and only that one).
+    expect(Object.keys(body).sort()).toEqual(
+      ["assigned_department", "incident_type", "priority", "resolutionNotes", "status"].sort()
+    );
+  });
+
+  it("useUpdateIncident never sends the keys the admin incident route rejects with 400", async () => {
+    apiPatch.mockResolvedValueOnce({ ok: true });
+    const wrapper = createWrapper();
+    const { result } = renderHook(() => useUpdateIncident(), { wrapper });
+
+    result.current.mutate({
+      id: 123,
+      status: "resolved",
+      incidentType: "fire",
+      category: "traffic_accident",
+      assigned_admin_id: 456,
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    const [, body] = apiPatch.mock.calls[0];
+    expect(body).not.toHaveProperty("category");
+    expect(body).not.toHaveProperty("assigned_admin_id");
+  });
+
+  it("useUpdateIncident passes priority through unchanged", async () => {
+    apiPatch.mockResolvedValueOnce({ ok: true });
+    const wrapper = createWrapper();
+    const { result } = renderHook(() => useUpdateIncident(), { wrapper });
+
+    result.current.mutate({ id: 123, priority: "low" });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(apiPatch).toHaveBeenCalledWith(
+      "/admin/incidents/123",
+      expect.objectContaining({ priority: "low" })
+    );
+  });
+
+  it("useUpdateIncident throws for invalid assigned department", async () => {    const wrapper = createWrapper();
     const { result } = renderHook(() => useUpdateIncident(), { wrapper });
 
     result.current.mutate({

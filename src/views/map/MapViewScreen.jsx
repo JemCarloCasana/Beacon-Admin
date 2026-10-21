@@ -18,9 +18,12 @@ export default function MapViewScreen({
   isLoading,
   error,
   hasMapData,
+  permissions = { canViewSos: true, canViewIncidents: true },
   actions,
 }) {
   const mapRef = useRef(null);
+  const canViewSos = permissions?.canViewSos !== false;
+  const canViewIncidents = permissions?.canViewIncidents !== false;
 
   return (
     <DashboardLayout>
@@ -28,14 +31,26 @@ export default function MapViewScreen({
         <Card>
           <CardContent className="flex flex-wrap items-center justify-between gap-4 py-3">
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Switch checked={filters.showSos} onCheckedChange={actions.onToggleSos} />
-                <span className="text-sm">SOS</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Switch checked={filters.showIncidents} onCheckedChange={actions.onToggleIncidents} />
-                <span className="text-sm">Incidents</span>
-              </div>
+              {canViewSos && (
+                <div className="flex items-center gap-2">
+                  <Switch
+                    aria-label="Show SOS layer"
+                    checked={filters.showSos}
+                    onCheckedChange={actions.onToggleSos}
+                  />
+                  <span className="text-sm">SOS</span>
+                </div>
+              )}
+              {canViewIncidents && (
+                <div className="flex items-center gap-2">
+                  <Switch
+                    aria-label="Show incident layer"
+                    checked={filters.showIncidents}
+                    onCheckedChange={actions.onToggleIncidents}
+                  />
+                  <span className="text-sm">Incidents</span>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-2">
@@ -54,6 +69,17 @@ export default function MapViewScreen({
             </div>
           </CardContent>
         </Card>
+
+        {!canViewIncidents ? (
+          <p className="text-xs text-muted-foreground">
+            You do not have permission to view incidents.
+          </p>
+        ) : null}
+        {!canViewSos ? (
+          <p className="text-xs text-muted-foreground">
+            You do not have permission to view SOS threads.
+          </p>
+        ) : null}
 
         <div className="flex min-h-0 flex-1 flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_340px]">
           <Card className="flex min-h-[420px] flex-col lg:h-full lg:min-h-0">
@@ -75,14 +101,22 @@ export default function MapViewScreen({
                 <CardTitle className="text-base">Live Status</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
-                <Badge variant="outline" className="mr-2">
-                  <Radio className="mr-1 h-3 w-3 text-red-500" />
-                  SOS {stats.sosCount}
-                </Badge>
-                <Badge variant="outline">
-                  <AlertTriangle className="mr-1 h-3 w-3 text-amber-500" />
-                  Incidents {stats.incidentCount}
-                </Badge>
+                {canViewSos && (
+                  <Badge variant="outline" className="mr-2">
+                    <Radio className="mr-1 h-3 w-3 text-destructive" />
+                    SOS {stats.sosCount}
+                    {stats.sosTotal > stats.sosCount ? ` of ${stats.sosTotal}` : ""}
+                  </Badge>
+                )}
+                {canViewIncidents && (
+                  <Badge variant="outline">
+                    <AlertTriangle className="mr-1 h-3 w-3 text-warning" />
+                    Incidents {stats.incidentCount}
+                    {stats.incidentTotal > stats.incidentCount
+                      ? ` of ${stats.incidentTotal}`
+                      : ""}
+                  </Badge>
+                )}
                 <p className="text-xs text-muted-foreground">
                   Status: {stats.isRefetching ? "Refreshing..." : stats.isLive ? "Live" : "Error"}
                 </p>

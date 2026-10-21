@@ -5,6 +5,8 @@
  * @property {string} full_name
  * @property {string} email
  * @property {string} role
+ * @property {string[]|null} permissions The grant the server reported, or
+ *   null when the server did not report one.
  */
 
 /**
@@ -68,6 +70,11 @@ export function toUserModel(input) {
     mergedPermissions.includes("manage_admins") ||
     mergedPermissions.includes("manage_users");
 
+  // What the server said this account may do. null means the server did
+  // not report it - which is not the same as reporting that it may do
+  // nothing, and the two must not be collapsed into one another.
+  const reportedPermissions = Array.isArray(input?.permissions) ? [...input.permissions] : null;
+
   const isTruthyAdminFlag = (value) =>
     value === true || value === 1 || value === "1" || String(value || "").toLowerCase() === "true";
 
@@ -99,14 +106,22 @@ export function toUserModel(input) {
   const isPersonnelRoleCode = hasNumericRole && roleNumber === 2;
   const isNumericRoleText = normalizedRole !== "" && !Number.isNaN(Number(normalizedRole));
 
+  // The server's own role is the truth about the record. The
+  // permission-derived guess is only a fallback for a payload that
+  // carries no role at all - a personnel account that holds
+  // manage_users is still a personnel account.
+  const hasExplicitServerRole = normalizedRole === "admin" || normalizedRole === "personnel";
+
   const role =
-    isAdminRoleText || isAdminFlag || hasAdminPermissions || isAdminRoleCode
-      ? "admin"
-      : normalizedRole === "personnel" || normalizedRole === "user" || isPersonnelRoleCode
-        ? "personnel"
-        : normalizedRole && !isNumericRoleText
-          ? normalizedRole
-          : "personnel";
+    hasExplicitServerRole
+      ? normalizedRole
+      : isAdminRoleText || isAdminFlag || hasAdminPermissions || isAdminRoleCode
+        ? "admin"
+        : normalizedRole === "user" || isPersonnelRoleCode
+          ? "personnel"
+          : normalizedRole && !isNumericRoleText
+            ? normalizedRole
+            : "personnel";
 
   const normalizedStatus = String(input?.status || "").trim().toLowerCase();
   const status = normalizedStatus === "deactivated" ? "deactivated" : "active";
@@ -124,6 +139,7 @@ export function toUserModel(input) {
     email: input?.email ?? "",
     role,
     status,
+    permissions: reportedPermissions,
   };
 }
 

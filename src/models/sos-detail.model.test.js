@@ -40,11 +40,43 @@ describe("sos-detail.model", () => {
     expect(result.id).toBe("55");
     expect(result.requires_attention).toBe(true);
     expect(result.userName).toBe("User #9");
-    expect(result.emergencyType).toBe("fire");
+    // The person did not report a type, so the type is not reported. The
+    // guess taken from the message is kept separate and labelled as such.
+    expect(result.emergencyType).toBeNull();
+    expect(result.emergencyTypeFromMessage).toBe("fire");
     expect(result.location.latitude).toBe(16.123);
     expect(result.location.longitude).toBe(120.456);
     expect(result.timeline.map((event) => event.id)).toEqual([3, 2]);
     expect(result.timeline.map((event) => event.eventLabel)).toEqual(["Active", "Created"]);
+  });
+
+  it("does not present a message-derived type as the reported type", () => {
+    const result = toSosDetailViewModel({
+      thread: {
+        sos_id: 70,
+        latest_status: "active",
+        latest_message: "my baby is burning",
+      },
+      events: [],
+    });
+
+    expect(result.emergencyType).toBeNull();
+    expect(result.emergencyTypeFromMessage).toBe("fire");
+  });
+
+  it("prefers the reported category over any message inference", () => {
+    const result = toSosDetailViewModel({
+      thread: {
+        sos_id: 71,
+        latest_status: "active",
+        emergency_category: "violence",
+        latest_message: "There is fire in the room",
+      },
+      events: [],
+    });
+
+    expect(result.emergencyType).toBe("violence");
+    expect(result.emergencyTypeFromMessage).toBeNull();
   });
 
   it("honors explicit requires_attention value", () => {
