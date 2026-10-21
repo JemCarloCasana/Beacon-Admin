@@ -268,6 +268,19 @@ describe("UsersView", () => {
     expect(screen.getByText(/your own permissions/i)).toBeInTheDocument();
   });
 
+  it("will not offer the permission picker for an account whose grant the server did not report", () => {
+    render(
+      <UsersView
+        {...baseProps}
+        isEditDialogOpen
+        editForm={{ id: 3, full_name: "Unreported User", email: "unreported@example.com", permissions: null }}
+      />
+    );
+
+    expect(screen.queryByText("Permissions to grant")).not.toBeInTheDocument();
+    expect(screen.getByText(/did not report/i)).toBeInTheDocument();
+  });
+
   it("hides the edit action without manage_admins", () => {
     render(<UsersView {...baseProps} canManageAdmins={false} />);
 

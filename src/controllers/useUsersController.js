@@ -251,7 +251,9 @@ export function useUsersController() {
       id: user.id,
       full_name: String(user.full_name || ""),
       email: String(user.email || ""),
-      permissions: Array.isArray(user.permissions) ? [...user.permissions] : [],
+      // null when the server did not report a grant, so the dialog can
+      // say "not reported" instead of showing an empty selection.
+      permissions: Array.isArray(user.permissions) ? [...user.permissions] : null,
     });
     setIsEditDialogOpen(true);
   };
@@ -391,9 +393,15 @@ export function useUsersController() {
     const nextEmail = String(editForm.email || "").trim();
     const originalPermissions = Array.isArray(originalUser?.permissions)
       ? originalUser.permissions
-      : [];
-    const nextPermissions = Array.isArray(editForm.permissions) ? editForm.permissions : [];
-    const permissionsChanged = !samePermissionSet(originalPermissions, nextPermissions);
+      : null;
+    const nextPermissions = Array.isArray(editForm.permissions) ? editForm.permissions : null;
+    // A grant the server never reported cannot be compared against one
+    // that was, so it is never sent: replacing an unknown grant with a
+    // half-ticked box would silently take powers away.
+    const permissionsChanged =
+      originalPermissions !== null &&
+      nextPermissions !== null &&
+      !samePermissionSet(originalPermissions, nextPermissions);
 
     if (!nextName) {
       toast({

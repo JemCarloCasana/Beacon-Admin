@@ -583,6 +583,43 @@ describe("useUsersController", () => {
     expect(apiPatch.mock.calls[0][1]).not.toHaveProperty("permissions");
   });
 
+  it("does not send permissions for an account whose grant the server did not report", async () => {
+    useUsers.mockReturnValue({
+      data: [
+        {
+          id: 11,
+          full_name: "Personnel A",
+          email: "a@example.com",
+          role: "personnel",
+          status: "active",
+          permissions: null,
+        },
+      ],
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn().mockResolvedValue({}),
+    });
+    const { result } = renderHook(() => useUsersController());
+
+    await act(async () => {
+      await result.current.actions.onEditUser(result.current.users[0]);
+    });
+
+    // The grant was never told to us, so an edit must not replace it.
+    act(() => {
+      result.current.actions.onEditFormChange("full_name", "Renamed Person");
+      result.current.actions.onEditFormChange("permissions", ["manage_sos"]);
+    });
+
+    await act(async () => {
+      await result.current.actions.onSaveEditedUser();
+    });
+
+    expect(apiPatch).toHaveBeenCalled();
+    expect(apiPatch.mock.calls[0][1]).not.toHaveProperty("permissions");
+  });
+
   it("reports whether the operator can administer accounts", () => {
     const { result } = renderHook(() => useUsersController());
 

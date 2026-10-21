@@ -246,28 +246,37 @@ export default function UsersView({
                   />
                 </div>
                 <div className="space-y-2">
-                  <p className="text-sm font-medium">Permissions to grant</p>
-                  {isEditingOwnAccount ? (
-                    <>
-                      <p className="text-xs text-muted-foreground">
-                        You cannot change your own permissions. Ask an administrator with
-                        manage_admins to make this change.
-                      </p>
-                      <PermissionPicker
-                        permissions={PERMISSION_CATALOG}
-                        value={editForm?.permissions || []}
-                        onChange={() => {}}
-                        disabled
-                        idPrefix="edit-permission"
-                      />
-                    </>
+                  {editForm?.permissions === null ? (
+                    <p className="text-xs text-muted-foreground">
+                      The server did not report this account&apos;s permissions, so they
+                      cannot be changed here.
+                    </p>
                   ) : (
-                    <PermissionPicker
-                      permissions={PERMISSION_CATALOG}
-                      value={editForm?.permissions || []}
-                      onChange={(next) => actions.onEditFormChange?.("permissions", next)}
-                      idPrefix="edit-permission"
-                    />
+                    <>
+                      <p className="text-sm font-medium">Permissions to grant</p>
+                      {isEditingOwnAccount ? (
+                        <>
+                          <p className="text-xs text-muted-foreground">
+                            You cannot change your own permissions. Ask an administrator with
+                            manage_admins to make this change.
+                          </p>
+                          <PermissionPicker
+                            permissions={PERMISSION_CATALOG}
+                            value={editForm?.permissions || []}
+                            onChange={() => {}}
+                            disabled
+                            idPrefix="edit-permission"
+                          />
+                        </>
+                      ) : (
+                        <PermissionPicker
+                          permissions={PERMISSION_CATALOG}
+                          value={editForm?.permissions || []}
+                          onChange={(next) => actions.onEditFormChange?.("permissions", next)}
+                          idPrefix="edit-permission"
+                        />
+                      )}
+                    </>
                   )}
                 </div>
               </div>
