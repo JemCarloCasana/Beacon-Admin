@@ -13,18 +13,24 @@ import { useSOSLiveQueue } from "@/api/useSosAPI";
 import { toIncidentListViewModel } from "@/models/incident.model";
 import { toSosFeedAlert } from "@/models/sos-live.model";
 import { NAV_ITEMS } from "@/config/constants";
+import { useAuth } from "@/hooks/useAuth";
 
 /**
  * A command palette for jumping straight to a page, an incident or a live SOS
  * thread. It opens with Cmd/Ctrl+K.
  *
- * The queries are only enabled while the palette is open, so a page that does
- * not otherwise need the incident or SOS lists does not pay for them.
+ * The queries are only enabled while the palette is open and the operator holds
+ * the matching permission, so a page that does not otherwise need the incident
+ * or SOS lists does not pay for them.
  */
 export function CommandPalette() {
   const navigate = useNavigate();
+  const { hasPermission } = useAuth();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+
+  const canViewIncidents = hasPermission("view_incidents");
+  const canManageSos = hasPermission("manage_sos");
 
   useEffect(() => {
     const onKeyDown = (event) => {
@@ -37,12 +43,23 @@ export function CommandPalette() {
     return () => document.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  const incidentsQuery = useIncidentsAPI({ page: 1, limit: 50 }, { enabled: open });
-  const sosQuery = useSOSLiveQueue({ status: "open", limit: 50 }, { enabled: open });
+  const incidentsQuery = useIncidentsAPI(
+    { page: 1, limit: 50 },
+    { enabled: open && canViewIncidents }
+  );
+  const sosQuery = useSOSLiveQueue(
+    { status: "open", limit: 50 },
+    { enabled: open && canManageSos }
+  );
 
   const pages = useMemo(
-    () => NAV_ITEMS.flatMap((group) => group.items || []),
-    []
+    () =>
+      NAV_ITEMS.flatMap((group) => group.items || []).filter((item) => {
+        if (item.requiredPermissions) return item.requiredPermissions.some(hasPermission);
+        if (!item.requiredPermission) return true;
+        return hasPermission(item.requiredPermission);
+      }),
+    [hasPermission]
   );
   const incidents = useMemo(
     () => toIncidentListViewModel(incidentsQuery.data || []),
@@ -81,29 +98,33 @@ export function CommandPalette() {
           ))}
         </CommandGroup>
 
-        <CommandGroup heading="Incidents">
-          {incidents.map((incident) => (
-            <CommandItem
-              key={incident.id}
-              value={`incident ${incident.title} ${incident.id}`}
-              onSelect={() => go(`/incidents/${incident.id}`)}
-            >
-              {incident.title || `Incident #${incident.id}`}
-            </CommandItem>
-          ))}
-        </CommandGroup>
+        {canViewIncidents && (
+          <CommandGroup heading="Incidents">
+            {incidents.map((incident) => (
+              <CommandItem
+                key={incident.id}
+                value={`incident ${incident.title} ${incident.id}`}
+                onSelect={() => go(`/incidents/${incident.id}`)}
+              >
+                {incident.title || `Incident #${incident.id}`}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
 
-        <CommandGroup heading="SOS threads">
-          {threads.map((thread) => (
-            <CommandItem
-              key={thread.id}
-              value={`sos ${thread.userName} ${thread.id}`}
-              onSelect={() => go(`/sos/${thread.id}`)}
-            >
-              {thread.userName} — SOS #{thread.id}
-            </CommandItem>
-          ))}
-        </CommandGroup>
+        {canManageSos && (
+          <CommandGroup heading="SOS threads">
+            {threads.map((thread) => (
+              <CommandItem
+                key={thread.id}
+                value={`sos ${thread.userName} ${thread.id}`}
+                onSelect={() => go(`/sos/${thread.id}`)}
+              >
+                {thread.userName} — SOS #{thread.id}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
       </CommandList>
     </CommandDialog>
   );

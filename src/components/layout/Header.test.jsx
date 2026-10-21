@@ -67,6 +67,7 @@ describe("Header notifications", () => {
     useAuth.mockReturnValue({
       me: { id: 1, full_name: "Admin" },
       loading: false,
+      hasPermission: () => true,
       logout: vi.fn().mockResolvedValue(undefined),
       refreshMe: vi.fn().mockResolvedValue(undefined),
     });
@@ -98,6 +99,7 @@ describe("Header notifications", () => {
     useAuth.mockReturnValue({
       me: { id: 1, full_name: "Juan Dela Cruz", role: "admin" },
       loading: false,
+      hasPermission: () => true,
       logout: vi.fn().mockResolvedValue(undefined),
       refreshMe: vi.fn().mockResolvedValue(undefined),
     });
