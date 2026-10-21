@@ -1,5 +1,6 @@
 import { Link, Navigate } from "react-router-dom";
 import { useAdminAuth } from "@/auth/AdminAuthProvider";
+import { Button } from "@/components/ui/button";
 
 /**
  * A page the operator is not allowed to see.
@@ -48,11 +49,50 @@ function AccessDenied({ required }) {
   );
 }
 
+/**
+ * An account that holds no permissions at all.
+ *
+ * Such an account signs in successfully - login checks no permissions -
+ * and is then refused by every protected route. Landing on a page whose
+ * every panel 403s looks like a broken app. Say what is actually true:
+ * this account has no console access, and an administrator has to grant
+ * it before there is anything to open.
+ */
+function NoConsoleAccess() {
+  const { me, logout } = useAdminAuth();
+  const who = me?.full_name || me?.email || "This account";
+
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center p-6">
+      <div className="max-w-md space-y-3 text-center">
+        <h1 className="text-xl font-semibold text-foreground">This account has no console access</h1>
+        <p className="text-sm text-muted-foreground">
+          {who} is signed in, but it holds no permissions, so there is nothing in the
+          console it is allowed to open.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Ask an administrator with manage_admins to grant permissions to this account.
+        </p>
+        <Button variant="outline" onClick={() => logout?.()}>
+          Sign out
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default function ProtectedRoute({ children, requiredPermission, requiredPermissions }) {
   const { me, loading, hasPermission } = useAdminAuth();
 
   if (loading) return null;
   if (!me) return <Navigate to="/login" replace />;
+
+  // An account with no permissions cannot use any screen, so say that
+  // once, plainly, rather than letting it land on a page where every
+  // panel fails.
+  if (Array.isArray(me.permissions) && me.permissions.length === 0) {
+    return <NoConsoleAccess />;
+  }
 
   if (requiredPermission && !hasPermission(requiredPermission)) {
     return <AccessDenied required={requiredPermission} />;
