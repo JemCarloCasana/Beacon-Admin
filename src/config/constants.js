@@ -70,7 +70,7 @@ export const STATUS_CONFIG = {
 
 /** SOS request states, in the order an operator meets them. */
 export const SOS_STATUS_CONFIG = {
-    active: 'New',
+    active: 'Active',
     acknowledged: 'Acknowledged',
     responding: 'Responding',
     dispatched: 'Dispatched',

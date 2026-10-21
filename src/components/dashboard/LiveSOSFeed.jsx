@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DataState } from "@/components/common/DataState";
+import { sosStatusLabel } from "@/config/constants";
 import { cn } from "@/lib/utils";
 
 const statusStyles = {
@@ -37,9 +38,9 @@ export function LiveSOSFeed({
   onRetry = null,
   loading = false,
   error = null,
-  title = "Live SOS Feed",
-  emptyTitle = "No active SOS alerts",
-  emptySubtitle = "Monitoring for emergencies...",
+  title = "Open SOS Requests",
+  emptyTitle = "No open SOS requests",
+  emptySubtitle = "New requests appear here the moment a citizen sends one.",
   actionMode = "live",
   contentHeightClassName = "h-full",
 }) {
@@ -77,7 +78,7 @@ export function LiveSOSFeed({
     if (status === "cancelled") return alert?.terminal_label || alert?.terminalLabel || "Cancelled SOS";
     if (status === "resolved") return alert?.terminal_label || alert?.terminalLabel || "Resolved";
     if (status === "active") return "Active";
-    return status ? status.toUpperCase() : "ACTIVE";
+    return sosStatusLabel(status);
   };
 
   const hasPrimaryAction = actionMode === "live" || actionMode === "dispatch";
@@ -159,7 +160,7 @@ export function LiveSOSFeed({
             className="flex-1"
             onClick={() => onResolve?.(alert)}
           >
-            Mark as Resolved
+            Resolve request
           </Button>
         )}
         <Button
@@ -168,7 +169,7 @@ export function LiveSOSFeed({
           className={hasPrimaryAction ? "" : "w-full"}
           onClick={() => onViewDetails?.(alert.id)}
         >
-          Details
+          View details
         </Button>
       </div>
     </div>
@@ -184,13 +185,6 @@ export function LiveSOSFeed({
             <Badge variant="destructive" className="ml-2">
               {attentionAlerts.length} Needs Attention
             </Badge>
-          )}
-        </div>
-        <div className="flex items-center gap-1.5">
-          {attentionAlerts.length > 0 && (
-            <span className="text-xs text-muted-foreground">
-              {attentionAlerts.length} need attention
-            </span>
           )}
         </div>
       </CardHeader>

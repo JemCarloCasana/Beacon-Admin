@@ -7,6 +7,7 @@ import {
   X,
 } from "lucide-react";
 import MapCanvas from "@/components/map/MapCanvas";
+import { sosStatusLabel, roleLabel } from "@/config/constants";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,16 +39,16 @@ function formatLocation(location) {
 }
 
 function formatEventDate(value) {
-  if (!value) return "-";
+  if (!value) return "—";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
+  if (Number.isNaN(date.getTime())) return "—";
   return format(date, "MMM d, yyyy h:mm a");
 }
 
 function formatShortDate(value) {
-  if (!value) return "No update";
+  if (!value) return "—";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "No update";
+  if (Number.isNaN(date.getTime())) return "—";
   return format(date, "MMM d, yyyy '|' h:mm a");
 }
 
@@ -59,7 +60,7 @@ function formatEmergencyLabel(value) {
 }
 
 function formatCoordinate(value, suffix) {
-  if (!Number.isFinite(value)) return "-";
+  if (!Number.isFinite(value)) return "—";
   return `${Math.abs(value).toFixed(4)} deg ${suffix}`;
 }
 
@@ -102,15 +103,15 @@ export function LiveSOSDetailsDialog({
     if (status === "active") return { key: "acknowledged", label: "Acknowledged" };
     if (status === "cancelled") return { key: "cancelled", label: detail?.terminal_label || detail?.terminalLabel || "Cancelled SOS" };
     if (status === "resolved") return { key: "resolved", label: detail?.terminal_label || detail?.terminalLabel || "Resolved" };
-    return { key: "active", label: status ? status.toUpperCase() : "Active" };
+    return { key: "active", label: sosStatusLabel(status) };
   })();
   const senderNotificationMessage = (() => {
     const status = String(detail?.status || "").toLowerCase();
     if (status === "cancelled" || status === "resolved") {
-      return "Resolved and cancelled SOS outcomes notify accepted Beacon friends after the admin update is recorded.";
+      return "Resolved and cancelled SOS requests notify accepted Beacon friends after the admin update is recorded.";
     }
     if (detail?.acknowledged_at || status === "active") {
-      return "Acknowledged SOS updates notify accepted Beacon friends, and they may also see the assigned unit when available.";
+      return "Acknowledged SOS requests notify accepted Beacon friends, and they may also see the response unit when available.";
     }
     return "Friend-side SOS notifications are best-effort and do not change the admin result shown here.";
   })();
@@ -183,7 +184,7 @@ export function LiveSOSDetailsDialog({
                           {detailBadge.label}
                         </Badge>
                         <Badge variant="outline" className="border-primary/20 bg-primary/5 text-xs uppercase tracking-[0.18em] text-primary">
-                          ID: SOS-{detail.id || "-"}
+                          Request {detail.id || "—"}
                         </Badge>
                       </div>
                       <div>
@@ -221,7 +222,7 @@ export function LiveSOSDetailsDialog({
                       <div className="min-w-0 space-y-1.5">
                         <div>
                           <p className="font-semibold text-foreground">{detail.userName}</p>
-                          {detail.role && <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">{detail.role}</p>}
+                          {detail.role && <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">{roleLabel(detail.role)}</p>}
                         </div>
                         <div className="space-y-1.5 text-sm">
                           {detail.userPhone && (
@@ -233,10 +234,10 @@ export function LiveSOSDetailsDialog({
                           {!detail.userPhone && (
                             <div className="flex items-center gap-2 text-muted-foreground">
                               <Phone className="h-4 w-4" />
-                              <span>No phone number available</span>
+                              <span>No phone number on file</span>
                             </div>
                           )}
-                          <p className="text-xs text-muted-foreground">SOS ID: {detail.id || "-"}</p>
+                          <p className="text-xs text-muted-foreground">Request ID: {detail.id || "—"}</p>
                         </div>
                       </div>
                     </div>
@@ -283,7 +284,7 @@ export function LiveSOSDetailsDialog({
                       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                         Live Location
                       </p>
-                      <p className="mt-1 text-sm text-muted-foreground">Latest map position and GPS context for this SOS thread.</p>
+                      <p className="mt-1 text-sm text-muted-foreground">Latest map position and GPS context for this SOS request.</p>
                     </div>
                     <Badge variant="outline" className={cn(
                       "rounded-full border text-xs uppercase tracking-[0.18em]",
@@ -322,7 +323,7 @@ export function LiveSOSDetailsDialog({
                   {canMarkResolved && (
                     <div className="mt-4 flex justify-end">
                       <Button size="lg" className="min-w-[200px] rounded-2xl" onClick={() => onMarkResolved?.(detail)}>
-                        Mark Resolved
+                        Resolve request
                       </Button>
                     </div>
                   )}
@@ -334,7 +335,7 @@ export function LiveSOSDetailsDialog({
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                     Activity Timeline
                   </p>
-                  <p className="mt-1 text-sm text-muted-foreground">Operational updates recorded for this SOS thread.</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Operational updates recorded for this SOS request.</p>
                 </div>
                 <div className="px-5 py-4">
                   {detail.timeline.length === 0 && (

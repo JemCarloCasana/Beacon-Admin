@@ -19,7 +19,7 @@ describe("sos-live.model", () => {
     expect(result).toEqual({
       id: "123",
       status: "active",
-      statusLabel: "New",
+      statusLabel: "Active",
       terminal_label: null,
       terminalLabel: null,
       requires_attention: true,

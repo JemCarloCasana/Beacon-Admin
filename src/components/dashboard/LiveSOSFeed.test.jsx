@@ -151,7 +151,7 @@ describe("LiveSOSFeed", () => {
     expect(screen.getByText("Liza")).toBeInTheDocument();
     expect(screen.getByText("Emergency Medical Unit")).toBeInTheDocument();
     expect(screen.getByText("\"Chest pain reported\"")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Details/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /View details/i })).toBeInTheDocument();
   });
 
   it("applies the provided scroll area height class", () => {
@@ -195,7 +195,7 @@ describe("LiveSOSFeed", () => {
       />
     );
 
-    expect(screen.getByRole("button", { name: /Mark as Resolved/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Resolve request/i })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Acknowledge/i })).not.toBeInTheDocument();
   });
 
@@ -221,7 +221,7 @@ describe("LiveSOSFeed", () => {
       />
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Mark as Resolved/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Resolve request/i }));
     expect(onResolve).toHaveBeenCalledWith(expect.objectContaining({ id: "7" }));
   });
 
@@ -231,12 +231,12 @@ describe("LiveSOSFeed", () => {
         alerts={[]}
         loading
         error={null}
-        emptyTitle="No live SOS alerts"
+        emptyTitle="No open SOS requests"
         emptySubtitle="Monitoring for emergencies..."
       />
     );
 
-    expect(screen.queryByText("No live SOS alerts")).not.toBeInTheDocument();
+    expect(screen.queryByText("No open SOS requests")).not.toBeInTheDocument();
     expect(screen.getByTestId("live-sos-feed-skeleton")).toBeInTheDocument();
   });
 
@@ -248,12 +248,12 @@ describe("LiveSOSFeed", () => {
         loading={false}
         error={new Error("queue unavailable")}
         onRetry={onRetry}
-        emptyTitle="No live SOS alerts"
+        emptyTitle="No open SOS requests"
       />
     );
 
     expect(screen.getByText("queue unavailable")).toBeInTheDocument();
-    expect(screen.queryByText("No live SOS alerts")).not.toBeInTheDocument();
+    expect(screen.queryByText("No open SOS requests")).not.toBeInTheDocument();
   });
 
   it("does not render a Connected badge", () => {
@@ -298,6 +298,29 @@ describe("LiveSOSFeed", () => {
 
     expect(screen.queryByText("ACKNOWLEDGED")).not.toBeInTheDocument();
     expect(screen.getByText("Active")).toBeInTheDocument();
+  });
+
+  it("labels an acknowledged request in words, not in capitals", () => {
+    render(
+      <LiveSOSFeed
+        alerts={[
+          {
+            id: "13",
+            status: "acknowledged",
+            requires_attention: false,
+            acknowledged_at: "2026-02-27T10:00:00.000Z",
+            timestamp: "2026-02-27T10:01:00.000Z",
+            userName: "Ana",
+            userPhone: null,
+            location: { address: "Dagupan City", latitude: null, longitude: null },
+            message: null,
+          },
+        ]}
+      />
+    );
+
+    expect(screen.queryByText("ACKNOWLEDGED")).not.toBeInTheDocument();
+    expect(screen.getByText("Acknowledged")).toBeInTheDocument();
   });
 
   it("makes the phone number a tappable link", () => {

@@ -32,7 +32,7 @@ describe("LiveSOSDetailsDialog", () => {
       />
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Mark Resolved/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Resolve request/i }));
     expect(onMarkResolved).toHaveBeenCalledWith(
       expect.objectContaining({
         id: "99",
@@ -72,9 +72,9 @@ describe("LiveSOSDetailsDialog", () => {
     expect(screen.getByText("Live Location")).toBeInTheDocument();
     expect(screen.getByText("Activity Timeline")).toBeInTheDocument();
     expect(
-      screen.getByText(/acknowledged sos updates notify accepted beacon friends/i)
+      screen.getByText(/acknowledged sos requests notify accepted beacon friends/i)
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Mark Resolved/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Resolve request/i })).toBeInTheDocument();
   });
 
   it("shows Cancelled SOS label for resolved cancelled outcomes", () => {
@@ -102,8 +102,8 @@ describe("LiveSOSDetailsDialog", () => {
 
     expect(screen.getByText("Cancelled SOS")).toBeInTheDocument();
     expect(screen.getByText("Activity Timeline")).toBeInTheDocument();
-    expect(screen.getByText(/resolved and cancelled sos outcomes notify accepted beacon friends/i)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Mark Resolved/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/resolved and cancelled sos requests notify accepted beacon friends/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Resolve request/i })).not.toBeInTheDocument();
   });
 
   it("renders normalized timeline event labels", () => {
@@ -137,6 +137,6 @@ describe("LiveSOSDetailsDialog", () => {
     expect(screen.getByText("Cancelled")).toBeInTheDocument();
     expect(screen.getByText("Acknowledged")).toBeInTheDocument();
     expect(screen.getByText("Created")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Mark Resolved/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Resolve request/i })).not.toBeInTheDocument();
   });
 });

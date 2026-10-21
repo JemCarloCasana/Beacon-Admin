@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAcknowledgeSOS, useResolveSOS, SOS_ASSIGNED_UNITS, useSOSDetail, useSOSLiveQueue } from '@/api/useSosAPI';
 import { toSosFeedAlert } from '@/models/sos-live.model';
+import { emergencyLabel } from '@/config/emergency';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -255,7 +256,7 @@ export default function LiveSOS() {
             setAckAssignedUnit("");
         } catch (error) {
             toast({
-                title: "Failed to acknowledge SOS",
+                title: "Failed to acknowledge the request",
                 description: error?.message || "Please try again.",
                 variant: "destructive",
             });
@@ -279,7 +280,7 @@ export default function LiveSOS() {
             setSelectedSosId(null);
         } catch (error) {
             toast({
-                title: "Failed to resolve SOS",
+                title: "Failed to resolve the request",
                 description: error?.message || "Please try again.",
                 variant: "destructive",
             });
@@ -291,8 +292,8 @@ export default function LiveSOS() {
 
     return (
         <DashboardLayout
-            title="SOS Screen"
-            subtitle="Real-time monitoring of live, dispatched, cancelled, and resolved SOS threads"
+            title="SOS Requests"
+            subtitle="Live triage of new, dispatched, cancelled, and resolved emergency requests"
         >
             <div className="flex flex-col p-6">
             <Card className="mb-5 shrink-0">
@@ -300,10 +301,10 @@ export default function LiveSOS() {
                     <div className="flex items-center gap-3">
                         <Radio className="h-5 w-5 text-primary" />
                         <div>
-                            <p className="font-medium">Backend SOS Queue Connection</p>
+                            <p className="font-medium">Live connection</p>
                             <p className="text-sm text-muted-foreground">
                                 {isQueueLoading
-                                    ? "Connecting to the SOS queues..."
+                                    ? "Connecting to the live queue..."
                                     : "Polling SOS queues every 5 seconds"}
                             </p>
                             {queueError && (
@@ -335,10 +336,10 @@ export default function LiveSOS() {
 
             <Tabs value={activeTab} onValueChange={updateTabRoute} className="flex flex-col">
                 <TabsList className="mb-4 w-full shrink-0 justify-start">
-                    <TabsTrigger value="live">Live SOS ({liveAlerts.length})</TabsTrigger>
-                    <TabsTrigger value="dispatched">Dispatch ({dispatchedAlerts.length})</TabsTrigger>
-                    <TabsTrigger value="cancelled">Cancelled SOS ({cancelledAlerts.length})</TabsTrigger>
-                <TabsTrigger value="resolved">Resolved SOS ({resolvedAlerts.length})</TabsTrigger>
+                    <TabsTrigger value="live">Needs dispatch ({liveAlerts.length})</TabsTrigger>
+                    <TabsTrigger value="dispatched">Dispatched ({dispatchedAlerts.length})</TabsTrigger>
+                    <TabsTrigger value="cancelled">Cancelled ({cancelledAlerts.length})</TabsTrigger>
+                    <TabsTrigger value="resolved">Resolved ({resolvedAlerts.length})</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="live" className="mt-0 flex flex-col">
@@ -347,16 +348,16 @@ export default function LiveSOS() {
                         loading={liveQueueQuery.isLoading}
                         error={liveQueueQuery.error || null}
                         onRetry={() => liveQueueQuery.refetch()}
-                        title="Live SOS Feed"
-                        emptyTitle="No live SOS alerts"
-                        emptySubtitle="Monitoring for emergencies..."
+                        title="Open SOS Requests"
+                        emptyTitle="No open SOS requests"
+                        emptySubtitle="New requests appear here the moment a citizen sends one."
                         onAcknowledge={handleAcknowledge}
                         onViewDetails={handleOpenDetails}
                         actionMode="live"
                         contentHeightClassName="h-[calc(100vh-18rem)] min-h-[320px] max-h-[calc(100vh-18rem)]"
                     />
                     {attentionAlerts.length === 0 && liveAlerts.length > 0 && (
-                        <p className="mt-3 shrink-0 text-xs text-muted-foreground">All visible live SOS threads are acknowledged and waiting for assignment.</p>
+                        <p className="mt-3 shrink-0 text-xs text-muted-foreground">All visible SOS requests are acknowledged and waiting for a response unit.</p>
                     )}
                 </TabsContent>
 
@@ -366,9 +367,9 @@ export default function LiveSOS() {
                         loading={liveQueueQuery.isLoading}
                         error={liveQueueQuery.error || null}
                         onRetry={() => liveQueueQuery.refetch()}
-                        title="Dispatch Queue"
-                        emptyTitle="No dispatched SOS"
-                        emptySubtitle="Assigned SOS threads will appear here."
+                        title="Dispatched Requests"
+                        emptyTitle="No dispatched requests"
+                        emptySubtitle="Requests with a response unit assigned appear here."
                         onResolve={handleOpenResolveDialog}
                         onViewDetails={handleOpenDetails}
                         actionMode="dispatch"
@@ -382,9 +383,9 @@ export default function LiveSOS() {
                         loading={cancelledQueueQuery.isLoading}
                         error={cancelledQueueQuery.error || null}
                         onRetry={() => cancelledQueueQuery.refetch()}
-                        title="Cancelled SOS"
-                        emptyTitle="No cancelled SOS"
-                        emptySubtitle="Cancelled outcomes will appear here."
+                        title="Cancelled Requests"
+                        emptyTitle="No cancelled requests"
+                        emptySubtitle="Requests the caller withdrew appear here."
                         actionMode="readonly"
                         onViewDetails={handleOpenDetails}
                         contentHeightClassName="h-[calc(100vh-18rem)] min-h-[320px] max-h-[calc(100vh-18rem)]"
@@ -397,9 +398,9 @@ export default function LiveSOS() {
                         loading={resolvedQueueQuery.isLoading}
                         error={resolvedQueueQuery.error || null}
                         onRetry={() => resolvedQueueQuery.refetch()}
-                        title="Resolved SOS"
-                        emptyTitle="No resolved SOS"
-                        emptySubtitle="Resolved outcomes will appear here."
+                        title="Resolved Requests"
+                        emptyTitle="No resolved requests"
+                        emptySubtitle="Resolved requests appear here."
                         actionMode="readonly"
                         onViewDetails={handleOpenDetails}
                         contentHeightClassName="h-[calc(100vh-18rem)] min-h-[320px] max-h-[calc(100vh-18rem)]"
@@ -419,9 +420,9 @@ export default function LiveSOS() {
             >
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Acknowledge SOS</DialogTitle>
+                        <DialogTitle>Acknowledge SOS request</DialogTitle>
                         <DialogDescription>
-                            Select the assigned unit before confirming acknowledgement.
+                            Choose the response unit that is taking this request.
                         </DialogDescription>
                     </DialogHeader>
                     <p className="text-sm text-muted-foreground">
@@ -433,15 +434,15 @@ export default function LiveSOS() {
                         if (!alert?.emergencyType || alert.emergencyType === "unknown") return null;
                         return (
                             <p className="text-xs text-muted-foreground">
-                                Auto-selected from emergency type: <span className="font-medium capitalize">{alert.emergencyType}</span>
+                                Auto-selected from emergency type: <span className="font-medium">{emergencyLabel(alert.emergencyType)}</span>
                             </p>
                         );
                     })()}
                     <div className="space-y-2">
-                        <p className="text-sm font-medium">Assigned Unit</p>
+                        <p className="text-sm font-medium">Response unit</p>
                         <Select value={ackAssignedUnit} onValueChange={setAckAssignedUnit}>
                             <SelectTrigger>
-                                <SelectValue placeholder="Select assigned unit" />
+                                <SelectValue placeholder="Select response unit" />
                             </SelectTrigger>
                             <SelectContent>
                                 {SOS_ASSIGNED_UNITS.map((unit) => (
@@ -467,7 +468,7 @@ export default function LiveSOS() {
                             onClick={handleConfirmAcknowledge}
                             disabled={!ackAssignedUnit || acknowledgeMutation.isPending}
                         >
-                            {acknowledgeMutation.isPending ? "Acknowledging..." : "Confirm Acknowledge"}
+                            {acknowledgeMutation.isPending ? "Acknowledging..." : "Acknowledge request"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -484,17 +485,17 @@ export default function LiveSOS() {
             >
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Mark SOS as Resolved</DialogTitle>
+                        <DialogTitle>Resolve SOS request</DialogTitle>
                         <DialogDescription>
-                            Are you sure you want to mark this SOS as resolved?
+                            Resolve this SOS request? It leaves the live queue once the update is recorded.
                         </DialogDescription>
                     </DialogHeader>
                     <p className="text-sm text-muted-foreground">
-                        This will move the SOS thread out of the live queue and into resolved outcomes after the backend confirms the update.
+                        This moves the SOS request out of the live queue once the backend confirms the update.
                     </p>
                     {resolveTarget?.userName && (
                         <p className="text-xs text-muted-foreground">
-                            Reporter: <span className="font-medium">{resolveTarget.userName}</span>
+                            Caller: <span className="font-medium">{resolveTarget.userName}</span>
                         </p>
                     )}
                     <div className="space-y-2">
@@ -539,7 +540,7 @@ export default function LiveSOS() {
                             onClick={handleConfirmResolve}
                             disabled={resolveMutation.isPending}
                         >
-                            {resolveMutation.isPending ? "Resolving..." : "Confirm Resolve"}
+                            {resolveMutation.isPending ? "Resolving..." : "Resolve request"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

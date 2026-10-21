@@ -38,7 +38,7 @@ describe("sos-detail.model", () => {
     });
 
     expect(result.id).toBe("55");
-    expect(result.statusLabel).toBe("New");
+    expect(result.statusLabel).toBe("Active");
     expect(result.requires_attention).toBe(true);
     expect(result.userName).toBe("User #9");
     // The person did not report a type, so the type is not reported. The

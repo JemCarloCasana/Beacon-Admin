@@ -50,8 +50,8 @@ export function ActiveSOSAlert({
       status={status}
       error={error}
       onRetry={onRetry}
-      emptyTitle="No SOS alerts requiring immediate attention."
-      emptyDescription="The live queue is empty. New emergencies appear here as soon as they are sent."
+      emptyTitle="No SOS requests need attention."
+      emptyDescription="New requests appear here the moment a citizen sends one."
       skeleton={<div className="h-24 animate-pulse rounded-md bg-muted" />}
     >
       <div className="flex flex-wrap items-center justify-between gap-4 border-l-4 border-l-emergency bg-emergency/10 p-4 shadow-sm">
@@ -69,7 +69,7 @@ export function ActiveSOSAlert({
               <ElapsedTimer since={alert?.timestamp} className="text-emergency" />
             </div>
             <h3 className="text-base font-semibold leading-tight text-foreground">
-              {alert?.name || "Unknown User"}
+              {alert?.name || "Unknown user"}
             </h3>
             <p className="text-xs font-medium text-muted-foreground">{reportedLabel}</p>
             <p className="text-xs font-medium text-muted-foreground">{resolveLocation(alert)}</p>
@@ -92,18 +92,18 @@ export function ActiveSOSAlert({
               onClick={() => setIsChoosingUnit((previous) => !previous)}
               className="h-9 bg-emergency px-5 font-semibold text-emergency-foreground hover:bg-emergency/90"
             >
-              Choose unit
+              Choose response unit
             </Button>
           )}
 
           {isChoosingUnit && !assignedUnit && (
             <div className="flex items-center gap-2">
               <Label htmlFor="sos-assign-unit" className="sr-only">
-                Responding unit
+                Response unit
               </Label>
               <Select value={selectedUnit} onValueChange={setSelectedUnit}>
                 <SelectTrigger id="sos-assign-unit" className="h-9 w-56">
-                  <SelectValue placeholder="Select unit" />
+                  <SelectValue placeholder="Select response unit" />
                 </SelectTrigger>
                 <SelectContent>
                   {RESPONSE_UNITS.map((unit) => (
@@ -124,7 +124,7 @@ export function ActiveSOSAlert({
             onClick={() => onOpenDetails?.(alert.id)}
             className="h-9 border-border font-semibold text-muted-foreground hover:bg-accent"
           >
-            Open details
+            View details
           </Button>
 
           <Button

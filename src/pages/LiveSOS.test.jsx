@@ -35,9 +35,9 @@ vi.mock("@/components/dashboard/LiveSOSDetailsDialog", () => ({
   LiveSOSDetailsDialog: ({ open, onMarkResolved }) =>
     open ? (
       <div>
-        <div>Reporter: Liza</div>
+        <div>Caller: Liza</div>
         <button type="button" onClick={() => onMarkResolved?.({ id: "1", userName: "Juan" })}>
-          Mark Resolved
+          Resolve request
         </button>
       </div>
     ) : null,
@@ -147,11 +147,11 @@ describe("LiveSOS page", () => {
   it("renders SOS Screen with live/dispatched/cancelled/resolved tabs", () => {
     renderPage();
 
-    expect(screen.getByRole("heading", { name: "SOS Screen" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /Live SOS \(1\)/i })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /Dispatch \(1\)/i })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /Cancelled SOS \(1\)/i })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /Resolved SOS \(1\)/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "SOS Requests" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Needs dispatch \(1\)/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Dispatched \(1\)/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Cancelled \(1\)/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Resolved \(1\)/i })).toBeInTheDocument();
   });
 
   it("requires assigned unit before confirming acknowledge", async () => {
@@ -168,7 +168,7 @@ describe("LiveSOS page", () => {
       screen.getByText(/After acknowledgement succeeds, accepted Beacon friends will be notified/i)
     ).toBeInTheDocument();
 
-    const confirmButton = screen.getByRole("button", { name: /Confirm Acknowledge/i });
+    const confirmButton = screen.getByRole("button", { name: /Acknowledge request/i });
     expect(confirmButton).toBeDisabled();
 
     fireEvent.click(screen.getByRole("combobox"));
@@ -244,7 +244,7 @@ describe("LiveSOS page", () => {
     expect(
       screen.getByText(/admin success here remains authoritative even if push delivery is not visible/i)
     ).toBeInTheDocument();
-    const confirmButton = screen.getByRole("button", { name: /Confirm Acknowledge/i });
+    const confirmButton = screen.getByRole("button", { name: /Acknowledge request/i });
     expect(confirmButton).not.toBeDisabled();
 
     fireEvent.click(confirmButton);
@@ -265,17 +265,17 @@ describe("LiveSOS page", () => {
 
     renderPage();
 
-    fireEvent.click(screen.getByRole("button", { name: /Details/i }));
-    fireEvent.click(screen.getByRole("button", { name: /^Mark Resolved$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /View details/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^Resolve request$/i }));
 
     expect(
-      screen.getByText(/Are you sure you want to mark this SOS as resolved\?/i)
+      screen.getByText(/Resolve this SOS request\?/i)
     ).toBeInTheDocument();
 
     fireEvent.change(screen.getByPlaceholderText(/Add context for why this SOS is resolved/i), {
       target: { value: "User confirmed safe" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /Confirm Resolve/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Resolve request/i }));
 
     expect(mutateAsync).toHaveBeenCalledWith({
       sosId: "1",
@@ -287,15 +287,15 @@ describe("LiveSOS page", () => {
   it("activating a tab reflects in the url", () => {
     renderPage();
 
-    fireEvent.mouseDown(screen.getByRole("tab", { name: /Dispatch \(1\)/i }));
+    fireEvent.mouseDown(screen.getByRole("tab", { name: /Dispatched \(1\)/i }));
 
-    expect(screen.getByRole("tab", { name: /Dispatch \(1\)/i })).toHaveAttribute("data-state", "active");
+    expect(screen.getByRole("tab", { name: /Dispatched \(1\)/i })).toHaveAttribute("data-state", "active");
   });
 
   it("renders one set of tab counts", () => {
     renderPage();
 
-    expect(screen.getAllByText(/Live SOS \(1\)/i)).toHaveLength(1);
+    expect(screen.getAllByText(/Needs dispatch \(1\)/i)).toHaveLength(1);
   });
 
   it("closes the detail dialog when the route loses its sos id", async () => {
@@ -326,13 +326,13 @@ describe("LiveSOS page", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("Reporter: Liza")).toBeInTheDocument();
+      expect(screen.getByText("Caller: Liza")).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByRole("button", { name: "back" }));
 
     await waitFor(() => {
-      expect(screen.queryByText("Reporter: Liza")).not.toBeInTheDocument();
+      expect(screen.queryByText("Caller: Liza")).not.toBeInTheDocument();
     });
   });
 
@@ -346,11 +346,11 @@ describe("LiveSOS page", () => {
     fireEvent.click(screen.getByRole("button", { name: /Acknowledge/i }));
     fireEvent.click(screen.getByRole("combobox"));
     fireEvent.click(screen.getByText("Police Personnel"));
-    fireEvent.click(screen.getByRole("button", { name: /Confirm Acknowledge/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Acknowledge request/i }));
 
     await waitFor(() => {
       expect(mockToast).toHaveBeenCalledWith(
-        expect.objectContaining({ title: "Failed to acknowledge SOS", variant: "destructive" })
+        expect.objectContaining({ title: "Failed to acknowledge the request", variant: "destructive" })
       );
     });
   });
@@ -362,13 +362,13 @@ describe("LiveSOS page", () => {
 
     renderPage();
 
-    fireEvent.click(screen.getByRole("button", { name: /Details/i }));
-    fireEvent.click(screen.getByRole("button", { name: /^Mark Resolved$/i }));
-    fireEvent.click(screen.getByRole("button", { name: /Confirm Resolve/i }));
+    fireEvent.click(screen.getByRole("button", { name: /View details/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^Resolve request$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Resolve request/i }));
 
     await waitFor(() => {
       expect(mockToast).toHaveBeenCalledWith(
-        expect.objectContaining({ title: "Failed to resolve SOS", variant: "destructive" })
+        expect.objectContaining({ title: "Failed to resolve the request", variant: "destructive" })
       );
     });
   });
@@ -379,10 +379,10 @@ describe("LiveSOS page", () => {
 
     renderPage();
 
-    fireEvent.click(screen.getByRole("button", { name: /Details/i }));
-    fireEvent.click(screen.getByRole("button", { name: /^Mark Resolved$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /View details/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^Resolve request$/i }));
     fireEvent.click(screen.getByRole("radio", { name: "Caller cancelled" }));
-    fireEvent.click(screen.getByRole("button", { name: /Confirm Resolve/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Resolve request/i }));
 
     await waitFor(() => {
       expect(mutateAsync).toHaveBeenCalledWith(
@@ -394,19 +394,19 @@ describe("LiveSOS page", () => {
   it("reads the active tab from the URL query", () => {
     renderPage(["/sos?tab=cancelled"]);
 
-    expect(screen.getByRole("tab", { name: /Cancelled SOS \(1\)/i })).toHaveAttribute("data-state", "active");
+    expect(screen.getByRole("tab", { name: /Cancelled \(1\)/i })).toHaveAttribute("data-state", "active");
   });
 
   it("reads the dispatched tab from the URL query", () => {
     renderPage(["/sos?tab=dispatched"]);
 
-    expect(screen.getByRole("tab", { name: /Dispatch \(1\)/i })).toHaveAttribute("data-state", "active");
+    expect(screen.getByRole("tab", { name: /Dispatched \(1\)/i })).toHaveAttribute("data-state", "active");
   });
 
   it("falls back to live tab for invalid tab query", () => {
     renderPage(["/sos?tab=unknown"]);
 
-    expect(screen.getByRole("tab", { name: /Live SOS \(1\)/i })).toHaveAttribute("data-state", "active");
+    expect(screen.getByRole("tab", { name: /Needs dispatch \(1\)/i })).toHaveAttribute("data-state", "active");
   });
 
   it("passes a viewport-sized height to the live feed", () => {
@@ -421,20 +421,20 @@ describe("LiveSOS page", () => {
   it("moves assigned open sos threads into dispatch", async () => {
     renderPage();
 
-    expect(screen.getByRole("tab", { name: /Live SOS \(1\)/i })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /Dispatch \(1\)/i })).toBeInTheDocument();
-    fireEvent.mouseDown(screen.getByRole("tab", { name: /Dispatch \(1\)/i }));
+    expect(screen.getByRole("tab", { name: /Needs dispatch \(1\)/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Dispatched \(1\)/i })).toBeInTheDocument();
+    fireEvent.mouseDown(screen.getByRole("tab", { name: /Dispatched \(1\)/i }));
     expect(await screen.findByText("Liza")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Mark as Resolved/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Resolve request/i })).toBeInTheDocument();
   });
 
   it("opens the resolve confirmation from the dispatch list", () => {
     renderPage(["/sos?tab=dispatched"]);
 
-    fireEvent.click(screen.getByRole("button", { name: /Mark as Resolved/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Resolve request/i }));
 
     expect(
-      screen.getByText(/Are you sure you want to mark this SOS as resolved\?/i)
+      screen.getByText(/Resolve this SOS request\?/i)
     ).toBeInTheDocument();
   });
 });

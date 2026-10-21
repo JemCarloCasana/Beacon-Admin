@@ -9,7 +9,7 @@ import {
 
 describe("sosStatusLabel", () => {
   it("names every SOS status an operator can see", () => {
-    expect(sosStatusLabel("active")).toBe("New");
+    expect(sosStatusLabel("active")).toBe("Active");
     expect(sosStatusLabel("acknowledged")).toBe("Acknowledged");
     expect(sosStatusLabel("responding")).toBe("Responding");
     expect(sosStatusLabel("dispatched")).toBe("Dispatched");

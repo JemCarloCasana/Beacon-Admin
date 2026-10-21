@@ -67,7 +67,7 @@ describe("ActiveSOSAlert", () => {
     const onAssignUnit = vi.fn();
     renderBanner({ alert: unreportedAlert, onAssignUnit });
 
-    fireEvent.click(screen.getByRole("button", { name: /choose unit/i }));
+    fireEvent.click(screen.getByRole("button", { name: /choose response unit/i }));
 
     const combo = screen.getByRole("combobox");
     fireEvent.click(combo);
@@ -87,7 +87,7 @@ describe("ActiveSOSAlert", () => {
     const onOpenDetails = vi.fn();
     renderBanner({ onOpenDetails });
 
-    fireEvent.click(screen.getByRole("button", { name: /open details/i }));
+    fireEvent.click(screen.getByRole("button", { name: /view details/i }));
 
     expect(onOpenDetails).toHaveBeenCalledWith("101");
   });
