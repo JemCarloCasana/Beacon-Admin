@@ -177,7 +177,7 @@ describe("Reports page", () => {
 
     // The SOS series is dashed, so the two lines are distinguishable without
     // relying on hue - and the description says so.
-    expect(screen.getByText(/dashed line for SOS count/i)).toBeInTheDocument();
+    expect(screen.getByText(/dashed line for SOS request count/i)).toBeInTheDocument();
   });
 
   it("renders backend cards and KPI values", () => {
@@ -185,7 +185,7 @@ describe("Reports page", () => {
 
     expect(screen.getByText("Report Exports")).toBeInTheDocument();
     expect(screen.getByText("Analytics Dashboard")).toBeInTheDocument();
-    expect(screen.getByText("Operational KPIs")).toBeInTheDocument();
+    expect(screen.getByText("Key numbers")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Download /i })).not.toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "Analytics range 7 Days" })).toHaveAttribute("data-state", "on");
     expect(screen.getByText("Daily Safety Report")).toBeInTheDocument();

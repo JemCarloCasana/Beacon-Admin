@@ -107,7 +107,7 @@ export default function Auth() {
               className="h-full w-full scale-[1.5] object-cover object-[center_66%]"
             />
           </div>
-          <h1 className="text-3xl font-extrabold text-foreground tracking-tight">Beacon Command</h1>
+          <h1 className="text-3xl font-extrabold text-foreground tracking-tight">Beacon</h1>
           <p className="text-sm font-bold text-muted-foreground mt-1 uppercase tracking-wide">
             Public Safety & Emergency Management
           </p>
@@ -203,10 +203,10 @@ export default function Auth() {
                 className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
               >
                 {loginLoading ? (
-                  "Accessing..."
+                  "Signing in..."
                 ) : (
                   <>
-                    Access Dashboard
+                    Sign in
                     <ChevronRight className="h-4 w-4" />
                   </>
                 )}

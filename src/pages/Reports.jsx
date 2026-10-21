@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/chart";
 import { useExportReportCsv, useGenerateReport, useReportsOverview } from "@/api/useReportsAPI";
 import { REPORT_CARD_CONFIG, formatDurationSeconds, toReportsOverviewModel } from "@/models/reports.model";
+import { rangeLabel, TIMEZONE_LABEL } from "@/config/constants";
 import { Calendar, FileText, BarChart3 } from "lucide-react";
 import {
   Bar as RechartsBar,
@@ -44,8 +45,8 @@ const ICONS = {
 const CHART_CONFIG = {
   incidents: { label: "Incidents", color: "hsl(var(--primary))" },
   sos: { label: "SOS", color: "hsl(var(--emergency))" },
-  avg_response_seconds: { label: "Avg Response (s)", color: "hsl(var(--info))" },
-  avg_resolution_seconds: { label: "Avg Resolution (s)", color: "hsl(var(--success))" },
+  avg_response_seconds: { label: "Avg response time", color: "hsl(var(--info))" },
+  avg_resolution_seconds: { label: "Avg resolution time", color: "hsl(var(--success))" },
   value: { label: "Count", color: "hsl(var(--primary))" },
 };
 
@@ -228,7 +229,7 @@ export default function Reports() {
                       <CardContent>
                         <p className="mb-2 text-sm text-muted-foreground">{card.description}</p>
                         <p className="mb-4 text-xs text-muted-foreground">
-                          Export window: <span className="font-medium">{card.range}</span> ({REPORT_TIMEZONE})
+                          Export window: <span className="font-medium">{rangeLabel(card.range)}</span> ({TIMEZONE_LABEL})
                         </p>
                         <div className="flex gap-2">
                           <Button
@@ -279,9 +280,9 @@ export default function Reports() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <p className="text-sm font-medium">Operational KPIs</p>
+                <p className="text-sm font-medium">Key numbers</p>
                 <p className="text-xs text-muted-foreground">
-                  Incident and SOS snapshot for range <span className="font-medium">{analyticsRange}</span> ({REPORT_TIMEZONE}).
+                  Incident and SOS snapshot for {rangeLabel(analyticsRange)} ({TIMEZONE_LABEL}).
                 </p>
               </div>
 
@@ -365,14 +366,14 @@ export default function Reports() {
                     <div className="grid gap-6 md:grid-cols-2">
                       <Card>
                         <CardHeader className="pb-2">
-                          <CardTitle className="text-base">Incidents vs SOS Trend</CardTitle>
+                          <CardTitle className="text-base">Incidents and SOS requests over time</CardTitle>
                         </CardHeader>
                         <CardContent>
                           <ChartContainer
                             config={CHART_CONFIG}
                             className="h-[260px] w-full"
                             title="Incidents versus SOS over time"
-                            description="A line for incident count and a dashed line for SOS count, across the selected range."
+                            description="A line for incident count and a dashed line for SOS request count, across the selected range."
                           >
                             <RechartsLineChart data={model.charts.incidentsTrend} accessibilityLayer>
                               <CartesianGrid vertical={false} />
@@ -420,7 +421,7 @@ export default function Reports() {
 
                   <div className="space-y-3">
                     <div>
-                      <p className="text-sm font-medium">Incident Distributions</p>
+                      <p className="text-sm font-medium">Incident breakdowns</p>
                       <p className="text-xs text-muted-foreground">Breakdowns for current incident workload and severity.</p>
                     </div>
                     <div className="grid gap-6 md:grid-cols-2">
@@ -464,7 +465,7 @@ export default function Reports() {
 
                   <div className="space-y-3">
                     <div>
-                      <p className="text-sm font-medium">Category Frequency</p>
+                      <p className="text-sm font-medium">Most reported categories</p>
                       <p className="text-xs text-muted-foreground">Most frequently reported incident and SOS categories.</p>
                     </div>
                     <div className="grid gap-6 md:grid-cols-2">

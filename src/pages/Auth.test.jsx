@@ -94,7 +94,7 @@ describe("Auth page validation", () => {
     fireEvent.change(screen.getByPlaceholderText("********"), {
       target: { value: "AnyPassword1!" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /Access Dashboard/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Sign in/i }));
 
     await waitFor(() => {
       expect(adminLogin).toHaveBeenCalledWith({
