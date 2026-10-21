@@ -11,10 +11,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { STATUS_CONFIG } from "@/config/constants";
+import { STATUS_CONFIG, PRIORITY_CONFIG } from "@/config/constants";
 
 const STATUS_OPTIONS = [
-  { value: "all", label: "All Statuses" },
+  { value: "all", label: "All statuses" },
   ...Object.entries(STATUS_CONFIG).map(([value, config]) => ({
     value,
     label: config?.label || value,
@@ -136,10 +136,10 @@ export function ActiveIncidentsList({
                       {incident.title}
                     </h3>
                   </div>
-                  <span className="text-xs text-muted-foreground">{incident.timeAgo || "-"}</span>
+                  <span className="text-xs text-muted-foreground">{incident.timeAgo || "—"}</span>
                 </div>
 
-                <p className="mb-2 text-xs font-medium text-muted-foreground">{incident.categoryLabel || "-"}</p>
+                <p className="mb-2 text-xs font-medium text-muted-foreground">{incident.categoryLabel || "—"}</p>
 
                 <div className="flex items-end justify-between gap-2">
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -154,7 +154,7 @@ export function ActiveIncidentsList({
                         priorityStyles[incident.priority] || priorityStyles.unknown
                       )}
                     >
-                      {incident.priority || "unknown"}
+                      {PRIORITY_CONFIG[incident.priority]?.label || "Unknown"}
                     </Badge>
                     <Badge
                       className={cn(
@@ -162,7 +162,7 @@ export function ActiveIncidentsList({
                         statusStyles[incident.status] || statusStyles.unknown
                       )}
                     >
-                      {incident.statusLabel || incident.status || "unknown"}
+                      {incident.statusLabel || STATUS_CONFIG[incident.status]?.label || "Unknown"}
                     </Badge>
                   </div>
                 </div>

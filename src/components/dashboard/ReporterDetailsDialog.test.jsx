@@ -15,7 +15,8 @@ describe("ReporterDetailsDialog", () => {
     );
 
     expect(screen.getByText(/No linked reporter profile was found/i)).toBeInTheDocument();
-    expect(screen.getAllByText("Not available")).toHaveLength(3);
+    expect(screen.getAllByText("Not recorded")).toHaveLength(2);
+    expect(screen.getByText("No phone number on file")).toBeInTheDocument();
   });
 
   it("renders reporter details and action links when phone/email exist", () => {

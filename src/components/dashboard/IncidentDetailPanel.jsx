@@ -5,7 +5,7 @@ import MapCanvas from "@/components/map/MapCanvas";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { PRIORITY_CONFIG } from "@/config/constants";
+import { PRIORITY_CONFIG, STATUS_CONFIG } from "@/config/constants";
 
 const priorityStyles = {
   critical: "bg-destructive text-destructive-foreground",
@@ -16,9 +16,9 @@ const priorityStyles = {
 };
 
 function formatDate(value) {
-  if (!value) return "-";
+  if (!value) return "—";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
+  if (Number.isNaN(date.getTime())) return "—";
   return formatDistanceToNow(date, { addSuffix: true });
 }
 
@@ -53,19 +53,19 @@ export function IncidentDetailPanel({ incident, mapState, actions }) {
       <div className="shrink-0 space-y-4 p-5">
         <div className="space-y-1">
           <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            Incident #{incident.id || "-"}
+            Incident #{incident.id || "—"}
           </p>
           <h2 className="text-xl font-semibold text-foreground">{incident.title || "Untitled Incident"}</h2>
           <div className="flex flex-wrap items-center gap-2">
             <Badge className={priorityStyles[priority] || priorityStyles.unknown}>
               {priorityLabel}
             </Badge>
-            <Badge variant="outline">{incident.statusLabel || incident.status || "Unknown"}</Badge>
+            <Badge variant="outline">{incident.statusLabel || STATUS_CONFIG[incident.status]?.label || "Unknown"}</Badge>
             <Badge variant="outline">{incident.categoryLabel || "Other"}</Badge>
           </div>
           {!incident.priority && incident.priorityProposal && (
             <p className="text-xs text-muted-foreground">
-              Suggested from incident type: {PRIORITY_CONFIG[incident.priorityProposal]?.label || incident.priorityProposal}.
+              Suggested for this incident type: {PRIORITY_CONFIG[incident.priorityProposal]?.label || incident.priorityProposal}.
             </p>
           )}
         </div>
@@ -73,7 +73,7 @@ export function IncidentDetailPanel({ incident, mapState, actions }) {
         <div className="grid grid-cols-2 gap-2">
           <Button className="gap-2" onClick={actions?.onGoToIncidentWorkspace}>
             <Send className="h-4 w-4" />
-            Open Incident Workspace
+            Open incident
           </Button>
           <Button variant="outline" className="gap-2" onClick={actions?.onContactReporter}>
             <Phone className="h-4 w-4" />
@@ -110,7 +110,7 @@ export function IncidentDetailPanel({ incident, mapState, actions }) {
                 onClick={actions?.onOpenMap}
               >
                 <ExternalLink className="h-3.5 w-3.5" />
-                Open Map View
+                Open map
               </Button>
             </div>
           )}
@@ -122,15 +122,15 @@ export function IncidentDetailPanel({ incident, mapState, actions }) {
           </h3>
           <div className="grid grid-cols-2 gap-3 text-xs">
             <div className="rounded-md border p-3">
-              <p className="text-muted-foreground">Assigned Department</p>
+              <p className="text-muted-foreground">Assigned response unit</p>
               <p className="mt-1 font-semibold text-foreground">
                 {incident.assignedDepartment || "Unassigned"}
               </p>
             </div>
             <div className="rounded-md border p-3">
-              <p className="text-muted-foreground">Reported By</p>
+              <p className="text-muted-foreground">Reported by</p>
               <p className="mt-1 font-semibold text-foreground">
-                {incident.reporter?.name || incident.reportedByUserId || "—"}
+                {incident.reporter?.name || "Unknown user"}
               </p>
             </div>
             <div className="rounded-md border p-3">

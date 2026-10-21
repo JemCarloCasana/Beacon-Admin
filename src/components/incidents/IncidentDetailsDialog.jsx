@@ -38,7 +38,7 @@ const ASSIGN_DEPARTMENT_OPTIONS = [
 const UNASSIGNED_DEPARTMENT_VALUE = "__unassigned__";
 
 function formatCoordinates(location) {
-  if (!Number.isFinite(location?.latitude) || !Number.isFinite(location?.longitude)) return "-";
+  if (!Number.isFinite(location?.latitude) || !Number.isFinite(location?.longitude)) return "—";
   return `Lat ${location.latitude.toFixed(5)}, Lng ${location.longitude.toFixed(5)}`;
 }
 
@@ -63,16 +63,16 @@ function normalizeIncidentType(value) {
 }
 
 function getStatusErrorMessage(statusCode, fallback) {
-  if (statusCode === 400) return "400 Bad Request: Invalid incident update input.";
-  if (statusCode === 403) return "403 Forbidden: You do not have permission to manage incidents.";
-  if (statusCode === 404) return "404 Not Found: Incident not found.";
-  if (statusCode === 409) return "409 Conflict: Invalid status transition.";
+  if (statusCode === 400) return "That update was not accepted.";
+  if (statusCode === 403) return "You do not have permission to change incidents.";
+  if (statusCode === 404) return "That incident no longer exists.";
+  if (statusCode === 409) return "That status change is not allowed from the current status.";
   return fallback || "Failed to update incident.";
 }
 
 function getDetailErrorMessage(statusCode, fallback) {
-  if (statusCode === 403) return "403 Forbidden: You do not have permission to view this incident.";
-  if (statusCode === 404) return "404 Not Found: Incident not found.";
+  if (statusCode === 403) return "You do not have permission to view this incident.";
+  if (statusCode === 404) return "That incident no longer exists.";
   return fallback || "Failed to load incident details.";
 }
 
@@ -152,7 +152,7 @@ export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incident
     if (!PRIORITY_FLOW.includes(effectivePriority)) {
       toast({
         title: "Invalid priority",
-        description: "Priority must be one of: critical, high, medium, low.",
+        description: "Priority must be one of: Critical, High, Medium, Low.",
         variant: "destructive",
       });
       return;
@@ -161,7 +161,7 @@ export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incident
     if (!STATUS_FLOW.includes(status)) {
       toast({
         title: "Invalid status",
-        description: "Status must be one of: pending, dispatched, in_progress, resolved.",
+        description: "Status must be one of: Pending, Dispatched, In Progress, Resolved.",
         variant: "destructive",
       });
       return;
@@ -179,7 +179,7 @@ export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incident
     if (normalizedCurrentStatus && status !== normalizedCurrentStatus && status !== nextAllowedStatus) {
       toast({
         title: "Invalid transition",
-        description: "Status must follow pending -> dispatched -> in_progress -> resolved.",
+        description: "Status must follow Pending → Dispatched → In Progress → Resolved.",
         variant: "destructive",
       });
       return;
@@ -191,7 +191,7 @@ export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incident
     ) {
       toast({
         title: "Invalid department",
-        description: "Assign department must match one of the allowed department options.",
+        description: "The response unit must be one of the available options.",
         variant: "destructive",
       });
       return;
@@ -303,9 +303,9 @@ export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incident
 
             {canManage ? (
               <div className="rounded-lg border p-4">
-                <div className="mb-3 text-sm font-medium">Update Incident</div>
+                <div className="mb-3 text-sm font-medium">Update incident</div>
               <div className="mb-3 rounded-md bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-                Reporter notifications are sent only when status changes to Dispatched, In Progress, or Resolved.
+                Reporter notifications are sent only when the status changes to Dispatched, In Progress, or Resolved.
                 Editing assignment, priority, or notes alone does not notify the reporter.
               </div>
               <div className="grid gap-3 md:grid-cols-2">
@@ -345,7 +345,7 @@ export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incident
                   </Select>
                   {!serverPriority && priorityProposal && (
                     <p className="text-xs text-muted-foreground">
-                      Suggested from incident type: {getPriorityLabel(priorityProposal)}.
+                      Suggested for this incident type: {getPriorityLabel(priorityProposal)}.
                     </p>
                   )}
                 </div>
@@ -358,7 +358,7 @@ export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incident
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="incident-assigned-department">Assign Department</Label>
+                  <Label htmlFor="incident-assigned-department">Response unit</Label>
                   <Select
                     value={assignedDepartment || UNASSIGNED_DEPARTMENT_VALUE}
                     disabled={false}
@@ -369,7 +369,7 @@ export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incident
                     }
                   >
                     <SelectTrigger id="incident-assigned-department">
-                      <SelectValue placeholder="Select department" />
+                      <SelectValue placeholder="Select response unit" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value={UNASSIGNED_DEPARTMENT_VALUE}>Unassigned</SelectItem>
@@ -382,7 +382,7 @@ export function IncidentDetailsDialog({ open, onOpenChange, incidentId, incident
                   </Select>
                   {!serverDepartment && departmentProposal && (
                     <p className="text-xs text-muted-foreground">
-                      Suggested from incident type: {departmentProposal}.
+                      Suggested response unit: {departmentProposal}.
                     </p>
                   )}
                 </div>

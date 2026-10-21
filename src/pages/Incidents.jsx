@@ -146,9 +146,9 @@ export default function Incidents() {
     const getStatusLabel = (value) => STATUS_CONFIG[value]?.label || 'Unknown';
     const getCategoryLabel = (value) => CATEGORY_CONFIG[value]?.label || value || 'Other';
     const getReportedLabel = (value) => {
-        if (!value) return '-';
+        if (!value) return '—';
         const date = new Date(value);
-        if (Number.isNaN(date.getTime())) return '-';
+        if (Number.isNaN(date.getTime())) return '—';
         return formatDistanceToNow(date, { addSuffix: true });
     };
 
@@ -261,7 +261,7 @@ export default function Incidents() {
                             {!authLoading && !incidentsQuery.isLoading && !incidentsQuery.isError && filteredIncidents.length === 0 && (
                                 <TableRow>
                                     <TableCell colSpan={8} className="text-center text-sm text-muted-foreground">
-                                        No incidents found.
+                                        No incidents match these filters.
                                     </TableCell>
                                 </TableRow>
                             )}
@@ -272,7 +272,7 @@ export default function Incidents() {
                                         {incident.imageUrl ? (
                                             <ProtectedIncidentImage
                                                 imageUrl={incident.imageUrl}
-                                                alt={`Incident ${incident.id || ''} thumbnail`.trim()}
+                                                alt={incident.id ? `Incident ${incident.id} thumbnail` : "Incident thumbnail"}
                                                 className="h-12 w-12 rounded-md border object-cover"
                                                 loadingClassName="flex h-12 w-12 items-center justify-center rounded-md border bg-muted/20 text-xs text-muted-foreground"
                                                 fallbackClassName="flex h-12 w-12 items-center justify-center rounded-md border bg-muted/30 text-xs text-muted-foreground"
@@ -280,7 +280,7 @@ export default function Incidents() {
                                                 loadingText="..."
                                             />
                                         ) : (
-                                            <span className="text-xs text-muted-foreground">-</span>
+                                            <span className="text-xs text-muted-foreground">—</span>
                                         )}
                                     </TableCell>
                                     <TableCell>
@@ -310,7 +310,7 @@ export default function Incidents() {
                                         <div className="flex items-center gap-1 text-sm text-muted-foreground">
                                             <MapPin className="h-3 w-3" />
                                             <span className="max-w-[150px] truncate">
-                                                {incident.location?.address || 'Unknown'}
+                                                {incident.location?.address || 'Location unavailable'}
                                             </span>
                                         </div>
                                     </TableCell>

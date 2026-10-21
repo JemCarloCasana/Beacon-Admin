@@ -242,6 +242,6 @@ describe("Incidents page", () => {
         </Routes>
       </MemoryRouter>
     );
-    expect(screen.getByText("No incidents found.")).toBeInTheDocument();
+    expect(screen.getByText("No incidents match these filters.")).toBeInTheDocument();
   });
 });

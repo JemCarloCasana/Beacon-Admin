@@ -9,9 +9,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-function valueOrFallback(value) {
+function valueOrFallback(value, fallback) {
   const text = String(value || "").trim();
-  return text || "Not available";
+  return text || fallback;
 }
 
 export function ReporterDetailsDialog({
@@ -39,7 +39,7 @@ export function ReporterDetailsDialog({
         <DialogHeader>
           <DialogTitle>Reporter Details</DialogTitle>
           <DialogDescription>
-            Incident #{incidentId || "-"} {incidentTitle ? `- ${incidentTitle}` : ""}
+            Incident #{incidentId || "—"} {incidentTitle ? `- ${incidentTitle}` : ""}
           </DialogDescription>
         </DialogHeader>
 
@@ -66,7 +66,7 @@ export function ReporterDetailsDialog({
             <UserRound className="h-4 w-4 text-muted-foreground" />
             <div>
               <p className="text-xs text-muted-foreground">Name</p>
-              <p className="text-sm font-medium">{valueOrFallback(reporter.name)}</p>
+              <p className="text-sm font-medium">{valueOrFallback(reporter.name, "Not recorded")}</p>
             </div>
           </div>
 
@@ -74,7 +74,7 @@ export function ReporterDetailsDialog({
             <Phone className="h-4 w-4 text-muted-foreground" />
             <div className="min-w-0 flex-1">
               <p className="text-xs text-muted-foreground">Phone</p>
-              <p className="truncate text-sm font-medium">{valueOrFallback(reporter.phone)}</p>
+              <p className="truncate text-sm font-medium">{valueOrFallback(reporter.phone, "No phone number on file")}</p>
             </div>
             {hasPhone && (
               <Button asChild size="sm" variant="outline">
@@ -87,7 +87,7 @@ export function ReporterDetailsDialog({
             <Mail className="h-4 w-4 text-muted-foreground" />
             <div className="min-w-0 flex-1">
               <p className="text-xs text-muted-foreground">Email</p>
-              <p className="truncate text-sm font-medium">{valueOrFallback(reporter.email)}</p>
+              <p className="truncate text-sm font-medium">{valueOrFallback(reporter.email, "Not recorded")}</p>
             </div>
             {hasEmail && (
               <Button asChild size="sm" variant="outline">

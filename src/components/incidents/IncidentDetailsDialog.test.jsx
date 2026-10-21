@@ -59,9 +59,9 @@ open
     expect(image).toBeInTheDocument();
     expect(image).toHaveAttribute("src", "https://cdn.example.com/incident.jpg");
     expect(screen.getByText("Incident Type")).toBeInTheDocument();
-    expect(screen.getByText("Assign Department")).toBeInTheDocument();
+    expect(screen.getByText("Response unit")).toBeInTheDocument();
     expect(
-      screen.getByText(/reporter notifications are sent only when status changes to dispatched, in progress, or resolved/i)
+      screen.getByText(/reporter notifications are sent only when the status changes to dispatched, in progress, or resolved/i)
     ).toBeInTheDocument();
     expect(
       screen.getByText(/editing assignment, priority, or notes alone does not notify the reporter/i)
@@ -118,7 +118,7 @@ open
       />
     );
 
-    fireEvent.click(screen.getByLabelText("Assign Department"));
+    fireEvent.click(screen.getByLabelText("Response unit"));
     expect(screen.getByText("Emergency Medical Unit")).toBeInTheDocument();
     expect(screen.getByText("Fire Station Unit")).toBeInTheDocument();
     expect(screen.getByText("Police Personnel")).toBeInTheDocument();
@@ -295,7 +295,7 @@ open
       />
     );
 
-    expect(screen.getByText("Suggested from incident type: Fire Station Unit.")).toBeInTheDocument();
+    expect(screen.getByText("Suggested response unit: Fire Station Unit.")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
 
     expect(mutateAsync).toHaveBeenCalledWith(
@@ -323,7 +323,7 @@ open
 
     render(<IncidentDetailsDialog canManage open onOpenChange={() => {}} incidentId={19} />);
 
-    expect(screen.queryByText(/Suggested from incident type/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Suggested for this incident type/i)).not.toBeInTheDocument();
   });
 });
 

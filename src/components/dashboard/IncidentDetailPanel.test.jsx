@@ -54,13 +54,13 @@ describe("IncidentDetailPanel", () => {
   it("suggests the category priority without asserting it", () => {
     renderPanel({ incident: { ...incident, priority: null, priorityProposal: "critical" } });
 
-    expect(screen.getByText(/suggested from incident type/i)).toBeInTheDocument();
+    expect(screen.getByText(/suggested for this incident type/i)).toBeInTheDocument();
   });
 
   it("does not suggest a priority the server already set", () => {
     renderPanel();
 
-    expect(screen.queryByText(/suggested from incident type/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/suggested for this incident type/i)).not.toBeInTheDocument();
   });
 
   it("names the reporter rather than a user id", () => {
